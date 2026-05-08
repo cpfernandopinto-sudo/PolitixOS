@@ -1,53 +1,71 @@
-import React from 'react';
+import { Suspense } from 'react';
 import FilterBar from '@/components/FilterBar';
-import KpiCard from '@/components/ui/KpiCard';
-import ChartCard from '@/components/ui/ChartCard';
-import GaugeChart from '@/components/charts/GaugeChart';
-import LineChart from '@/components/charts/LineChart';
-import BarChart from '@/components/charts/BarChart';
-import DonutChart from '@/components/charts/DonutChart';
-import DataTable from '@/components/ui/DataTable';
+import DashboardContent from './DashboardContent';
+import { getCandidateOptions, getCityOptions, getSourceOptions } from '@/lib/queries/noticias';
+import type { NoticiasFilters } from '@/lib/types/noticias';
 
-import { 
-  getKPIs, 
-  getGaugeScore, 
-  getNoticiasPorTempo, 
-  getSentimento, 
-  getFontes, 
-  getRiscosPorFonte, 
-  getTemas, 
-  getEntidades, 
-  getRiscos, 
-  getRiscoTempo, 
-  getFeedNoticias 
-} from '@/lib/queries/noticias';
+// Next.js 15+: searchParams é uma Promise
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function NoticiasDashboard() {
-  // Fetch mock data concurrently
-  const [
-    kpis, 
-    gauge, 
-    tempoData, 
-    sentimentoData, 
-    fontesData, 
-    riscosFonteData, 
-    temasData, 
-    entidadesData, 
-    riscosData, 
-    riscoTempoData, 
-    feedData
-  ] = await Promise.all([
-    getKPIs(),
-    getGaugeScore(),
-    getNoticiasPorTempo(),
-    getSentimento(),
-    getFontes(),
-    getRiscosPorFonte(),
-    getTemas(),
-    getEntidades(),
-    getRiscos(),
-    getRiscoTempo(),
-    getFeedNoticias()
+function str(v: string | string[] | undefined): string | null {
+  if (!v) return null;
+  const s = Array.isArray(v) ? v[0] : v;
+  return s || null;
+}
+
+function buildFilters(
+  params: Record<string, string | string[] | undefined>
+): NoticiasFilters {
+  return {
+    candidate: str(params.candidate),
+    city:      str(params.city),
+    source:    str(params.source),
+    sentiment: str(params.sentiment),
+    period:    str(params.period),
+    search:    str(params.search),
+  };
+}
+
+// Skeleton mostrado enquanto DashboardContent carrega
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className={`${i === 0 ? 'lg:col-span-2' : ''} h-24 rounded-xl bg-white/5`} />
+        ))}
+      </div>
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-72 rounded-xl bg-white/5" />
+        ))}
+      </div>
+      {/* Feed */}
+      <div className="h-64 rounded-xl bg-white/5" />
+    </div>
+  );
+}
+
+// Skeleton do FilterBar enquanto useSearchParams hidrata
+function FilterBarSkeleton() {
+  return (
+    <div className="bg-[#12192A] border border-white/5 rounded-xl p-4 h-14 animate-pulse mb-6" />
+  );
+}
+
+export default async function NoticiasDashboard({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const filters = buildFilters(params);
+
+  // Opções de filtro carregadas sem restrições (sempre completas)
+  const [candidates, cities, sources] = await Promise.all([
+    getCandidateOptions(),
+    getCityOptions(),
+    getSourceOptions(),
   ]);
 
   return (
@@ -55,83 +73,21 @@ export default async function NoticiasDashboard() {
       <div className="flex justify-between items-end mb-6">
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Radar de Notícias</h2>
-          <p className="text-gray-400 text-sm mt-1">Monitoramento em tempo real de citações, sentimento e risco político.</p>
+          <p className="text-gray-400 text-sm mt-1">
+            Monitoramento em tempo real de citações, sentimento e risco político.
+          </p>
         </div>
       </div>
 
-      <FilterBar />
+      {/* FilterBar precisa de Suspense por usar useSearchParams() internamente */}
+      <Suspense fallback={<FilterBarSkeleton />}>
+        <FilterBar candidates={candidates} cities={cities} sources={sources} />
+      </Suspense>
 
-      {/* SEÇÃO 1: KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {kpis.map((kpi, idx) => (
-          <div key={idx} className={idx === 0 ? "lg:col-span-2" : "col-span-1"}>
-            <KpiCard title={kpi.title} value={kpi.value} status={kpi.status} />
-          </div>
-        ))}
-        <div className="lg:col-span-2 row-span-2">
-          <ChartCard title="Termômetro de Crise" className="h-full flex flex-col items-center justify-center pt-8">
-            <GaugeChart score={gauge.score} level={gauge.level as any} />
-            <div className="text-center mt-[-30px]">
-              <span className={`text-xl font-bold px-4 py-1 rounded-full ${
-                gauge.level === 'danger' ? 'bg-[#FF3B3B]/10 text-[#FF3B3B]' : 
-                gauge.level === 'warning' ? 'bg-[#FACC15]/10 text-[#FACC15]' : 
-                'bg-[#22C55E]/10 text-[#22C55E]'
-              }`}>
-                {gauge.statusText}
-              </span>
-            </div>
-          </ChartCard>
-        </div>
-      </div>
-
-      {/* SEÇÃO 2: ANÁLISE PRINCIPAL */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Evolução da Relevância no Tempo">
-          <LineChart dates={tempoData.dates} values={tempoData.values} />
-        </ChartCard>
-        <ChartCard title="Volume por Fonte">
-          <BarChart categories={fontesData.categories} values={fontesData.values} horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Distribuição de Sentimento">
-          <DonutChart data={sentimentoData} />
-        </ChartCard>
-        <ChartCard title="Riscos por Fonte" danger={true}>
-          <BarChart categories={riscosFonteData.categories} values={riscosFonteData.values} color="#FF3B3B" horizontal={true} />
-        </ChartCard>
-      </div>
-
-      {/* SEÇÃO 3: INTELIGÊNCIA */}
-      <h3 className="text-xl font-bold text-white tracking-tight mt-10 mb-4 flex items-center gap-2">
-        <span className="w-1 h-6 bg-[#00FFFF] rounded-full"></span> Inteligência Tática
-      </h3>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Temas Mais Citados">
-          <BarChart categories={temasData.categories} values={temasData.values} color="#22C55E" horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Entidades Mais Citadas">
-          <BarChart categories={entidadesData.categories} values={entidadesData.values} color="#00FFFF" horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Riscos Mais Recorrentes" danger={true}>
-          <BarChart categories={riscosData.categories} values={riscosData.values} color="#FF3B3B" horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Evolução do Risco">
-          <LineChart 
-            dates={riscoTempoData.dates} 
-            seriesData={[
-              { name: 'Baixo', data: riscoTempoData.baixo, color: '#22C55E' },
-              { name: 'Médio', data: riscoTempoData.medio, color: '#FACC15' },
-              { name: 'Alto', data: riscoTempoData.alto, color: '#FF3B3B' }
-            ]} 
-          />
-        </ChartCard>
-      </div>
-
-      {/* SEÇÃO 4: FEED DE NOTÍCIAS */}
-      <h3 className="text-xl font-bold text-white tracking-tight mt-10 mb-4 flex items-center gap-2">
-        <span className="w-1 h-6 bg-[#2563EB] rounded-full"></span> Feed de Notícias em Tempo Real
-      </h3>
-      <DataTable data={feedData} />
-
+      {/* DashboardContent suspende enquanto busca dados filtrados */}
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent filters={filters} />
+      </Suspense>
     </div>
   );
 }
