@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Newspaper, AlertTriangle, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Newspaper, AlertTriangle, Users, Settings, LogOut, Hash } from 'lucide-react';
 
 export default function Sidebar() {
   return (
@@ -18,6 +18,10 @@ export default function Sidebar() {
         <Link href="/dashboard/noticias" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-600/10 text-[#2563EB] border border-blue-500/20 transition-colors">
           <Newspaper size={20} className="text-[#2563EB]" />
           <span className="font-medium">Radar de Notícias</span>
+        </Link>
+        <Link href="/dashboard/instagram" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+          <Hash size={20} />
+          <span className="font-medium">Radar Instagram</span>
         </Link>
         <Link href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
           <AlertTriangle size={20} />
