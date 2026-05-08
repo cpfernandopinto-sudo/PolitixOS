@@ -32,53 +32,78 @@ export function cleanFilter(v: string | string[] | undefined): string | null {
 export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   const client = createClient();
 
-  // 1. Fetch Comments
-  let cQuery = client.from('instagram_comments').select('id, post_id, comment_text, created_at_instagram, like_count');
-  
+  let pQuery = client.from('instagram_posts').select('*');
   if (filters?.period) {
     const days = parseInt(filters.period, 10);
-    if (!isNaN(days) && days > 0) {
+    if (days > 0) {
+      const from = new Date();
+      from.setDate(from.getDate() - days);
+      pQuery = pQuery.gte('created_at_instagram', from.toISOString());
+    }
+  }
+  const { data: rawPosts } = await pQuery.order('created_at_instagram', { ascending: false }).limit(200);
+  const postsData = rawPosts || [];
+  
+  let cQuery = client.from('instagram_comments').select('*');
+  if (filters?.period) {
+    const days = parseInt(filters.period, 10);
+    if (days > 0) {
       const from = new Date();
       from.setDate(from.getDate() - days);
       cQuery = cQuery.gte('created_at_instagram', from.toISOString());
     }
   }
+  const { data: rawComments } = await cQuery.order('created_at_instagram', { ascending: false }).limit(1000);
+  const commentsData = rawComments || [];
 
-  const { data: comments, error: cErr } = await cQuery.order('created_at_instagram', { ascending: false }).limit(1000);
-  if (cErr || !comments || comments.length === 0) return [];
+  const postIds = [...new Set(postsData.map(p => p.id))];
+  const commentIds = [...new Set(commentsData.map(c => c.id))];
+  const missingPostIds = [...new Set(commentsData.map(c => c.post_id))].filter(id => !postIds.includes(id));
 
-  const commentIds = comments.map(c => c.id);
-  const postIds = [...new Set(comments.map(c => c.post_id))];
-
-  // 2. Fetch AI Analysis for these comments
-  const { data: aiData } = await client
-    .from('ai_analysis')
-    .select('content_id, sentiment, risk_level, ai_topics')
-    .in('content_type', ['instagram_comment', 'comment'])
-    .in('content_id', commentIds);
-
-  const aiMap = new Map();
-  if (aiData) {
-    for (const a of aiData) {
-      aiMap.set(a.content_id, a);
+  if (missingPostIds.length > 0) {
+    const { data: extraPosts } = await client.from('instagram_posts').select('*').in('id', missingPostIds);
+    if (extraPosts) {
+      postsData.push(...extraPosts);
+      postIds.push(...extraPosts.map(p => p.id));
     }
   }
 
-  // 3. Fetch Posts for these comments
-  const { data: postsData } = await client
-    .from('instagram_posts')
-    .select('id, url, caption')
-    .in('id', postIds);
+  const aiContentIds = [...postIds, ...commentIds];
+  
+  const aiMap = new Map();
+  if (aiContentIds.length > 0) {
+    // Batched request or simple IN since limits are small
+    const { data: aiData } = await client
+      .from('ai_analysis')
+      .select('content_id, sentiment, risk_level, ai_topics, summary, risk_reason')
+      .in('content_type', ['instagram_post', 'post', 'instagram_comment', 'comment'])
+      .in('content_id', aiContentIds);
+
+    if (aiData) {
+      for (const a of aiData) aiMap.set(a.content_id, a);
+    }
+  }
 
   const postsMap = new Map();
-  if (postsData) {
-    for (const p of postsData) {
-      postsMap.set(p.id, p);
-    }
+  for (const p of postsData) {
+    const ai = aiMap.get(p.id);
+    postsMap.set(p.id, {
+      id: p.id,
+      text: p.caption || '',
+      created_at: p.created_at_instagram,
+      like_count: p.like_count || 0,
+      comment_count: p.comment_count || 0,
+      url: p.url || '#',
+      sentiment: ai?.sentiment || 'neutro',
+      risk: ai?.risk_level || 'baixo',
+      topics: parseJsonField(ai?.ai_topics),
+      ai_summary: ai?.summary || '',
+      ai_risk_reason: ai?.risk_reason || '',
+    });
   }
 
-  // 4. JOIN in memory
-  let joined = comments.map(c => {
+  let posts = Array.from(postsMap.values());
+  let comments = commentsData.map(c => {
     const ai = aiMap.get(c.id);
     const p = postsMap.get(c.post_id);
     return {
@@ -88,132 +113,112 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
       like_count: c.like_count || 0,
       post_id: c.post_id,
       post_url: p?.url || '#',
-      post_caption: p?.caption || 'Post',
+      post_caption: p?.text || 'Post',
       sentiment: ai?.sentiment || 'neutro',
       risk: ai?.risk_level || 'baixo',
       topics: parseJsonField(ai?.ai_topics),
     };
   });
 
-  // 5. Apply JS Filters
   if (filters?.sentiment) {
-    joined = joined.filter(j => j.sentiment.toLowerCase() === filters.sentiment!.toLowerCase());
+    posts = posts.filter(p => p.sentiment.toLowerCase() === filters.sentiment!.toLowerCase());
+    comments = comments.filter(c => c.sentiment.toLowerCase() === filters.sentiment!.toLowerCase());
   }
   if (filters?.risk) {
-    joined = joined.filter(j => j.risk.toLowerCase() === filters.risk!.toLowerCase());
+    posts = posts.filter(p => p.risk.toLowerCase() === filters.risk!.toLowerCase());
+    comments = comments.filter(c => c.risk.toLowerCase() === filters.risk!.toLowerCase());
   }
   if (filters?.topic) {
-    joined = joined.filter(j => j.topics.includes(filters.topic!));
+    posts = posts.filter(p => p.topics.includes(filters.topic!));
+    comments = comments.filter(c => c.topics.includes(filters.topic!));
   }
   if (filters?.post) {
-    joined = joined.filter(j => j.post_id === filters.post);
+    posts = posts.filter(p => p.id === filters.post);
+    comments = comments.filter(c => c.post_id === filters.post);
   }
 
-  return joined;
+  return { posts, comments };
 });
 
-// KPIs
 export async function getInstagramKPIs(filters?: InstagramFilters) {
-  const data = await fetchInstagramData(filters);
-  const total = data.length;
-  const positivos = data.filter(d => d.sentiment === 'positivo').length;
-  const negativos = data.filter(d => d.sentiment === 'negativo').length;
-  const altoRisco = data.filter(d => d.risk === 'alto').length;
-  const engajamento = data.reduce((acc, d) => acc + d.like_count, 0) + total;
+  const { posts, comments } = await fetchInstagramData(filters);
+  const totalPosts = posts.length;
+  const totalComments = comments.length;
+  
+  const postLikes = posts.reduce((acc, p) => acc + p.like_count + p.comment_count, 0);
+  const commentLikes = comments.reduce((acc, c) => acc + c.like_count, 0);
+  const engajamento = postLikes + commentLikes;
+
+  const positivos = posts.filter(d => d.sentiment === 'positivo').length;
+  const negativos = posts.filter(d => d.sentiment === 'negativo').length;
+  const altoRisco = posts.filter(d => d.risk === 'alto').length;
 
   return [
-    { title: 'Total Comentários', value: total },
-    { title: 'Positivos', value: positivos },
-    { title: 'Negativos', value: negativos },
-    { title: 'Risco Alto', value: altoRisco },
-    { title: 'Engajamento', value: engajamento },
+    { title: 'Posts Monitorados', value: totalPosts },
+    { title: 'Total Comentários', value: totalComments },
+    { title: 'Engajamento Total', value: engajamento },
+    { title: 'Posts Positivos', value: positivos },
+    { title: 'Posts Negativos', value: negativos },
+    { title: 'Posts c/ Risco Alto', value: altoRisco },
   ];
 }
 
-// Alertas
 export async function getInstagramAlerts(filters?: InstagramFilters) {
-  const data = await fetchInstagramData(filters);
-  const total = data.length;
-  if (total === 0) return [];
-
-  const negativos = data.filter(d => d.sentiment === 'negativo').length;
-  const altoRisco = data.filter(d => d.risk === 'alto').length;
-
+  const { posts, comments } = await fetchInstagramData(filters);
   const alerts = [];
-  if (negativos / total > 0.4) {
-    alerts.push({ tipo: 'sentimento' as const, nivel: 'alto' as const, mensagem: 'Aumento de comentários negativos detectado.' });
+  
+  if (posts.filter(p => p.risk === 'alto').length > 0) {
+    alerts.push({ tipo: 'risco' as const, nivel: 'critico' as const, mensagem: 'Post de alto risco detectado.' });
   }
-  if (altoRisco > 5) {
-    alerts.push({ tipo: 'risco' as const, nivel: 'critico' as const, mensagem: 'Aumento de risco alto nos comentários.' });
+  
+  const totalC = comments.length;
+  if (totalC > 0) {
+    const negs = comments.filter(c => c.sentiment === 'negativo').length;
+    if (negs / totalC > 0.4 && negs > 10) {
+      alerts.push({ tipo: 'sentimento' as const, nivel: 'alto' as const, mensagem: 'Volume crítico de comentários negativos.' });
+    }
   }
+  
   return alerts;
 }
 
 export async function getInstagramChartData(filters?: InstagramFilters) {
-  const data = await fetchInstagramData(filters);
+  const { posts } = await fetchInstagramData(filters);
   
-  // comments by day
-  const byDayMap: Record<string, number> = {};
-  for (const d of data) {
-    if (!d.created_at) continue;
-    const date = new Date(d.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    byDayMap[date] = (byDayMap[date] || 0) + 1;
-  }
-
-  const byDay = Object.keys(byDayMap).length > 0 
-    ? Object.entries(byDayMap).map(([date, count]) => ({ date, count })) 
-    : [{ date: 'Sem dados', count: 0 }];
-
   const sentimentData = [
-    { name: 'Positivo', value: data.filter(d => d.sentiment === 'positivo').length, itemStyle: { color: '#22C55E' } },
-    { name: 'Neutro', value: data.filter(d => d.sentiment === 'neutro' || d.sentiment === 'misto').length, itemStyle: { color: '#2563EB' } },
-    { name: 'Negativo', value: data.filter(d => d.sentiment === 'negativo').length, itemStyle: { color: '#FF3B3B' } },
+    { name: 'Positivo', value: posts.filter(d => d.sentiment === 'positivo').length, itemStyle: { color: '#22C55E' } },
+    { name: 'Neutro', value: posts.filter(d => d.sentiment === 'neutro' || d.sentiment === 'misto').length, itemStyle: { color: '#2563EB' } },
+    { name: 'Negativo', value: posts.filter(d => d.sentiment === 'negativo').length, itemStyle: { color: '#FF3B3B' } },
   ];
 
   const riskData = [
-    { name: 'Baixo', value: data.filter(d => d.risk === 'baixo').length, itemStyle: { color: '#22C55E' } },
-    { name: 'Médio', value: data.filter(d => d.risk === 'medio').length, itemStyle: { color: '#EAB308' } },
-    { name: 'Alto', value: data.filter(d => d.risk === 'alto').length, itemStyle: { color: '#FF3B3B' } },
+    { name: 'Baixo', value: posts.filter(d => d.risk === 'baixo').length, itemStyle: { color: '#22C55E' } },
+    { name: 'Médio', value: posts.filter(d => d.risk === 'medio').length, itemStyle: { color: '#EAB308' } },
+    { name: 'Alto', value: posts.filter(d => d.risk === 'alto').length, itemStyle: { color: '#FF3B3B' } },
   ];
 
-  const topicsMap: Record<string, number> = {};
-  for (const d of data) {
-    for (const t of d.topics) {
-      topicsMap[t] = (topicsMap[t] || 0) + 1;
-    }
-  }
-  const topTopics = Object.keys(topicsMap).length > 0 
-    ? Object.entries(topicsMap).sort((a,b) => b[1]-a[1]).slice(0, 8).map(([name, value]) => ({ name, value }))
-    : [{ name: 'Nenhum tema', value: 0 }];
-
-  const postsCount: Record<string, { title: string; count: number }> = {};
-  for (const d of data) {
-    if (!postsCount[d.post_id]) {
-      postsCount[d.post_id] = { title: d.post_caption.substring(0, 30), count: 0 };
-    }
-    postsCount[d.post_id].count++;
-  }
-  const topPosts = Object.keys(postsCount).length > 0
-    ? Object.entries(postsCount).sort((a,b) => b[1].count - a[1].count).slice(0, 5).map(([id, info]) => ({ name: info.title, value: info.count }))
+  const sortedByEng = [...posts].sort((a,b) => (b.like_count + b.comment_count) - (a.like_count + a.comment_count)).slice(0, 5);
+  const topEng = sortedByEng.length > 0 
+    ? sortedByEng.map(p => ({ name: (p.text || '').substring(0,25) || 'Post', value: p.like_count + p.comment_count }))
     : [{ name: 'Sem posts', value: 0 }];
 
-  return { byDay, sentimentData, riskData, topTopics, topPosts };
+  const sortedByRisk = [...posts].filter(p => p.risk === 'alto' || p.risk === 'medio').sort((a,b) => (b.risk === 'alto' ? 1 : 0) - (a.risk === 'alto' ? 1 : 0)).slice(0, 5);
+  const topRisk = sortedByRisk.length > 0
+    ? sortedByRisk.map(p => ({ name: (p.text || '').substring(0,25) || 'Post', value: p.risk === 'alto' ? 100 : 50 }))
+    : [{ name: 'Sem posts de risco', value: 0 }];
+
+  return { sentimentData, riskData, topEng, topRisk };
 }
 
 export async function getInstagramFiltersOptions() {
-  const data = await fetchInstagramData();
+  const { posts, comments } = await fetchInstagramData();
   const topics = new Set<string>();
-  const posts = new Map<string, string>();
-
-  for (const d of data) {
-    d.topics.forEach(t => topics.add(t));
-    if (d.post_caption) {
-      posts.set(d.post_id, d.post_caption.substring(0, 30) + '...');
-    }
-  }
+  
+  for (const p of posts) p.topics.forEach((t: string) => topics.add(t));
+  for (const c of comments) c.topics.forEach((t: string) => topics.add(t));
 
   return {
     topics: Array.from(topics).sort(),
-    posts: Array.from(posts.entries()).map(([id, label]) => ({ id, label })),
+    posts: posts.map(p => ({ id: p.id, label: (p.text || '').substring(0, 30) || 'Post' })),
   };
 }

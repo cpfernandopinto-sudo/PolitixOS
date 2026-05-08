@@ -22,7 +22,7 @@ export default async function InstagramPage({ searchParams }: PageProps) {
     post: cleanFilter(params.post),
   };
 
-  const [kpis, charts, feed, alerts, options] = await Promise.all([
+  const [kpis, charts, data, alerts, options] = await Promise.all([
     getInstagramKPIs(filters),
     getInstagramChartData(filters),
     fetchInstagramData(filters),
@@ -50,7 +50,7 @@ export default async function InstagramPage({ searchParams }: PageProps) {
       </Suspense>
 
       <Suspense fallback={<div className="h-64 bg-[#12192A] rounded-xl animate-pulse" />}>
-        <InstagramDashboard kpis={kpis} charts={charts} feed={feed} />
+        <InstagramDashboard kpis={kpis} charts={charts} posts={data.posts} comments={data.comments} />
       </Suspense>
     </div>
   );
