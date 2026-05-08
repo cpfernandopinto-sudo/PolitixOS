@@ -10,9 +10,11 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
     textStyle: { color: '#fff' }
   };
 
-  const optionRisk = {
-    tooltip: { trigger: 'item' },
-    series: [{ type: 'pie', radius: ['40%', '70%'], data: charts.riskData }],
+  const optionByDay = {
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: charts.byDay.map((d: any) => d.date) },
+    yAxis: { type: 'value' },
+    series: [{ data: charts.byDay.map((d: any) => d.count), type: 'line', smooth: true, lineStyle: { color: '#00FFFF' } }],
     backgroundColor: 'transparent',
     textStyle: { color: '#fff' }
   };
@@ -50,12 +52,12 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
       {/* Gráficos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-[#12192A] border border-white/5 rounded-xl p-4">
-          <h3 className="text-white font-medium mb-4">Sentimento (Posts)</h3>
-          <ReactECharts option={optionSentiment} style={{ height: 220 }} />
+          <h3 className="text-white font-medium mb-4">Comentários por Dia</h3>
+          <ReactECharts option={optionByDay} style={{ height: 220 }} />
         </div>
         <div className="bg-[#12192A] border border-white/5 rounded-xl p-4">
-          <h3 className="text-white font-medium mb-4">Risco (Posts)</h3>
-          <ReactECharts option={optionRisk} style={{ height: 220 }} />
+          <h3 className="text-white font-medium mb-4">Sentimento (Posts)</h3>
+          <ReactECharts option={optionSentiment} style={{ height: 220 }} />
         </div>
         <div className="bg-[#12192A] border border-white/5 rounded-xl p-4">
           <h3 className="text-white font-medium mb-4">Top Posts (Engajamento)</h3>
@@ -78,8 +80,8 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               <tr>
                 <th className="px-4 py-3 font-medium">Data</th>
                 <th className="px-4 py-3 font-medium">Texto / Legenda</th>
-                <th className="px-4 py-3 font-medium">Sentimento</th>
-                <th className="px-4 py-3 font-medium">Risco</th>
+                <th className="px-4 py-3 font-medium">Sentimento IA</th>
+                <th className="px-4 py-3 font-medium">Risco IA</th>
                 <th className="px-4 py-3 font-medium">Engajamento</th>
                 <th className="px-4 py-3 font-medium">Link</th>
               </tr>
@@ -122,9 +124,9 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               <tr>
                 <th className="px-4 py-3 font-medium">Data</th>
                 <th className="px-4 py-3 font-medium">Comentário</th>
+                <th className="px-4 py-3 font-medium">Post Relacionado</th>
                 <th className="px-4 py-3 font-medium">Sentimento</th>
                 <th className="px-4 py-3 font-medium">Risco</th>
-                <th className="px-4 py-3 font-medium">Post Relacionado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -134,13 +136,13 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                     {c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '—'}
                   </td>
                   <td className="px-4 py-3 max-w-xs truncate">{c.text}</td>
-                  <td className="px-4 py-3 capitalize">{c.sentiment}</td>
-                  <td className="px-4 py-3 capitalize">{c.risk}</td>
-                  <td className="px-4 py-3 truncate max-w-[120px]">
+                  <td className="px-4 py-3 truncate max-w-[150px]">
                     <a href={c.post_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline" title={c.post_caption}>
                       {c.post_caption}
                     </a>
                   </td>
+                  <td className="px-4 py-3 text-gray-600 font-mono">—</td>
+                  <td className="px-4 py-3 text-gray-600 font-mono">—</td>
                 </tr>
               ))}
               {comments.length === 0 && (
