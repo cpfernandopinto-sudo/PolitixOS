@@ -411,3 +411,66 @@ export async function getSourceOptions(): Promise<string[]> {
   if (!data) return []
   return [...new Set(data.map((r) => r.source as string))].sort()
 }
+
+// ─── Alertas de Crise ─────────────────────────────────────────────────────────
+
+export interface CrisisAlert {
+  tipo: 'volume' | 'sentimento' | 'risco';
+  nivel: 'alto' | 'critico';
+  mensagem: string;
+}
+
+export async function getCrisisAlerts(filters?: NoticiasFilters): Promise<CrisisAlert[]> {
+  const rows = await fetchMencoes(filters)
+  
+  const now = new Date()
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+  const rows24h = rows.filter((r) => r.published_at && new Date(r.published_at) >= last24h)
+  const rows7d = rows.filter((r) => r.published_at && new Date(r.published_at) >= last7d && new Date(r.published_at) < last24h)
+
+  const alerts: CrisisAlert[] = []
+
+  // Regra 1: Volume > média dos últimos 7 dias * 1.5
+  const volume24h = rows24h.length
+  const avg7d = rows7d.length / 7
+  if (avg7d > 0 && volume24h > avg7d * 1.5) {
+    alerts.push({
+      tipo: 'volume',
+      nivel: 'alto',
+      mensagem: 'Aumento anormal de menções nas últimas 24h',
+    })
+  }
+
+  // Regra 2: Sentimento negativo > 40%
+  if (rows24h.length > 0) {
+    const analisados = rows24h.filter((r) => r.ai_sentiment !== null)
+    const negativos = analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length
+    const pctNegativo = analisados.length > 0 ? (negativos / analisados.length) * 100 : 0
+    
+    if (pctNegativo > 40) {
+      alerts.push({
+        tipo: 'sentimento',
+        nivel: 'alto',
+        mensagem: 'Alto volume de notícias negativas',
+      })
+    }
+  }
+
+  // Regra 3: Risco (mais de 3 notícias com tema crítico)
+  const criticos = rows24h.filter((r) => {
+    const flags = parseJsonField(r.ai_risk_flags)
+    return isCrise(flags) || flags.some((f) => CRISE_FLAGS.has(f))
+  })
+
+  if (criticos.length > 3) {
+    alerts.push({
+      tipo: 'risco',
+      nivel: 'critico',
+      mensagem: 'Múltiplas citações a temas sensíveis',
+    })
+  }
+
+  return alerts
+}

@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
 import FilterBar from '@/components/FilterBar';
 import DashboardContent from './DashboardContent';
-import { getCandidateOptions, getCityOptions, getSourceOptions } from '@/lib/queries/noticias';
+import { getCandidateOptions, getCityOptions, getSourceOptions, getCrisisAlerts } from '@/lib/queries/noticias';
 import type { NoticiasFilters } from '@/lib/types/noticias';
+import CrisisAlert from '@/components/dashboard/CrisisAlert';
 
 export const metadata = {
   title: "Radar de Notícias"
@@ -67,6 +68,18 @@ function FilterBarSkeleton() {
   );
 }
 
+async function CrisisAlertsSection({ filters }: { filters: NoticiasFilters }) {
+  const alerts = await getCrisisAlerts(filters);
+  if (!alerts || alerts.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-3 mb-6">
+      {alerts.map((alert, i) => (
+        <CrisisAlert key={i} alert={alert} />
+      ))}
+    </div>
+  );
+}
+
 export default async function NoticiasDashboard({ searchParams }: PageProps) {
   const params = await searchParams;
   const filters = buildFilters(params);
@@ -88,6 +101,11 @@ export default async function NoticiasDashboard({ searchParams }: PageProps) {
           </p>
         </div>
       </div>
+
+      {/* Alertas de Crise */}
+      <Suspense fallback={null}>
+        <CrisisAlertsSection filters={filters} />
+      </Suspense>
 
       {/* FilterBar precisa de Suspense por usar useSearchParams() internamente */}
       <Suspense fallback={<FilterBarSkeleton />}>
