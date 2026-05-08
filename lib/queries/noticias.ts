@@ -1,14 +1,11 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabaseClient'
-import type { KPI, GaugeScore, Noticia, MencaoRow } from '@/lib/types/noticias'
+import type { KPI, GaugeScore, Noticia, MencaoRow, NoticiasFilters } from '@/lib/types/noticias'
 
-// Re-exportações para compatibilidade retroativa (DataTable importa Noticia daqui)
 export type { KPI, Noticia }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-// ai_risk_flags é armazenado como string JSON no banco ("[]", '["flag"]')
-// ai_topics/ai_entities são arrays JSON normais — trata os dois casos
 function parseJsonField(value: unknown): string[] {
   if (!value) return []
   if (Array.isArray(value)) return value.filter((v) => typeof v === 'string') as string[]
@@ -16,9 +13,7 @@ function parseJsonField(value: unknown): string[] {
     try {
       const parsed = JSON.parse(value)
       if (Array.isArray(parsed)) return parsed.filter((v) => typeof v === 'string') as string[]
-    } catch {
-      // silencia parse inválido
-    }
+    } catch { /* ignora parse inválido */ }
   }
   return []
 }
@@ -30,7 +25,6 @@ function sentimentoLabel(sentiment: number | null): 'positivo' | 'neutro' | 'neg
   return 'neutro'
 }
 
-// 0 flags → baixo | 1 flag → médio | 2+ flags → alto
 function riscoLabel(flags: string[]): 'baixo' | 'médio' | 'alto' {
   if (flags.length === 0) return 'baixo'
   if (flags.length === 1) return 'médio'
@@ -73,18 +67,12 @@ function formatDate(iso: string | null): string {
   if (!iso) return '—'
   try {
     return new Date(iso).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     })
-  } catch {
-    return iso
-  }
+  } catch { return iso }
 }
 
-// Retorna a segunda-feira da semana no formato dd/mm
 function weekLabel(iso: string): string {
   const date = new Date(iso)
   const day = date.getDay()
@@ -106,18 +94,51 @@ function countByKey(items: string[]): { categories: string[]; values: number[] }
   }
 }
 
-// ─── Fetch central com cache React (chamado 1x por render) ──────────────────
+// ─── Fetch central com cache React ──────────────────────────────────────────
+// React.cache() deduplica chamadas com o MESMO objeto filters dentro de 1 render.
+// Todas as funções de query recebem o mesmo filters ref passado pela page.
 
-const fetchMencoes = cache(async (): Promise<MencaoRow[]> => {
+const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[]> => {
   const client = createClient()
-  const { data, error } = await client
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = client
     .from('mentions')
     .select(
       'id, hash, published_at, source, title, url, summary, ai_takeaways, ' +
       'ai_sentiment, ai_topics, ai_entities, ai_risk_flags, ' +
       'local_relevance, is_about, candidate_name, city'
     )
-    .order('published_at', { ascending: false })
+
+  // Filtros aplicados no Supabase (não em memória)
+  if (filters?.candidate) q = q.eq('candidate_name', filters.candidate)
+  if (filters?.city)      q = q.eq('city', filters.city)
+  if (filters?.source)    q = q.eq('source', filters.source)
+
+  if (filters?.sentiment) {
+    if (filters.sentiment === 'positivo') q = q.gt('ai_sentiment', 0)
+    else if (filters.sentiment === 'negativo') q = q.lt('ai_sentiment', 0)
+    else if (filters.sentiment === 'neutro') q = q.eq('ai_sentiment', 0)
+  }
+
+  if (filters?.period) {
+    const days = parseInt(filters.period, 10)
+    if (!isNaN(days) && days > 0) {
+      const from = new Date()
+      from.setDate(from.getDate() - days)
+      q = q.gte('published_at', from.toISOString())
+    }
+  }
+
+  if (filters?.search) {
+    // busca parcial em title, source e candidate_name
+    const s = filters.search.replace(/%/g, '\\%').replace(/_/g, '\\_')
+    q = q.or(
+      `title.ilike.%${s}%,source.ilike.%${s}%,candidate_name.ilike.%${s}%`
+    )
+  }
+
+  const { data, error } = await q.order('published_at', { ascending: false })
 
   if (error) {
     console.error('[fetchMencoes]', error.message)
@@ -128,8 +149,8 @@ const fetchMencoes = cache(async (): Promise<MencaoRow[]> => {
 
 // ─── KPIs ────────────────────────────────────────────────────────────────────
 
-export async function getKPIs(): Promise<KPI[]> {
-  const rows = await fetchMencoes()
+export async function getKPIs(filters?: NoticiasFilters): Promise<KPI[]> {
+  const rows = await fetchMencoes(filters)
   if (rows.length === 0) return kpisFallback()
 
   const total = rows.length
@@ -138,7 +159,7 @@ export async function getKPIs(): Promise<KPI[]> {
   const analisados = rows.filter((r) => r.local_relevance !== null)
   const relevanciaMedia =
     analisados.length > 0
-      ? analisados.reduce((sum, r) => sum + (r.local_relevance ?? 0), 0) / analisados.length
+      ? analisados.reduce((s, r) => s + (r.local_relevance ?? 0), 0) / analisados.length
       : 0
   const alertas = rows.filter((r) => parseJsonField(r.ai_risk_flags).length > 0).length
 
@@ -161,18 +182,18 @@ export async function getKPIs(): Promise<KPI[]> {
 
 function kpisFallback(): KPI[] {
   return [
-    { title: 'Total de Notícias', value: '—' },
-    { title: 'Sobre a Candidata', value: '—' },
-    { title: 'Fontes Monitoradas', value: '—' },
-    { title: 'Relevância Média', value: '—' },
-    { title: 'Alertas Ativos', value: '—' },
+    { title: 'Total de Notícias', value: 0 },
+    { title: 'Sobre a Candidata', value: 0 },
+    { title: 'Fontes Monitoradas', value: 0 },
+    { title: 'Relevância Média', value: '—/10' },
+    { title: 'Alertas Ativos', value: 0 },
   ]
 }
 
-// ─── Gauge / Termômetro ──────────────────────────────────────────────────────
+// ─── Gauge ───────────────────────────────────────────────────────────────────
 
-export async function getGaugeScore(): Promise<GaugeScore> {
-  const rows = await fetchMencoes()
+export async function getGaugeScore(filters?: NoticiasFilters): Promise<GaugeScore> {
+  const rows = await fetchMencoes(filters)
   if (rows.length === 0) return { score: 0, statusText: 'Sem dados', level: 'success' }
 
   const analisados = rows.filter((r) => r.ai_sentiment !== null)
@@ -181,30 +202,23 @@ export async function getGaugeScore(): Promise<GaugeScore> {
 
   const negativoPct = analisados.length > 0 ? negativos / analisados.length : 0
   const riscoPct = rows.length > 0 ? comRisco / rows.length : 0
-
-  // Score: 60% peso sentimento negativo + 40% peso risco
   const score = Math.min(100, Math.round(negativoPct * 60 + riscoPct * 40))
 
   let level: GaugeScore['level']
   let statusText: string
-  if (score >= 60) {
-    level = 'danger'
-    statusText = 'Crítico'
-  } else if (score >= 30) {
-    level = 'warning'
-    statusText = 'Atenção'
-  } else {
-    level = 'success'
-    statusText = 'Estável'
-  }
+  if (score >= 60) { level = 'danger'; statusText = 'Crítico' }
+  else if (score >= 30) { level = 'warning'; statusText = 'Atenção' }
+  else { level = 'success'; statusText = 'Estável' }
 
   return { score, statusText, level }
 }
 
-// ─── Evolução da Relevância no Tempo (agrupada por semana) ──────────────────
+// ─── Evolução da Relevância (semanal) ────────────────────────────────────────
 
-export async function getNoticiasPorTempo(): Promise<{ dates: string[]; values: number[] }> {
-  const rows = await fetchMencoes()
+export async function getNoticiasPorTempo(
+  filters?: NoticiasFilters
+): Promise<{ dates: string[]; values: number[] }> {
+  const rows = await fetchMencoes(filters)
   const comData = rows.filter((r) => r.published_at && r.local_relevance !== null)
   if (comData.length === 0) return { dates: [], values: [] }
 
@@ -216,115 +230,108 @@ export async function getNoticiasPorTempo(): Promise<{ dates: string[]; values: 
     weekMap[label].count += 1
   }
 
-  // Ordena semanas cronologicamente (formato dd/mm, ano implícito 2026)
   const sorted = Object.entries(weekMap).sort((a, b) => {
     const [da, ma] = a[0].split('/').map(Number)
     const [db, mb] = b[0].split('/').map(Number)
-    if (ma !== mb) return ma - mb
-    return da - db
+    return ma !== mb ? ma - mb : da - db
   })
 
   return {
     dates: sorted.map(([k]) => k),
-    values: sorted.map(([, v]) => Math.round(v.sum / v.count / 10)), // escala 0–10
+    values: sorted.map(([, v]) => Math.round(v.sum / v.count / 10)),
   }
 }
 
-// ─── Sentimento ──────────────────────────────────────────────────────────────
+// ─── Sentimento ───────────────────────────────────────────────────────────────
 
-export async function getSentimento(): Promise<
-  { name: string; value: number; itemStyle: { color: string } }[]
-> {
-  const rows = await fetchMencoes()
+export async function getSentimento(
+  filters?: NoticiasFilters
+): Promise<{ name: string; value: number; itemStyle: { color: string } }[]> {
+  const rows = await fetchMencoes(filters)
   const analisados = rows.filter((r) => r.ai_sentiment !== null)
   if (analisados.length === 0) return sentimentoFallback()
 
-  const positivo = analisados.filter((r) => (r.ai_sentiment ?? 0) > 0).length
-  const neutro = analisados.filter((r) => r.ai_sentiment === 0).length
-  const negativo = analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length
-
   return [
-    { name: 'Positivo', value: positivo, itemStyle: { color: '#22C55E' } },
-    { name: 'Neutro', value: neutro, itemStyle: { color: '#2563EB' } },
-    { name: 'Negativo', value: negativo, itemStyle: { color: '#FF3B3B' } },
+    { name: 'Positivo', value: analisados.filter((r) => (r.ai_sentiment ?? 0) > 0).length, itemStyle: { color: '#22C55E' } },
+    { name: 'Neutro',   value: analisados.filter((r) => r.ai_sentiment === 0).length,       itemStyle: { color: '#2563EB' } },
+    { name: 'Negativo', value: analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length,  itemStyle: { color: '#FF3B3B' } },
   ]
 }
 
 function sentimentoFallback() {
   return [
     { name: 'Positivo', value: 0, itemStyle: { color: '#22C55E' } },
-    { name: 'Neutro', value: 0, itemStyle: { color: '#2563EB' } },
+    { name: 'Neutro',   value: 0, itemStyle: { color: '#2563EB' } },
     { name: 'Negativo', value: 0, itemStyle: { color: '#FF3B3B' } },
   ]
 }
 
 // ─── Volume por Fonte (top 8) ─────────────────────────────────────────────────
 
-export async function getFontes(): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes()
-  const sources = rows.map((r) => r.source).filter(Boolean) as string[]
-  const result = countByKey(sources)
+export async function getFontes(
+  filters?: NoticiasFilters
+): Promise<{ categories: string[]; values: number[] }> {
+  const rows = await fetchMencoes(filters)
+  const result = countByKey(rows.map((r) => r.source).filter(Boolean) as string[])
   return { categories: result.categories.slice(0, 8), values: result.values.slice(0, 8) }
 }
 
-// ─── Riscos por Fonte (top 8 com risk flags) ─────────────────────────────────
+// ─── Riscos por Fonte (top 8) ─────────────────────────────────────────────────
 
-export async function getRiscosPorFonte(): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes()
+export async function getRiscosPorFonte(
+  filters?: NoticiasFilters
+): Promise<{ categories: string[]; values: number[] }> {
+  const rows = await fetchMencoes(filters)
   const comRisco = rows.filter((r) => parseJsonField(r.ai_risk_flags).length > 0)
-  const sources = comRisco.map((r) => r.source).filter(Boolean) as string[]
-  const result = countByKey(sources)
+  const result = countByKey(comRisco.map((r) => r.source).filter(Boolean) as string[])
   return { categories: result.categories.slice(0, 8), values: result.values.slice(0, 8) }
 }
 
 // ─── Temas Mais Citados (top 8) ───────────────────────────────────────────────
 
-export async function getTemas(): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes()
-  const allTopics: string[] = []
-  for (const r of rows) {
-    allTopics.push(...parseJsonField(r.ai_topics))
-  }
-  if (allTopics.length === 0) return { categories: [], values: [] }
-  const result = countByKey(allTopics)
+export async function getTemas(
+  filters?: NoticiasFilters
+): Promise<{ categories: string[]; values: number[] }> {
+  const rows = await fetchMencoes(filters)
+  const all: string[] = []
+  for (const r of rows) all.push(...parseJsonField(r.ai_topics))
+  if (all.length === 0) return { categories: [], values: [] }
+  const result = countByKey(all)
   return { categories: result.categories.slice(0, 8), values: result.values.slice(0, 8) }
 }
 
 // ─── Entidades Mais Citadas (top 8) ───────────────────────────────────────────
 
-export async function getEntidades(): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes()
-  const allEntities: string[] = []
-  for (const r of rows) {
-    allEntities.push(...parseJsonField(r.ai_entities))
-  }
-  if (allEntities.length === 0) return { categories: [], values: [] }
-  const result = countByKey(allEntities)
+export async function getEntidades(
+  filters?: NoticiasFilters
+): Promise<{ categories: string[]; values: number[] }> {
+  const rows = await fetchMencoes(filters)
+  const all: string[] = []
+  for (const r of rows) all.push(...parseJsonField(r.ai_entities))
+  if (all.length === 0) return { categories: [], values: [] }
+  const result = countByKey(all)
   return { categories: result.categories.slice(0, 8), values: result.values.slice(0, 8) }
 }
 
 // ─── Riscos Mais Recorrentes (top 8) ──────────────────────────────────────────
 
-export async function getRiscos(): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes()
-  const allFlags: string[] = []
-  for (const r of rows) {
-    allFlags.push(...parseJsonField(r.ai_risk_flags).map(labelRiskFlag))
-  }
-  if (allFlags.length === 0) return { categories: [], values: [] }
-  const result = countByKey(allFlags)
+export async function getRiscos(
+  filters?: NoticiasFilters
+): Promise<{ categories: string[]; values: number[] }> {
+  const rows = await fetchMencoes(filters)
+  const all: string[] = []
+  for (const r of rows) all.push(...parseJsonField(r.ai_risk_flags).map(labelRiskFlag))
+  if (all.length === 0) return { categories: [], values: [] }
+  const result = countByKey(all)
   return { categories: result.categories.slice(0, 8), values: result.values.slice(0, 8) }
 }
 
 // ─── Evolução do Risco por Semana ────────────────────────────────────────────
 
-export async function getRiscoTempo(): Promise<{
-  dates: string[]
-  baixo: number[]
-  medio: number[]
-  alto: number[]
-}> {
-  const rows = await fetchMencoes()
+export async function getRiscoTempo(
+  filters?: NoticiasFilters
+): Promise<{ dates: string[]; baixo: number[]; medio: number[]; alto: number[] }> {
+  const rows = await fetchMencoes(filters)
   const comData = rows.filter((r) => r.published_at)
   if (comData.length === 0) return { dates: [], baixo: [], medio: [], alto: [] }
 
@@ -341,22 +348,21 @@ export async function getRiscoTempo(): Promise<{
   const sorted = Object.entries(weekMap).sort((a, b) => {
     const [da, ma] = a[0].split('/').map(Number)
     const [db, mb] = b[0].split('/').map(Number)
-    if (ma !== mb) return ma - mb
-    return da - db
+    return ma !== mb ? ma - mb : da - db
   })
 
   return {
     dates: sorted.map(([k]) => k),
     baixo: sorted.map(([, v]) => v.baixo),
     medio: sorted.map(([, v]) => v.medio),
-    alto: sorted.map(([, v]) => v.alto),
+    alto:  sorted.map(([, v]) => v.alto),
   }
 }
 
 // ─── Feed de Notícias (50 mais recentes) ──────────────────────────────────────
 
-export async function getFeedNoticias(): Promise<Noticia[]> {
-  const rows = await fetchMencoes()
+export async function getFeedNoticias(filters?: NoticiasFilters): Promise<Noticia[]> {
+  const rows = await fetchMencoes(filters)
   return rows.slice(0, 50).map((r): Noticia => {
     const flags = parseJsonField(r.ai_risk_flags)
     return {
@@ -372,4 +378,36 @@ export async function getFeedNoticias(): Promise<Noticia[]> {
       relevancia: r.local_relevance !== null ? r.local_relevance / 10 : 0,
     }
   })
+}
+
+// ─── Opções para selects dos filtros ─────────────────────────────────────────
+
+export async function getCandidateOptions(): Promise<string[]> {
+  const client = createClient()
+  const { data } = await client
+    .from('mentions')
+    .select('candidate_name')
+    .not('candidate_name', 'is', null)
+  if (!data) return []
+  return [...new Set(data.map((r) => r.candidate_name as string))].sort()
+}
+
+export async function getCityOptions(): Promise<string[]> {
+  const client = createClient()
+  const { data } = await client
+    .from('mentions')
+    .select('city')
+    .not('city', 'is', null)
+  if (!data) return []
+  return [...new Set(data.map((r) => r.city as string))].sort()
+}
+
+export async function getSourceOptions(): Promise<string[]> {
+  const client = createClient()
+  const { data } = await client
+    .from('mentions')
+    .select('source')
+    .not('source', 'is', null)
+  if (!data) return []
+  return [...new Set(data.map((r) => r.source as string))].sort()
 }

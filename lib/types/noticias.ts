@@ -23,6 +23,16 @@ export interface Noticia {
   relevancia: number // 0–10 (convertido de 0–100 do banco)
 }
 
+// Filtros do dashboard — mapeiam direto para URL search params
+export interface NoticiasFilters {
+  candidate?: string | null
+  city?: string | null
+  source?: string | null
+  sentiment?: string | null   // 'positivo' | 'neutro' | 'negativo'
+  period?: string | null      // '7' | '30' | '90' (dias) | null = todos
+  search?: string | null
+}
+
 // Linha crua retornada pelo Supabase
 export interface MencaoRow {
   id: string
