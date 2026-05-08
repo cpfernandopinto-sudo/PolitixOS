@@ -9,9 +9,15 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+// Valores que NÃO devem ser tratados como filtro real
+const EMPTY_VALUES = new Set([
+  '', 'todos', 'todas', 'all', 'null', 'undefined',
+]);
+
 function str(v: string | string[] | undefined): string | null {
-  if (!v) return null;
-  const s = Array.isArray(v) ? v[0] : v;
+  if (v === null || v === undefined) return null;
+  const s = Array.isArray(v) ? (v[0] ?? '') : v;
+  if (EMPTY_VALUES.has(s.toLowerCase())) return null;
   return s || null;
 }
 

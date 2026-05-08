@@ -6,7 +6,7 @@ import LineChart from '@/components/charts/LineChart';
 import BarChart from '@/components/charts/BarChart';
 import DonutChart from '@/components/charts/DonutChart';
 import DataTable from '@/components/ui/DataTable';
-import { SearchX } from 'lucide-react';
+import { AlertTriangle, SearchX } from 'lucide-react';
 
 import {
   getKPIs,
@@ -54,7 +54,24 @@ export default async function DashboardContent({ filters }: Props) {
     getFeedNoticias(filters),
   ]);
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const hasMissingEnv = !supabaseUrl || supabaseUrl.includes('placeholder');
   const hasData = kpis[0].value !== 0;
+
+  if (hasMissingEnv) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4 text-gray-500">
+        <AlertTriangle size={48} className="text-yellow-500" />
+        <p className="text-lg font-medium text-gray-300">Banco de dados não configurado</p>
+        <p className="text-sm text-center max-w-md">
+          As variáveis de ambiente Supabase não estão configuradas neste ambiente.
+          Adicione <code className="text-[#00FFFF] bg-white/5 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> e{' '}
+          <code className="text-[#00FFFF] bg-white/5 px-1 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> nas
+          configurações da Vercel e faça um novo deploy.
+        </p>
+      </div>
+    );
+  }
 
   if (!hasData) {
     return (
