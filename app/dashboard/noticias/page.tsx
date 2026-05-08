@@ -4,6 +4,10 @@ import DashboardContent from './DashboardContent';
 import { getCandidateOptions, getCityOptions, getSourceOptions } from '@/lib/queries/noticias';
 import type { NoticiasFilters } from '@/lib/types/noticias';
 
+export const metadata = {
+  title: "Radar de Notícias"
+};
+
 // Next.js 15+: searchParams é uma Promise
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
