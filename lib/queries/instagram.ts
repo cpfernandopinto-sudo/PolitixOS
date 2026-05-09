@@ -34,7 +34,12 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   console.log('[fetchInstagramData] Initial filters:', filters);
   const client = createClient();
 
-  // 1. Posts Fetch
+  // 1. Build targets map for candidate_name lookup
+  const { data: targetsAll } = await client.from('targets').select('id, candidate_name');
+  const targetsMap = new Map<string, string>();
+  for (const t of targetsAll || []) targetsMap.set(t.id, t.candidate_name);
+
+  // 2. Posts Fetch — filter by target_id if candidate selected
   let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
   
   if (filters?.candidate) {
@@ -54,7 +59,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   let postsData = rawPosts || [];
   console.log(`[fetchInstagramData] Fetched ${postsData.length} posts from social_posts`);
   
-  // 2. Comments Fetch (to ensure we have comments)
+  // 3. Comments Fetch
   let cQuery = client.from('instagram_comments').select('*');
   if (filters?.period) {
     const days = parseInt(filters.period, 10);
@@ -69,20 +74,23 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   const commentsData = rawComments || [];
   console.log(`[fetchInstagramData] Fetched ${commentsData.length} comments from instagram_comments`);
 
-  // 3. Ensure we have all posts for the fetched comments
+  // 4. Fetch missing posts for comments — respecting candidate filter
   const postIdsFromPosts = new Set(postsData.map(p => p.id));
   const missingPostIds = [...new Set(commentsData.map(c => c.post_id))].filter(id => id && !postIdsFromPosts.has(id));
 
   if (missingPostIds.length > 0) {
-    const { data: missingPosts } = await client.from('social_posts').select('*').eq('platform', 'instagram').in('id', missingPostIds);
-    if (missingPosts) {
-      postsData.push(...missingPosts);
+    let missingQuery = client.from('social_posts').select('*').eq('platform', 'instagram').in('id', missingPostIds);
+    // Apply candidate filter here too so we don't pull posts from other candidates
+    if (filters?.candidate) {
+      missingQuery = missingQuery.eq('target_id', filters.candidate);
     }
+    const { data: missingPosts } = await missingQuery;
+    if (missingPosts) postsData.push(...missingPosts);
   }
 
   const allPostIds = [...new Set(postsData.map(p => p.id))];
 
-  // 4. Fetch AI Analysis strictly for POSTS
+  // 5. Fetch AI Analysis strictly for POSTS
   const aiMap = new Map();
   if (allPostIds.length > 0) {
     const { data: aiData } = await client
@@ -96,11 +104,13 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
     }
   }
 
-  // 5. Map Posts and AI Analysis
+  // 6. Map Posts + AI + candidate_name
   let posts = postsData.map(p => {
     const ai = aiMap.get(p.id);
     return {
       id: p.id,
+      target_id: p.target_id || null,
+      candidate_name: targetsMap.get(p.target_id) || '—',
       text: p.caption || '',
       created_at: p.taken_at,
       like_count: p.like_count || 0,
@@ -109,6 +119,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
       image_url: p.media_url || p.thumbnail_url || null,
       video_url: p.video_url || null,
       thumbnail_url: p.thumbnail_url || null,
+      media_type: p.media_type || null,
       sentiment: ai?.sentiment || 'Sem análise',
       risk: ai?.risk_level || 'Sem análise',
       topic: (parseJsonField(ai?.ai_topics))[0] || 'Sem análise',
@@ -119,7 +130,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
     };
   });
 
-  // Apply Filters on Posts (AI filters apply only to posts)
+  // Apply in-memory filters on posts
   if (filters?.sentiment) {
     posts = posts.filter(p => p.sentiment?.toLowerCase() === filters.sentiment!.toLowerCase());
   }
@@ -137,7 +148,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   const postsMap = new Map();
   for (const p of posts) postsMap.set(p.id, p);
 
-  // Ordenação: Engajamento DESC ou Data DESC
+  // Sort by engagement DESC then date DESC
   posts.sort((a, b) => {
     const engA = a.like_count + a.comment_count;
     const engB = b.like_count + b.comment_count;
@@ -145,9 +156,8 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   });
 
-  // 6. Map Comments and relate to filtered posts
-  // If the post was filtered out (by sentiment/risk/topic), its comments should not appear.
-  let comments = commentsData
+  // 7. Map Comments — only for filtered posts
+  const comments = commentsData
     .filter(c => filteredPostIds.has(c.post_id))
     .map(c => {
       const p = postsMap.get(c.post_id);

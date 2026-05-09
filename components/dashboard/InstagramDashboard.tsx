@@ -183,6 +183,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
             <thead className="bg-white/5 text-gray-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Data</th>
+                <th className="px-4 py-3 font-medium">Candidato</th>
                 <th className="px-4 py-3 font-medium">Texto / Legenda</th>
                 <th className="px-4 py-3 font-medium">Tema (IA)</th>
                 <th className="px-4 py-3 font-medium">Sentimento (IA)</th>
@@ -203,6 +204,9 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
                     {p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '—'}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-[#00FFFF] text-xs font-medium">
+                    {p.candidate_name || '—'}
                   </td>
                   <td className="px-4 py-3 min-w-[150px]">
                     <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.text}>{p.text}</div>
@@ -229,7 +233,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               ))}
               {posts.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                     Nenhum post encontrado.
                   </td>
                 </tr>
@@ -307,6 +311,11 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               <div className="flex flex-wrap gap-3 items-center">
                 {getSentimentBadge(selectedPost.sentiment)}
                 {getRiskBadge(selectedPost.risk)}
+                {selectedPost.candidate_name && selectedPost.candidate_name !== '—' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#00FFFF]/10 text-[#00FFFF] border border-[#00FFFF]/20">
+                    {selectedPost.candidate_name}
+                  </span>
+                )}
                 <span className="text-gray-400 text-sm">
                   Engajamento: <span className="text-white font-medium">{selectedPost.like_count + selectedPost.comment_count}</span>
                 </span>
