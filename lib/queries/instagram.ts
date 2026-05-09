@@ -30,33 +30,38 @@ export function cleanFilter(v: string | string[] | undefined): string | null {
 }
 
 export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
+  console.log('[fetchInstagramData] Initial filters:', filters);
   const client = createClient();
 
   // 1. Posts Fetch
   let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
   if (filters?.period) {
     const days = parseInt(filters.period, 10);
-    if (days > 0) {
+    if (!isNaN(days) && days > 0) {
       const from = new Date();
       from.setDate(from.getDate() - days);
       pQuery = pQuery.gte('taken_at', from.toISOString());
     }
   }
-  const { data: rawPosts } = await pQuery.order('taken_at', { ascending: false }).limit(200);
+  const { data: rawPosts, error: pError } = await pQuery.order('taken_at', { ascending: false }).limit(200);
+  if (pError) console.error('[fetchInstagramData] Error fetching posts:', pError.message);
   let postsData = rawPosts || [];
+  console.log(`[fetchInstagramData] Fetched ${postsData.length} posts from social_posts`);
   
   // 2. Comments Fetch (to ensure we have comments)
   let cQuery = client.from('instagram_comments').select('*');
   if (filters?.period) {
     const days = parseInt(filters.period, 10);
-    if (days > 0) {
+    if (!isNaN(days) && days > 0) {
       const from = new Date();
       from.setDate(from.getDate() - days);
       cQuery = cQuery.gte('created_at_instagram', from.toISOString());
     }
   }
-  const { data: rawComments } = await cQuery.order('created_at_instagram', { ascending: false }).limit(1000);
+  const { data: rawComments, error: cError } = await cQuery.order('created_at_instagram', { ascending: false }).limit(1000);
+  if (cError) console.error('[fetchInstagramData] Error fetching comments:', cError.message);
   const commentsData = rawComments || [];
+  console.log(`[fetchInstagramData] Fetched ${commentsData.length} comments from instagram_comments`);
 
   // 3. Ensure we have all posts for the fetched comments
   const postIdsFromPosts = new Set(postsData.map(p => p.id));
@@ -149,6 +154,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
       };
     });
 
+  console.log(`[fetchInstagramData] Final mapped: ${posts.length} posts, ${comments.length} comments`);
   return { posts, comments };
 });
 
