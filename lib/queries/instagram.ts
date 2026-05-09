@@ -95,6 +95,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
       like_count: p.like_count || 0,
       comment_count: p.comment_count || 0,
       url: p.post_url || '#',
+      image_url: p.thumbnail_url || p.media_url || null,
       sentiment: ai?.sentiment || 'Sem análise',
       risk: ai?.risk_level || 'Sem análise',
       topic: (parseJsonField(ai?.ai_topics))[0] || 'Sem análise',

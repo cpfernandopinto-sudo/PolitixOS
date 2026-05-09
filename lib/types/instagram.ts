@@ -12,6 +12,7 @@ export interface InstagramPost {
   riskReason: string;
   summary: string;
   recommendedAction: string;
+  image_url?: string | null;
 }
 
 export interface InstagramComment {
