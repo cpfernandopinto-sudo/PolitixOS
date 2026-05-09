@@ -18,7 +18,7 @@ const MediaRenderer = ({ post }: { post: any }) => {
 
   return (
     <div className="w-full min-h-[200px] max-h-[420px] rounded-lg mb-6 flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden relative group" onClick={(e) => e.stopPropagation()}>
-      
+
       {mediaUrl && !mediaError && (
         <video
           controls
@@ -40,19 +40,19 @@ const MediaRenderer = ({ post }: { post: any }) => {
           {imageUrl && !imageError ? (
             <div className="relative w-full flex flex-col items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={imageUrl} 
-                alt="Post media" 
-                className="w-full max-h-[420px] object-contain rounded-lg" 
+              <img
+                src={imageUrl}
+                alt="Post media"
+                className="w-full max-h-[420px] object-contain rounded-lg"
                 loading="lazy"
                 onError={(e) => {
-                   e.stopPropagation();
-                   setImageError(true);
+                  e.stopPropagation();
+                  setImageError(true);
                 }}
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none group-hover:bg-black/40 transition-all rounded-lg">
                 <a href={post.url} target="_blank" rel="noreferrer" className="px-5 py-2 bg-black/60 hover:bg-[#00FFFF] text-white hover:text-black border border-white/20 hover:border-[#00FFFF] rounded-lg text-sm transition-all shadow-lg font-medium pointer-events-auto backdrop-blur-md flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                   Abrir post original
                 </a>
               </div>
@@ -197,8 +197,8 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
             </thead>
             <tbody className="divide-y divide-white/5">
               {posts.slice(0, 20).map((p) => (
-                <tr 
-                  key={p.id} 
+                <tr
+                  key={p.id}
                   className={`cursor-pointer hover:bg-white/10 transition-colors ${p.risk?.toLowerCase() === 'alto' ? 'border-l-2 border-l-[#dc2626]' : ''}`}
                   onClick={() => setSelectedPost(p)}
                 >
@@ -289,17 +289,17 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
 
       {/* Modal do Post */}
       {selectedPost && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setSelectedPost(null)}
         >
-          <div 
+          <div
             className="bg-[#12192A] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-[#12192A]/90 backdrop-blur-md z-10">
               <h2 className="text-xl font-bold text-white">Análise Detalhada</h2>
-              <button 
+              <button
                 onClick={() => setSelectedPost(null)}
                 className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
               >
@@ -354,10 +354,10 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
             </div>
 
             <div className="p-6 border-t border-white/5 flex justify-end">
-              <a 
-                href={selectedPost.url} 
-                target="_blank" 
-                rel="noreferrer" 
+              <a
+                href={selectedPost.url}
+                target="_blank"
+                rel="noreferrer"
                 className="px-6 py-2 bg-[#00FFFF] text-black font-medium rounded-lg hover:bg-[#00FFFF]/80 transition-colors"
               >
                 Ver Post Original

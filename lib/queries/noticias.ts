@@ -101,6 +101,21 @@ function countByKey(items: string[]): { categories: string[]; values: number[] }
 const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[]> => {
   const client = createClient()
 
+  // ── Resolver allowedTargetIds → candidate_names ───────────────────────────
+  // null = admin (sem restrição). Array vazio = sem acesso a nada.
+  let allowedCandidateNames: string[] | null = null
+  if (filters?.allowedTargetIds !== null && filters?.allowedTargetIds !== undefined) {
+    if (filters.allowedTargetIds.length === 0) {
+      return [] // usuário sem nenhum target vinculado
+    }
+    const { data: targetRows } = await client
+      .from('targets')
+      .select('candidate_name')
+      .in('id', filters.allowedTargetIds)
+    allowedCandidateNames = (targetRows || []).map((r: { candidate_name: string }) => r.candidate_name)
+    if (allowedCandidateNames.length === 0) return []
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q: any = client
     .from('mentions')
@@ -110,10 +125,15 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
       'local_relevance, is_about, candidate_name, city'
     )
 
+  // ── Filtro de acesso por candidato (server-side, não apenas frontend) ─────
+  if (allowedCandidateNames !== null) {
+    q = q.in('candidate_name', allowedCandidateNames)
+  }
+
   // Filtros aplicados no Supabase (não em memória)
   if (filters?.candidate) q = q.eq('candidate_name', filters.candidate)
-  if (filters?.city)      q = q.eq('city', filters.city)
-  if (filters?.source)    q = q.eq('source', filters.source)
+  if (filters?.city) q = q.eq('city', filters.city)
+  if (filters?.source) q = q.eq('source', filters.source)
 
   if (filters?.sentiment) {
     if (filters.sentiment === 'positivo') q = q.gt('ai_sentiment', 0)
@@ -253,15 +273,15 @@ export async function getSentimento(
 
   return [
     { name: 'Positivo', value: analisados.filter((r) => (r.ai_sentiment ?? 0) > 0).length, itemStyle: { color: '#22C55E' } },
-    { name: 'Neutro',   value: analisados.filter((r) => r.ai_sentiment === 0).length,       itemStyle: { color: '#2563EB' } },
-    { name: 'Negativo', value: analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length,  itemStyle: { color: '#FF3B3B' } },
+    { name: 'Neutro', value: analisados.filter((r) => r.ai_sentiment === 0).length, itemStyle: { color: '#2563EB' } },
+    { name: 'Negativo', value: analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length, itemStyle: { color: '#FF3B3B' } },
   ]
 }
 
 function sentimentoFallback() {
   return [
     { name: 'Positivo', value: 0, itemStyle: { color: '#22C55E' } },
-    { name: 'Neutro',   value: 0, itemStyle: { color: '#2563EB' } },
+    { name: 'Neutro', value: 0, itemStyle: { color: '#2563EB' } },
     { name: 'Negativo', value: 0, itemStyle: { color: '#FF3B3B' } },
   ]
 }
@@ -355,7 +375,7 @@ export async function getRiscoTempo(
     dates: sorted.map(([k]) => k),
     baixo: sorted.map(([, v]) => v.baixo),
     medio: sorted.map(([, v]) => v.medio),
-    alto:  sorted.map(([, v]) => v.alto),
+    alto: sorted.map(([, v]) => v.alto),
   }
 }
 
@@ -422,7 +442,7 @@ export interface CrisisAlert {
 
 export async function getCrisisAlerts(filters?: NoticiasFilters): Promise<CrisisAlert[]> {
   const rows = await fetchMencoes(filters)
-  
+
   const now = new Date()
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -448,7 +468,7 @@ export async function getCrisisAlerts(filters?: NoticiasFilters): Promise<Crisis
     const analisados = rows24h.filter((r) => r.ai_sentiment !== null)
     const negativos = analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length
     const pctNegativo = analisados.length > 0 ? (negativos / analisados.length) * 100 : 0
-    
+
     if (pctNegativo > 40) {
       alerts.push({
         tipo: 'sentimento',

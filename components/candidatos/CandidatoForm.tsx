@@ -15,22 +15,22 @@ import {
 // Social platform icons (SVG inline)
 const InstagramIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
   </svg>
 );
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 const TikTokIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.17 8.17 0 004.79 1.53V6.77a4.85 4.85 0 01-1.02-.08z"/>
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.17 8.17 0 004.79 1.53V6.77a4.85 4.85 0 01-1.02-.08z" />
   </svg>
 );
 const YouTubeIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
   </svg>
 );
 
@@ -42,8 +42,8 @@ const PLATFORMS = [
 ];
 
 const STATES = [
-  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
-  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ];
 
 interface NewSocialAccount extends SocialAccountInput {
@@ -205,11 +205,10 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
       {/* Feedback banner */}
       {feedback && (
         <div
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
-            feedback.type === 'success'
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${feedback.type === 'success'
               ? 'bg-green-500/10 border-green-500/20 text-green-400'
               : 'bg-red-500/10 border-red-500/20 text-red-400'
-          }`}
+            }`}
         >
           {feedback.type === 'success' ? (
             <CheckCircle size={18} />
@@ -238,9 +237,8 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
             value={form.candidate_name}
             onChange={(e) => setForm({ ...form, candidate_name: e.target.value })}
             placeholder="Ex: João da Silva"
-            className={`w-full bg-[#0D0D0D] border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all ${
-              errors.candidate_name ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'
-            }`}
+            className={`w-full bg-[#0D0D0D] border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all ${errors.candidate_name ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'
+              }`}
           />
           {errors.candidate_name && (
             <p className="text-red-400 text-xs mt-1">{errors.candidate_name}</p>
@@ -302,14 +300,12 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
             id="toggle_is_active"
             type="button"
             onClick={() => setForm({ ...form, is_active: !form.is_active })}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 ${
-              form.is_active ? 'bg-[#2563EB]' : 'bg-white/10'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 ${form.is_active ? 'bg-[#2563EB]' : 'bg-white/10'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
-                form.is_active ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${form.is_active ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
           <span className={`text-sm font-medium ${form.is_active ? 'text-green-400' : 'text-gray-500'}`}>
@@ -364,14 +360,12 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
                     type="button"
                     id={`toggle_account_${i}_active`}
                     onClick={() => updateAccount(acc._tempId, 'is_active', !acc.is_active)}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                      acc.is_active ? 'bg-[#2563EB]' : 'bg-white/10'
-                    }`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${acc.is_active ? 'bg-[#2563EB]' : 'bg-white/10'
+                      }`}
                   >
                     <span
-                      className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${
-                        acc.is_active ? 'translate-x-5' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${acc.is_active ? 'translate-x-5' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                   <span className={`text-xs ${acc.is_active ? 'text-green-400' : 'text-gray-500'}`}>
@@ -400,9 +394,8 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
                     id={`account_${i}_platform`}
                     value={acc.platform}
                     onChange={(e) => updateAccount(acc._tempId, 'platform', e.target.value)}
-                    className={`w-full bg-[#0D0D0D] border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all appearance-none cursor-pointer ${
-                      errors[`account_${i}_platform`] ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'
-                    }`}
+                    className={`w-full bg-[#0D0D0D] border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all appearance-none cursor-pointer ${errors[`account_${i}_platform`] ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'
+                      }`}
                   >
                     {PLATFORMS.map((p) => (
                       <option key={p.value} value={p.value}>{p.label}</option>
@@ -424,9 +417,8 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
                     value={acc.handle}
                     onChange={(e) => updateAccount(acc._tempId, 'handle', e.target.value)}
                     placeholder="@usuario"
-                    className={`w-full bg-[#0D0D0D] border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all ${
-                      errors[`account_${i}_handle`] ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'
-                    }`}
+                    className={`w-full bg-[#0D0D0D] border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all ${errors[`account_${i}_handle`] ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'
+                      }`}
                   />
                   {errors[`account_${i}_handle`] && (
                     <p className="text-red-400 text-xs mt-1">{errors[`account_${i}_handle`]}</p>

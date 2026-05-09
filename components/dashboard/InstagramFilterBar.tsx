@@ -18,7 +18,7 @@ export default function InstagramFilterBar({ options }: { options: any }) {
 
   return (
     <div className="bg-[#12192A] border border-white/5 rounded-xl p-4 flex flex-wrap gap-4 items-center mb-6">
-      <select 
+      <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
         onChange={e => handleChange('candidate', e.target.value)}
         defaultValue={searchParams.get('candidate') || ''}
@@ -29,7 +29,7 @@ export default function InstagramFilterBar({ options }: { options: any }) {
         ))}
       </select>
 
-      <select 
+      <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
         onChange={e => handleChange('period', e.target.value)}
         defaultValue={searchParams.get('period') || ''}
@@ -40,7 +40,7 @@ export default function InstagramFilterBar({ options }: { options: any }) {
         <option value="30">Últimos 30 dias</option>
       </select>
 
-      <select 
+      <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
         onChange={e => handleChange('sentiment', e.target.value)}
         defaultValue={searchParams.get('sentiment') || ''}
@@ -51,7 +51,7 @@ export default function InstagramFilterBar({ options }: { options: any }) {
         <option value="negativo">Negativo</option>
       </select>
 
-      <select 
+      <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
         onChange={e => handleChange('risk', e.target.value)}
         defaultValue={searchParams.get('risk') || ''}
@@ -62,7 +62,7 @@ export default function InstagramFilterBar({ options }: { options: any }) {
         <option value="alto">Alto</option>
       </select>
 
-      <select 
+      <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
         onChange={e => handleChange('topic', e.target.value)}
         defaultValue={searchParams.get('topic') || ''}
@@ -73,7 +73,7 @@ export default function InstagramFilterBar({ options }: { options: any }) {
         ))}
       </select>
 
-      <select 
+      <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 max-w-[200px]"
         onChange={e => handleChange('post', e.target.value)}
         defaultValue={searchParams.get('post') || ''}

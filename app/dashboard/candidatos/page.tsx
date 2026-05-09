@@ -195,11 +195,10 @@ export default function CandidatosPage() {
                   key={opt}
                   id={`filter_${opt}`}
                   onClick={() => setFilterActive(opt)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    filterActive === opt
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filterActive === opt
                       ? 'bg-[#2563EB] text-white'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
+                    }`}
                 >
                   {opt === 'all' ? 'Todos' : opt === 'active' ? 'Ativos' : 'Inativos'}
                 </button>

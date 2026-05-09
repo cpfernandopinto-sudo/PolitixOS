@@ -4,6 +4,7 @@ import DashboardContent from './DashboardContent';
 import { getCandidateOptions, getCityOptions, getSourceOptions, getCrisisAlerts } from '@/lib/queries/noticias';
 import type { NoticiasFilters } from '@/lib/types/noticias';
 import CrisisAlert from '@/components/dashboard/CrisisAlert';
+import { getAllowedTargetIds } from '@/lib/auth/dal';
 
 export const metadata = {
   title: "Radar de Notícias"
@@ -31,11 +32,11 @@ function buildFilters(
 ): NoticiasFilters {
   return {
     candidate: str(params.candidate),
-    city:      str(params.city),
-    source:    str(params.source),
+    city: str(params.city),
+    source: str(params.source),
     sentiment: str(params.sentiment),
-    period:    str(params.period),
-    search:    str(params.search),
+    period: str(params.period),
+    search: str(params.search),
   };
 }
 
@@ -82,7 +83,8 @@ async function CrisisAlertsSection({ filters }: { filters: NoticiasFilters }) {
 
 export default async function NoticiasDashboard({ searchParams }: PageProps) {
   const params = await searchParams;
-  const filters = buildFilters(params);
+  const allowedTargetIds = await getAllowedTargetIds();
+  const filters = { ...buildFilters(params), allowedTargetIds };
 
   // Opções de filtro carregadas sem restrições (sempre completas)
   const [candidates, cities, sources] = await Promise.all([

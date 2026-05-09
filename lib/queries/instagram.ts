@@ -8,6 +8,10 @@ export interface InstagramFilters {
   topic?: string | null;
   post?: string | null;
   candidate?: string | null;
+  /**
+   * IDs de targets permitidos. null = admin (sem restrição). [] = sem acesso.
+   */
+  allowedTargetIds?: string[] | null;
 }
 
 function parseJsonField(value: unknown): string[] {
@@ -41,7 +45,15 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
 
   // 2. Posts Fetch — filter by target_id if candidate selected
   let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
-  
+
+  // Restrição de acesso por targets (server-side, não apenas frontend)
+  if (filters?.allowedTargetIds !== null && filters?.allowedTargetIds !== undefined) {
+    if (filters.allowedTargetIds.length === 0) {
+      return { posts: [], comments: [] };
+    }
+    pQuery = pQuery.in('target_id', filters.allowedTargetIds);
+  }
+
   if (filters?.candidate) {
     pQuery = pQuery.eq('target_id', filters.candidate);
   }
@@ -58,7 +70,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   if (pError) console.error('[fetchInstagramData] Error fetching posts:', pError.message);
   let postsData = rawPosts || [];
   console.log(`[fetchInstagramData] Fetched ${postsData.length} posts from social_posts`);
-  
+
   // 3. Comments Fetch
   let cQuery = client.from('instagram_comments').select('*');
   if (filters?.period) {
@@ -180,7 +192,7 @@ export async function getInstagramKPIs(filters?: InstagramFilters) {
   const { posts, comments } = await fetchInstagramData(filters);
   const totalPosts = posts.length;
   const totalComments = comments.length;
-  
+
   const postLikes = posts.reduce((acc, p) => acc + p.like_count + p.comment_count, 0);
   const commentLikes = comments.reduce((acc, c) => acc + c.like_count, 0);
   const engajamento = postLikes + commentLikes;
@@ -202,23 +214,23 @@ export async function getInstagramKPIs(filters?: InstagramFilters) {
 export async function getInstagramAlerts(filters?: InstagramFilters) {
   const { posts } = await fetchInstagramData(filters);
   const alerts = [];
-  
+
   const altoRisco = posts.filter(p => p.risk === 'alto').length;
   if (altoRisco > 0) {
     alerts.push({ tipo: 'risco' as const, nivel: 'critico' as const, mensagem: 'Post de alto risco detectado.' });
   }
-  
+
   const negativos = posts.filter(p => p.sentiment === 'negativo').length;
   if (negativos > 0 && negativos / (posts.length || 1) > 0.4) {
     alerts.push({ tipo: 'sentimento' as const, nivel: 'alto' as const, mensagem: 'Aumento de posts com sentimento negativo.' });
   }
-  
+
   return alerts;
 }
 
 export async function getInstagramChartData(filters?: InstagramFilters) {
   const { posts, comments } = await fetchInstagramData(filters);
-  
+
   const sentimentData = [
     { name: 'Positivo', value: posts.filter(d => d.sentiment === 'positivo').length, itemStyle: { color: '#22C55E' } },
     { name: 'Neutro', value: posts.filter(d => d.sentiment === 'neutro' || d.sentiment === 'misto').length, itemStyle: { color: '#2563EB' } },
@@ -231,14 +243,14 @@ export async function getInstagramChartData(filters?: InstagramFilters) {
     { name: 'Alto', value: posts.filter(d => d.risk === 'alto').length, itemStyle: { color: '#FF3B3B' } },
   ];
 
-  const sortedByEng = [...posts].sort((a,b) => (b.like_count + b.comment_count) - (a.like_count + a.comment_count)).slice(0, 5);
-  const topEng = sortedByEng.length > 0 
-    ? sortedByEng.map(p => ({ name: (p.text || '').substring(0,25) || 'Post', value: p.like_count + p.comment_count }))
+  const sortedByEng = [...posts].sort((a, b) => (b.like_count + b.comment_count) - (a.like_count + a.comment_count)).slice(0, 5);
+  const topEng = sortedByEng.length > 0
+    ? sortedByEng.map(p => ({ name: (p.text || '').substring(0, 25) || 'Post', value: p.like_count + p.comment_count }))
     : [{ name: 'Sem posts', value: 0 }];
 
-  const sortedByRisk = [...posts].filter(p => p.risk === 'alto' || p.risk === 'medio').sort((a,b) => (b.risk === 'alto' ? 1 : 0) - (a.risk === 'alto' ? 1 : 0)).slice(0, 5);
+  const sortedByRisk = [...posts].filter(p => p.risk === 'alto' || p.risk === 'medio').sort((a, b) => (b.risk === 'alto' ? 1 : 0) - (a.risk === 'alto' ? 1 : 0)).slice(0, 5);
   const topRisk = sortedByRisk.length > 0
-    ? sortedByRisk.map(p => ({ name: (p.text || '').substring(0,25) || 'Post', value: p.risk === 'alto' ? 100 : 50 }))
+    ? sortedByRisk.map(p => ({ name: (p.text || '').substring(0, 25) || 'Post', value: p.risk === 'alto' ? 100 : 50 }))
     : [{ name: 'Sem posts de risco', value: 0 }];
 
   const byDayMap: Record<string, number> = {};
@@ -247,8 +259,8 @@ export async function getInstagramChartData(filters?: InstagramFilters) {
     const date = new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     byDayMap[date] = (byDayMap[date] || 0) + 1;
   }
-  const byDay = Object.keys(byDayMap).length > 0 
-    ? Object.entries(byDayMap).map(([date, count]) => ({ date, count })) 
+  const byDay = Object.keys(byDayMap).length > 0
+    ? Object.entries(byDayMap).map(([date, count]) => ({ date, count }))
     : [{ date: 'Sem dados', count: 0 }];
 
   return { sentimentData, riskData, topEng, topRisk, byDay };
@@ -258,7 +270,7 @@ export async function getInstagramFiltersOptions() {
   const client = createClient();
   const { posts } = await fetchInstagramData();
   const topics = new Set<string>();
-  
+
   for (const p of posts) p.topics.forEach((t: string) => topics.add(t));
 
   const { data: targetsData } = await client.from('targets').select('id, candidate_name').order('candidate_name');

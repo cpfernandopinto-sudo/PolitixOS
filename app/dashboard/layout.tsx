@@ -1,14 +1,23 @@
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import { requireAuth } from '@/lib/auth/dal';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Garante que o usuário está autenticado; redireciona para /login se não.
+  const session = await requireAuth();
+
+  const sidebarPerms = {
+    role: session.role,
+    permissions: session.permissions,
+  };
+
   return (
     <div className="min-h-screen bg-[#0D0D0D] flex">
-      <Sidebar />
+      <Sidebar permissions={sidebarPerms} />
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         <Header />
         <main className="flex-1 p-8 overflow-x-hidden">

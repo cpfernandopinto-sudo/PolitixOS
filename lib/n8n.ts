@@ -7,10 +7,10 @@
 // ---------------------------------------------------------------------------
 
 export const WEBHOOKS = {
-  noticias:        process.env.NEXT_PUBLIC_WEBHOOK_NOTICIAS        ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-noticias',
-  posts:           process.env.NEXT_PUBLIC_WEBHOOK_POSTS           ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-posts',
-  comentarios:     process.env.NEXT_PUBLIC_WEBHOOK_COMENTARIOS     ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-comentarios',
-  analise:         process.env.NEXT_PUBLIC_WEBHOOK_ANALISE         ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-analise',
+  noticias: process.env.NEXT_PUBLIC_WEBHOOK_NOTICIAS ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-noticias',
+  posts: process.env.NEXT_PUBLIC_WEBHOOK_POSTS ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-posts',
+  comentarios: process.env.NEXT_PUBLIC_WEBHOOK_COMENTARIOS ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-comentarios',
+  analise: process.env.NEXT_PUBLIC_WEBHOOK_ANALISE ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-analise',
   reprocessamento: process.env.NEXT_PUBLIC_WEBHOOK_REPROCESSAMENTO ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-reprocessamento',
 } as const;
 

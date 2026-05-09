@@ -3,9 +3,78 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Newspaper, AlertTriangle, Users, Settings, LogOut, Hash, ChevronLeft, ChevronRight, UserPlus, Zap } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Newspaper,
+  AlertTriangle,
+  Users,
+  Settings,
+  Hash,
+  ChevronLeft,
+  ChevronRight,
+  UserPlus,
+  Zap,
+  UserCog,
+} from 'lucide-react';
 
-export default function Sidebar() {
+export interface SidebarPermissions {
+  role: string;
+  permissions: string[];
+}
+
+interface NavItem {
+  href: string;
+  label: string;
+  screenKey: string;
+  icon: React.ReactNode;
+  /** Se true, só admin vê */
+  adminOnly?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    href: '/dashboard/noticias',
+    label: 'Radar de Notícias',
+    screenKey: 'noticias',
+    icon: <Newspaper size={20} className="shrink-0" />,
+  },
+  {
+    href: '/dashboard/instagram',
+    label: 'Radar Instagram',
+    screenKey: 'instagram',
+    icon: <Hash size={20} className="shrink-0" />,
+  },
+  {
+    href: '/dashboard/candidatos',
+    label: 'Candidatos',
+    screenKey: 'candidatos',
+    icon: <UserPlus size={20} className="shrink-0" />,
+  },
+  {
+    href: '/dashboard/automacoes',
+    label: 'Automação',
+    screenKey: 'automacoes',
+    icon: <Zap size={20} className="shrink-0" />,
+  },
+  {
+    href: '/dashboard/gestao-crise',
+    label: 'Gestão de Crise',
+    screenKey: 'gestao_crise',
+    icon: <AlertTriangle size={20} className="shrink-0" />,
+  },
+  {
+    href: '/dashboard/apoiadores',
+    label: 'Apoiadores',
+    screenKey: 'apoiadores',
+    icon: <Users size={20} className="shrink-0" />,
+  },
+];
+
+interface Props {
+  permissions: SidebarPermissions;
+}
+
+export default function Sidebar({ permissions }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -13,9 +82,7 @@ export default function Sidebar() {
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem('politixos_sidebar_collapsed');
-    if (stored) {
-      setCollapsed(stored === 'true');
-    }
+    if (stored) setCollapsed(stored === 'true');
   }, []);
 
   const toggleSidebar = () => {
@@ -24,91 +91,99 @@ export default function Sidebar() {
     localStorage.setItem('politixos_sidebar_collapsed', String(newVal));
   };
 
-  const isOverview = pathname === '/dashboard' || pathname === '/dashboard/overview';
-  const isNews = pathname === '/dashboard/noticias';
-  const isInstagram = pathname === '/dashboard/instagram';
-  const isCrisis = pathname === '/dashboard/crise' || pathname === '/dashboard/gestao-crise';
-  const isSupporters = pathname === '/dashboard/apoiadores';
-  const isCandidatos = pathname === '/dashboard/candidatos';
-  const isAutomacoes = pathname === '/dashboard/automacoes';
+  const isAdmin = permissions.role === 'admin';
 
-  const linkClass = (isActive: boolean) => 
+  const canSee = (item: NavItem) => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (isAdmin) return true;
+    return permissions.permissions.includes(item.screenKey);
+  };
+
+  const isActive = (href: string) => pathname.startsWith(href);
+
+  const linkClass = (active: boolean) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-      isActive 
-        ? 'bg-blue-600/10 text-[#2563EB] border border-blue-500/20' 
+      active
+        ? 'bg-blue-600/10 text-[#2563EB] border border-blue-500/20'
         : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
     } ${collapsed ? 'justify-center' : ''}`;
 
+  if (!mounted) return null;
+
   return (
-    <aside className={`${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#0D0D0D] border-r border-white/5 flex flex-col z-50 transition-all duration-300`}>
+    <aside
+      className={`${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#0D0D0D] border-r border-white/5 flex flex-col z-50 transition-all duration-300`}
+    >
+      {/* Logo */}
       <div className={`p-6 flex items-center min-h-[80px] ${collapsed ? 'justify-center' : 'justify-start'}`}>
-        {!collapsed && (
-          <img 
-            src="/brand/PolitixOS.png" 
-            alt="PolitixOS Logo" 
-            className="w-full max-w-[160px] h-auto object-contain" 
-          />
-        )}
-        {collapsed && (
-          <img 
-            src="/brand/PolitixOS.png" 
-            alt="PolitixOS" 
-            className="w-10 h-auto object-contain" 
-          />
-        )}
+        <img
+          src="/brand/PolitixOS.png"
+          alt="PolitixOS"
+          className={`${collapsed ? 'w-10' : 'w-full max-w-[160px]'} h-auto object-contain`}
+        />
       </div>
 
-      {/* Toggle button */}
+      {/* Toggle */}
       <div className={`px-4 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
-        <button 
-          onClick={toggleSidebar} 
+        <button
+          onClick={toggleSidebar}
           className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          title={collapsed ? "Expandir menu" : "Recolher menu"}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 px-4 space-y-2 mt-4 overflow-x-hidden overflow-y-auto">
-        <Link href="/dashboard" className={linkClass(isOverview)} title="Visão Geral">
-          <LayoutDashboard size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Visão Geral</span>}
-        </Link>
-        <Link href="/dashboard/noticias" className={linkClass(isNews)} title="Radar de Notícias">
-          <Newspaper size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Radar de Notícias</span>}
-        </Link>
-        <Link href="/dashboard/instagram" className={linkClass(isInstagram)} title="Radar Instagram">
-          <Hash size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Radar Instagram</span>}
-        </Link>
-        <Link href="/dashboard/candidatos" className={linkClass(isCandidatos)} title="Candidatos">
-          <UserPlus size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Candidatos</span>}
-        </Link>
-        <Link href="/dashboard/automacoes" className={linkClass(isAutomacoes)} title="Automação">
-          <Zap size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Automação</span>}
-        </Link>
-        <Link href="#" className={linkClass(isCrisis)} title="Gestão de Crise">
-          <AlertTriangle size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Gestão de Crise</span>}
-        </Link>
-        <Link href="#" className={linkClass(isSupporters)} title="Apoiadores">
-          <Users size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Apoiadores</span>}
-        </Link>
+        {/* Visão Geral — só admin ou quem tem permissão dashboard */}
+        {(isAdmin || permissions.permissions.includes('dashboard')) && (
+          <Link
+            href="/dashboard"
+            className={linkClass(pathname === '/dashboard' || pathname === '/dashboard/overview')}
+            title="Visão Geral"
+          >
+            <LayoutDashboard size={20} className="shrink-0" />
+            {!collapsed && <span className="font-medium whitespace-nowrap">Visão Geral</span>}
+          </Link>
+        )}
+
+        {NAV_ITEMS.filter(canSee).map((item) => (
+          <Link
+            key={item.screenKey}
+            href={item.href}
+            className={linkClass(isActive(item.href))}
+            title={item.label}
+          >
+            {item.icon}
+            {!collapsed && <span className="font-medium whitespace-nowrap">{item.label}</span>}
+          </Link>
+        ))}
+
+        {/* Usuários — apenas admin */}
+        {isAdmin && (
+          <Link
+            href="/dashboard/usuarios"
+            className={linkClass(pathname.startsWith('/dashboard/usuarios'))}
+            title="Usuários"
+          >
+            <UserCog size={20} className="shrink-0" />
+            {!collapsed && <span className="font-medium whitespace-nowrap">Usuários</span>}
+          </Link>
+        )}
       </nav>
 
+      {/* Footer */}
       <div className="p-4 border-t border-white/5 space-y-2">
-        <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors ${collapsed ? 'justify-center' : ''}`} title="Configurações">
-          <Settings size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Configurações</span>}
-        </button>
-        <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-[#FF3B3B] hover:bg-red-500/10 transition-colors ${collapsed ? 'justify-center' : ''}`} title="Sair">
-          <LogOut size={20} className="shrink-0" />
-          {!collapsed && <span className="font-medium whitespace-nowrap">Sair</span>}
-        </button>
+        {(isAdmin || permissions.permissions.includes('configuracoes')) && (
+          <button
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors ${collapsed ? 'justify-center' : ''}`}
+            title="Configurações"
+          >
+            <Settings size={20} className="shrink-0" />
+            {!collapsed && <span className="font-medium whitespace-nowrap">Configurações</span>}
+          </button>
+        )}
       </div>
     </aside>
   );

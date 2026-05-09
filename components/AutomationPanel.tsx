@@ -92,15 +92,14 @@ function FlowCard({ flow, state, onTrigger }: FlowCardProps) {
 
   return (
     <div
-      className={`bg-[#12192A] border rounded-2xl p-6 flex flex-col gap-5 transition-all duration-200 ${
-        isLoading
+      className={`bg-[#12192A] border rounded-2xl p-6 flex flex-col gap-5 transition-all duration-200 ${isLoading
           ? 'border-white/10 shadow-lg shadow-black/20'
           : isSuccess
-          ? 'border-green-500/20'
-          : isError
-          ? 'border-red-500/20'
-          : 'border-white/5 hover:border-white/10'
-      }`}
+            ? 'border-green-500/20'
+            : isError
+              ? 'border-red-500/20'
+              : 'border-white/5 hover:border-white/10'
+        }`}
     >
       {/* Header */}
       <div className="flex items-start gap-4">
@@ -132,11 +131,10 @@ function FlowCard({ flow, state, onTrigger }: FlowCardProps) {
       {/* Status message */}
       {state.message && (
         <div
-          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border ${
-            isSuccess
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border ${isSuccess
               ? 'bg-green-500/10 text-green-400 border-green-500/20'
               : 'bg-red-500/10 text-red-400 border-red-500/20'
-          }`}
+            }`}
         >
           {isSuccess ? <CheckCircle size={14} /> : <XCircle size={14} />}
           {state.message}
@@ -163,17 +161,16 @@ function FlowCard({ flow, state, onTrigger }: FlowCardProps) {
           id={`trigger_${flow.key}`}
           onClick={() => onTrigger(flow.key)}
           disabled={isLoading}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-lg ${
-            isLoading
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-lg ${isLoading
               ? 'bg-white/5 text-gray-400 cursor-wait'
               : 'text-white hover:opacity-90 active:scale-95'
-          }`}
+            }`}
           style={
             !isLoading
               ? {
-                  background: `linear-gradient(135deg, ${flow.color}cc, ${flow.color})`,
-                  boxShadow: `0 4px 24px ${flow.color}30`,
-                }
+                background: `linear-gradient(135deg, ${flow.color}cc, ${flow.color})`,
+                boxShadow: `0 4px 24px ${flow.color}30`,
+              }
               : undefined
           }
         >

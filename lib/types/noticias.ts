@@ -31,6 +31,12 @@ export interface NoticiasFilters {
   sentiment?: string | null   // 'positivo' | 'neutro' | 'negativo'
   period?: string | null      // '7' | '30' | '90' (dias) | null = todos
   search?: string | null
+  /**
+   * IDs de targets permitidos para o usuário atual.
+   * null = sem restrição (admin). [] = nenhum acesso.
+   * Quando definido, filtra por candidate_name dos targets permitidos.
+   */
+  allowedTargetIds?: string[] | null
 }
 
 // Linha crua retornada pelo Supabase
