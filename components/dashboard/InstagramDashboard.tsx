@@ -4,53 +4,60 @@ import { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 
 const MediaRenderer = ({ post }: { post: any }) => {
-  const [mediaError, setMediaError] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    setMediaError(false);
+    // Resetar erros ao trocar de post. Não alterar selectedPost aqui.
+    setVideoError(false);
+    setImageError(false);
   }, [post.id]);
 
   const hasVideo = post.video_url || (post.image_url && post.image_url.includes('.mp4'));
   const videoUrl = post.video_url || (hasVideo ? post.image_url : null);
-  const imageUrl = post.thumbnail_url || post.image_url;
+  const imageUrl = hasVideo ? post.thumbnail_url : (post.image_url || post.thumbnail_url);
 
-  if (!hasVideo && !imageUrl) return null;
+  const showVideo = hasVideo && !videoError;
+  const showImage = (!hasVideo || videoError) && imageUrl && !imageError;
+  const showFallback = (!hasVideo && !imageUrl) || (videoError && (!imageUrl || imageError)) || (!hasVideo && imageError);
 
   return (
-    <div className="w-full max-h-[420px] rounded-lg mb-6 flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden relative group">
-      {hasVideo && !mediaError ? (
-        <>
-          <video
-            controls
-            playsInline
-            preload="metadata"
-            className="max-h-[420px] w-auto max-w-full mx-auto rounded-lg bg-black object-contain"
-            onError={() => setMediaError(true)}
-          >
-            <source src={videoUrl} type="video/mp4" />
-            Seu navegador não suporta a reprodução deste vídeo.
-          </video>
-          <div className="absolute top-2 left-2 right-2 text-center text-[10px] sm:text-xs text-white/70 bg-black/60 p-1.5 rounded backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Este vídeo pode usar codec não compatível com este navegador. Abra o post original.
-          </div>
-        </>
-      ) : imageUrl ? (
+    <div className="w-full max-h-[420px] rounded-lg mb-6 flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden relative group" onClick={(e) => e.stopPropagation()}>
+      {showVideo && (
+        <video
+          controls
+          playsInline
+          preload="metadata"
+          className="max-h-[420px] w-auto max-w-full mx-auto rounded-lg bg-black object-contain"
+          onError={(e) => {
+            e.stopPropagation();
+            setVideoError(true);
+          }}
+        >
+          <source src={videoUrl} type="video/mp4" />
+          Seu navegador não suporta a reprodução deste vídeo.
+        </video>
+      )}
+
+      {showImage && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img 
           src={imageUrl} 
           alt="Post media" 
-          className={`w-full max-h-[420px] object-contain rounded-lg transition-opacity duration-300 ${mediaError && hasVideo ? 'opacity-30 blur-sm' : 'opacity-100'}`} 
+          className="w-full max-h-[420px] object-contain rounded-lg" 
           loading="lazy"
           onError={(e) => {
-             if (!hasVideo) setMediaError(true);
-             e.currentTarget.style.display = 'none';
+             e.stopPropagation();
+             setImageError(true);
           }}
         />
-      ) : null}
+      )}
 
-      {mediaError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4">
-          <p className="text-gray-300 text-sm mb-3 drop-shadow-md font-medium">Mídia indisponível ou incompatível.</p>
+      {showFallback && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4 bg-[#0f172a]">
+          <p className="text-gray-300 text-sm mb-3 drop-shadow-md font-medium text-center">
+            Mídia indisponível neste navegador
+          </p>
           <a href={post.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg text-sm transition-colors shadow-lg backdrop-blur-sm">
             Abrir post original
           </a>
