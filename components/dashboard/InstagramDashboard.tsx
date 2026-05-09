@@ -4,64 +4,108 @@ import { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 
 const MediaRenderer = ({ post }: { post: any }) => {
-  const [videoError, setVideoError] = useState(false);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    // Resetar erros ao trocar de post. Não alterar selectedPost aqui.
-    setVideoError(false);
+    setMediaLoading(false);
+    setMediaError(false);
+    setShowFallback(false);
     setImageError(false);
   }, [post.id]);
 
-  const hasVideo = post.video_url || (post.image_url && post.image_url.includes('.mp4'));
-  const videoUrl = post.video_url || (hasVideo ? post.image_url : null);
-  const imageUrl = hasVideo ? post.thumbnail_url : (post.image_url || post.thumbnail_url);
+  const isVideoDirect = (url: string) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    if (lower.includes('instagram.com/p/') || lower.includes('instagram.com/reel/')) return false;
+    return lower.endsWith('.mp4') || lower.includes('.mp4?') || post.media_type === 'VIDEO';
+  };
 
-  const showVideo = hasVideo && !videoError;
-  const showImage = (!hasVideo || videoError) && imageUrl && !imageError;
-  const showFallback = (!hasVideo && !imageUrl) || (videoError && (!imageUrl || imageError)) || (!hasVideo && imageError);
+  let finalVideoUrl = null;
+  if (isVideoDirect(post.video_url)) finalVideoUrl = post.video_url;
+  else if (isVideoDirect(post.image_url)) finalVideoUrl = post.image_url;
+
+  const hasVideo = !!finalVideoUrl;
+  const imageUrl = post.thumbnail_url || post.image_url;
+
+  useEffect(() => {
+    if (hasVideo && !mediaError) {
+      setMediaLoading(true);
+    }
+  }, [hasVideo, mediaError, post.id]);
 
   return (
-    <div className="w-full max-h-[420px] rounded-lg mb-6 flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden relative group" onClick={(e) => e.stopPropagation()}>
-      {showVideo && (
+    <div className="w-full min-h-[200px] max-h-[420px] rounded-lg mb-6 flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden relative group" onClick={(e) => e.stopPropagation()}>
+      
+      {mediaLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-[#0f172a]/50 backdrop-blur-sm">
+          <div className="w-8 h-8 border-4 border-[#00FFFF] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {hasVideo && !mediaError && !showFallback && (
         <video
           controls
           playsInline
           preload="metadata"
           className="max-h-[420px] w-auto max-w-full mx-auto rounded-lg bg-black object-contain"
+          onLoadedMetadata={() => setMediaLoading(false)}
+          onCanPlay={() => setMediaLoading(false)}
           onError={(e) => {
             e.stopPropagation();
-            setVideoError(true);
+            setMediaLoading(false);
+            setMediaError(true);
+            setShowFallback(true);
           }}
         >
-          <source src={videoUrl} type="video/mp4" />
+          <source src={finalVideoUrl} type="video/mp4" />
           Seu navegador não suporta a reprodução deste vídeo.
         </video>
       )}
 
-      {showImage && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img 
-          src={imageUrl} 
-          alt="Post media" 
-          className="w-full max-h-[420px] object-contain rounded-lg" 
-          loading="lazy"
-          onError={(e) => {
-             e.stopPropagation();
-             setImageError(true);
-          }}
-        />
-      )}
-
-      {showFallback && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4 bg-[#0f172a]">
-          <p className="text-gray-300 text-sm mb-3 drop-shadow-md font-medium text-center">
-            Mídia indisponível neste navegador
-          </p>
-          <a href={post.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg text-sm transition-colors shadow-lg backdrop-blur-sm">
-            Abrir post original
-          </a>
-        </div>
+      {(showFallback || !hasVideo) && (
+        <>
+          {imageUrl && !imageError ? (
+            <div className="relative w-full flex flex-col items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={imageUrl} 
+                alt="Post media" 
+                className="w-full max-h-[420px] object-contain rounded-lg" 
+                loading="lazy"
+                onLoad={() => setMediaLoading(false)}
+                onError={(e) => {
+                   e.stopPropagation();
+                   setMediaLoading(false);
+                   setImageError(true);
+                }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none group-hover:bg-black/40 transition-all rounded-lg">
+                <a href={post.url} target="_blank" rel="noreferrer" className="px-5 py-2 bg-black/60 hover:bg-[#00FFFF] text-white hover:text-black border border-white/20 hover:border-[#00FFFF] rounded-lg text-sm transition-all shadow-lg font-medium pointer-events-auto backdrop-blur-md flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  Abrir post original
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-20 p-6 bg-[#0f172a]">
+              <div className="text-gray-400 mb-3">
+                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </div>
+              <p className="text-gray-200 text-base mb-1 font-bold text-center">
+                Vídeo indisponível neste navegador
+              </p>
+              <p className="text-gray-400 text-sm mb-5 text-center px-4 max-w-xs">
+                O arquivo pode estar em formato incompatível. Abra o post original.
+              </p>
+              <a href={post.url} target="_blank" rel="noreferrer" className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg text-sm transition-colors shadow-lg backdrop-blur-sm font-medium">
+                Abrir post original
+              </a>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
