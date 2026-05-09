@@ -83,6 +83,9 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                 <th className="px-4 py-3 font-medium">Tema (IA)</th>
                 <th className="px-4 py-3 font-medium">Sentimento (IA)</th>
                 <th className="px-4 py-3 font-medium">Risco (IA)</th>
+                <th className="px-4 py-3 font-medium">Motivo do Risco</th>
+                <th className="px-4 py-3 font-medium">Resumo IA</th>
+                <th className="px-4 py-3 font-medium">Ação Recomendada</th>
                 <th className="px-4 py-3 font-medium">Engajamento</th>
                 <th className="px-4 py-3 font-medium">Link</th>
               </tr>
@@ -93,10 +96,23 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                   <td className="px-4 py-3 whitespace-nowrap">
                     {p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '—'}
                   </td>
-                  <td className="px-4 py-3 max-w-xs truncate" title={p.text}>{p.text}</td>
-                  <td className="px-4 py-3 max-w-xs truncate" title={p.main_theme}>{p.main_theme}</td>
+                  <td className="px-4 py-3 min-w-[150px]">
+                    <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.text}>{p.text}</div>
+                  </td>
+                  <td className="px-4 py-3 min-w-[100px]">
+                    <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.topic}>{p.topic}</div>
+                  </td>
                   <td className="px-4 py-3 capitalize">{p.sentiment}</td>
                   <td className="px-4 py-3 capitalize">{p.risk}</td>
+                  <td className="px-4 py-3 min-w-[200px]">
+                    <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.riskReason}>{p.riskReason}</div>
+                  </td>
+                  <td className="px-4 py-3 min-w-[200px]">
+                    <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.summary}>{p.summary}</div>
+                  </td>
+                  <td className="px-4 py-3 min-w-[200px]">
+                    <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.recommendedAction}>{p.recommendedAction}</div>
+                  </td>
                   <td className="px-4 py-3">{p.like_count + p.comment_count}</td>
                   <td className="px-4 py-3">
                     <a href={p.url} target="_blank" rel="noreferrer" className="text-[#00FFFF] hover:underline">Ver</a>
@@ -105,7 +121,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               ))}
               {posts.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                     Nenhum post encontrado.
                   </td>
                 </tr>

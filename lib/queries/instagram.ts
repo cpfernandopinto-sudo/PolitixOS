@@ -97,11 +97,11 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
       url: p.post_url || '#',
       sentiment: ai?.sentiment || 'Sem análise',
       risk: ai?.risk_level || 'Sem análise',
-      main_theme: ai?.main_theme || 'Sem análise',
-      summary: ai?.summary || 'Sem análise',
-      score: ai?.score || null,
+      topic: (parseJsonField(ai?.ai_topics))[0] || 'Sem análise',
       topics: parseJsonField(ai?.ai_topics),
-      ai_risk_reason: ai?.risk_reason || '',
+      riskReason: ai?.risk_reason || 'Sem análise',
+      summary: ai?.summary || 'Sem análise',
+      recommendedAction: ai?.recommended_action || 'Sem análise',
     };
   });
 
