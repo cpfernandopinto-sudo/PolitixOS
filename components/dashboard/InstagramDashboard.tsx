@@ -240,12 +240,12 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               </div>
 
               {selectedPost.image_url && (
-                <div className="w-full max-h-[400px] overflow-hidden rounded-lg mb-6 flex justify-center bg-black/20">
+                <div className="w-full max-h-[450px] overflow-hidden rounded-lg mb-6 flex items-center justify-center bg-[#0f172a]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={selectedPost.image_url} 
                     alt="Post media" 
-                    className="w-full max-h-[400px] object-cover rounded-lg" 
+                    className="w-full max-h-[450px] object-contain rounded-lg" 
                     loading="lazy"
                   />
                 </div>
