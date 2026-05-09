@@ -20,7 +20,9 @@ export default async function InstagramPage({ searchParams }: PageProps) {
     risk: cleanFilter(params.risk),
     topic: cleanFilter(params.topic),
     post: cleanFilter(params.post),
+    candidate: cleanFilter(params.candidate),
   };
+
 
   const [kpis, charts, data, alerts, options] = await Promise.all([
     getInstagramKPIs(filters),

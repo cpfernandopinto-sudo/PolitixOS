@@ -7,6 +7,7 @@ export interface InstagramFilters {
   risk?: string | null;
   topic?: string | null;
   post?: string | null;
+  candidate?: string | null;
 }
 
 function parseJsonField(value: unknown): string[] {
@@ -35,6 +36,11 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
 
   // 1. Posts Fetch
   let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
+  
+  if (filters?.candidate) {
+    pQuery = pQuery.eq('target_id', filters.candidate);
+  }
+
   if (filters?.period) {
     const days = parseInt(filters.period, 10);
     if (!isNaN(days) && days > 0) {
@@ -239,13 +245,18 @@ export async function getInstagramChartData(filters?: InstagramFilters) {
 }
 
 export async function getInstagramFiltersOptions() {
+  const client = createClient();
   const { posts } = await fetchInstagramData();
   const topics = new Set<string>();
   
   for (const p of posts) p.topics.forEach((t: string) => topics.add(t));
 
+  const { data: targetsData } = await client.from('targets').select('id, candidate_name').order('candidate_name');
+  const candidates = (targetsData || []).map(t => ({ id: t.id, name: t.candidate_name as string }));
+
   return {
     topics: Array.from(topics).sort(),
     posts: posts.map(p => ({ id: p.id, label: (p.text || '').substring(0, 30) || 'Post' })),
+    candidates,
   };
 }
