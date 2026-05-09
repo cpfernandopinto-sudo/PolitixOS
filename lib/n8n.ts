@@ -1,29 +1,26 @@
 // ---------------------------------------------------------------------------
-// n8n Webhook Trigger
+// n8n Webhook Trigger — PolitixOS
 // ---------------------------------------------------------------------------
-// URLs são lidas de variáveis de ambiente para não expor endpoints em código.
-// Configure no .env.local e na Vercel → Settings → Environment Variables.
+// URLs de produção definidas como fallback direto.
+// Para sobrescrever em outros ambientes, defina as variáveis de ambiente
+// NEXT_PUBLIC_WEBHOOK_* no .env.local ou nas configurações da Vercel.
 // ---------------------------------------------------------------------------
 
 export const WEBHOOKS = {
-  noticias:        process.env.NEXT_PUBLIC_WEBHOOK_NOTICIAS        ?? 'URL_WEBHOOK_1',
-  posts:           process.env.NEXT_PUBLIC_WEBHOOK_POSTS           ?? 'URL_WEBHOOK_2',
-  comentarios:     process.env.NEXT_PUBLIC_WEBHOOK_COMENTARIOS     ?? 'URL_WEBHOOK_3',
-  analise:         process.env.NEXT_PUBLIC_WEBHOOK_ANALISE         ?? 'URL_WEBHOOK_4',
-  reprocessamento: process.env.NEXT_PUBLIC_WEBHOOK_REPROCESSAMENTO ?? 'URL_WEBHOOK_5',
+  noticias:        process.env.NEXT_PUBLIC_WEBHOOK_NOTICIAS        ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-noticias',
+  posts:           process.env.NEXT_PUBLIC_WEBHOOK_POSTS           ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-posts',
+  comentarios:     process.env.NEXT_PUBLIC_WEBHOOK_COMENTARIOS     ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-comentarios',
+  analise:         process.env.NEXT_PUBLIC_WEBHOOK_ANALISE         ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-analise',
+  reprocessamento: process.env.NEXT_PUBLIC_WEBHOOK_REPROCESSAMENTO ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-reprocessamento',
 } as const;
 
 export type WebhookKey = keyof typeof WEBHOOKS;
 
 /**
- * Dispara um webhook POST no n8n.
- * Lança erro se a resposta não for ok (2xx).
+ * Dispara um webhook POST no n8n e aguarda a resposta.
+ * Lança erro se a resposta HTTP não for 2xx.
  */
 export async function triggerN8nWebhook(url: string): Promise<true> {
-  if (!url || url.startsWith('URL_WEBHOOK')) {
-    throw new Error('URL do webhook não configurada. Adicione a variável de ambiente correspondente.');
-  }
-
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -36,3 +33,6 @@ export async function triggerN8nWebhook(url: string): Promise<true> {
 
   return true;
 }
+
+// Alias para compatibilidade com o spec original
+export const triggerWebhook = triggerN8nWebhook;
