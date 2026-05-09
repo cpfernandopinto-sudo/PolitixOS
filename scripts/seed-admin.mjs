@@ -52,7 +52,7 @@ const ADMIN_PASSWORD = 'Admin@2025!';  // ← altere antes de rodar
 async function main() {
   console.log('Gerando hash da senha...');
   const passwordHash = await hashPassword(ADMIN_PASSWORD);
-  
+
   console.log('Inserindo usuário admin...');
   const { data, error } = await supabase
     .from('app_users')

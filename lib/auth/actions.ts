@@ -20,45 +20,58 @@ export async function loginAction(
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = formData.get('password') as string;
 
+  console.log(`[Auth] Tentativa de login para: ${email}`);
+
   if (!email || !password) {
     return { error: 'Preencha email e senha.' };
   }
 
-  const client = createClient();
-  const { data: user, error } = await client
-    .from('app_users')
-    .select('id, name, email, role, password_hash, is_active')
-    .eq('email', email)
-    .single();
+  try {
+    const client = createClient();
+    const { data: user, error } = await client
+      .from('app_users')
+      .select('id, name, email, role, password_hash, is_active')
+      .eq('email', email)
+      .single();
 
-  if (error || !user) {
-    return { error: 'Email ou senha inválidos.' };
+    if (error || !user) {
+      console.warn(`[Auth] Usuário não encontrado ou erro no DB: ${email}`);
+      return { error: 'E-mail ou senha inválidos.' };
+    }
+
+    if (!user.is_active) {
+      console.warn(`[Auth] Usuário inativo tentando login: ${email}`);
+      return { error: 'Usuário inativo. Entre em contato com o administrador.' };
+    }
+
+    const valid = await verifyPassword(password, user.password_hash);
+    if (!valid) {
+      console.warn(`[Auth] Senha incorreta para: ${email}`);
+      return { error: 'E-mail ou senha inválidos.' };
+    }
+
+    console.log(`[Auth] Login bem-sucedido: ${email} (${user.role})`);
+
+    const [permissions, allowedTargetIds] = await Promise.all([
+      loadUserPermissions(user.id),
+      loadUserTargets(user.id),
+    ]);
+
+    await createSession({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role as UserRole,
+      permissions,
+      allowedTargetIds,
+      expiresAt: '',
+    });
+  } catch (err) {
+    console.error('[Auth] Erro crítico no loginAction:', err);
+    return { error: 'Erro interno ao processar login.' };
   }
 
-  if (!user.is_active) {
-    return { error: 'Usuário inativo. Entre em contato com o administrador.' };
-  }
-
-  const valid = await verifyPassword(password, user.password_hash);
-  if (!valid) {
-    return { error: 'Email ou senha inválidos.' };
-  }
-
-  const [permissions, allowedTargetIds] = await Promise.all([
-    loadUserPermissions(user.id),
-    loadUserTargets(user.id),
-  ]);
-
-  await createSession({
-    userId: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role as UserRole,
-    permissions,
-    allowedTargetIds,
-    expiresAt: '',
-  });
-
+  // Redireciona APENAS após o sucesso completo
   redirect('/dashboard/noticias');
 }
 

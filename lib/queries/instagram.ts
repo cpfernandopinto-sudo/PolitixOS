@@ -1,5 +1,8 @@
-import { cache } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+// NOTA: React.cache() foi REMOVIDO propositalmente.
+// O cache do React deduplicava chamadas com objetos diferentes de filtros,
+// causando retorno de dados sem restrição quando getInstagramFiltersOptions()
+// chamava fetchInstagramData() sem allowedTargetIds antes das chamadas filtradas.
 
 export interface InstagramFilters {
   period?: string | null;
@@ -9,7 +12,13 @@ export interface InstagramFilters {
   post?: string | null;
   candidate?: string | null;
   /**
-   * IDs de targets permitidos. null = admin (sem restrição). [] = sem acesso.
+   * IDs de targets permitidos.
+   * null  = admin (sem restrição, vê tudo).
+   * []    = sem acesso a nenhum candidato (retorna vazio).
+   * [...] = restringir aos target_ids listados.
+   *
+   * Se undefined: campo não foi informado — tratar como sem restrição
+   * (só deve acontecer em contextos puramente internos sem usuário logado).
    */
   allowedTargetIds?: string[] | null;
 }
@@ -34,27 +43,54 @@ export function cleanFilter(v: string | string[] | undefined): string | null {
   return s || null;
 }
 
-export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
-  console.log('[fetchInstagramData] Initial filters:', filters);
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchInstagramData — fetch central, SEM cache() do React.
+// Todos os outros helpers (getInstagramKPIs, getInstagramChartData, etc.)
+// recebem o mesmo objeto `filters` e chamam esta função diretamente.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function fetchInstagramData(filters?: InstagramFilters) {
+  console.log('[fetchInstagramData] filters:', JSON.stringify({
+    allowedTargetIds: filters?.allowedTargetIds,
+    candidate: filters?.candidate,
+    period: filters?.period,
+  }));
+
   const client = createClient();
 
+  // ── Aplicar restrição de targets ANTES de qualquer query ─────────────────
+  // Regras:
+  //   allowedTargetIds === null → admin, sem filtro
+  //   allowedTargetIds === []   → usuário sem candidato vinculado → retorna vazio
+  //   allowedTargetIds === [...] → filtrar apenas esses target_ids
+  //   allowedTargetIds === undefined → contexto interno sem usuário (sem restrição)
+  const restricted = filters?.allowedTargetIds !== null && filters?.allowedTargetIds !== undefined;
+  if (restricted && (filters!.allowedTargetIds!.length === 0)) {
+    console.log('[fetchInstagramData] allowedTargetIds vazio → retornando vazio');
+    return { posts: [], comments: [] };
+  }
+
   // 1. Build targets map for candidate_name lookup
+  // Sempre busca todos (para mapear IDs → nomes), mas filtramos posts depois.
   const { data: targetsAll } = await client.from('targets').select('id, candidate_name');
   const targetsMap = new Map<string, string>();
   for (const t of targetsAll || []) targetsMap.set(t.id, t.candidate_name);
 
-  // 2. Posts Fetch — filter by target_id if candidate selected
+  // 2. Posts Fetch — filtrar por allowedTargetIds + candidate
   let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
 
-  // Restrição de acesso por targets (server-side, não apenas frontend)
-  if (filters?.allowedTargetIds !== null && filters?.allowedTargetIds !== undefined) {
-    if (filters.allowedTargetIds.length === 0) {
-      return { posts: [], comments: [] };
-    }
-    pQuery = pQuery.in('target_id', filters.allowedTargetIds);
+  // Restrição de acesso: aplica .in() apenas para não-admin com targets definidos
+  if (restricted && filters!.allowedTargetIds!.length > 0) {
+    pQuery = pQuery.in('target_id', filters!.allowedTargetIds!);
   }
 
+  // Filtro adicional de candidato selecionado pelo usuário via UI
   if (filters?.candidate) {
+    // Se também está restrito, o candidate precisa estar dentro dos allowed
+    if (restricted && !filters!.allowedTargetIds!.includes(filters.candidate)) {
+      // Usuário tentou selecionar candidato não permitido → vazio
+      console.log('[fetchInstagramData] candidato selecionado fora dos permitidos → retornando vazio');
+      return { posts: [], comments: [] };
+    }
     pQuery = pQuery.eq('target_id', filters.candidate);
   }
 
@@ -66,43 +102,45 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
       pQuery = pQuery.gte('taken_at', from.toISOString());
     }
   }
+
   const { data: rawPosts, error: pError } = await pQuery.order('taken_at', { ascending: false }).limit(200);
   if (pError) console.error('[fetchInstagramData] Error fetching posts:', pError.message);
   let postsData = rawPosts || [];
   console.log(`[fetchInstagramData] Fetched ${postsData.length} posts from social_posts`);
 
-  // 3. Comments Fetch
-  let cQuery = client.from('instagram_comments').select('*');
-  if (filters?.period) {
-    const days = parseInt(filters.period, 10);
-    if (!isNaN(days) && days > 0) {
-      const from = new Date();
-      from.setDate(from.getDate() - days);
-      cQuery = cQuery.gte('created_at_instagram', from.toISOString());
-    }
-  }
-  const { data: rawComments, error: cError } = await cQuery.order('created_at_instagram', { ascending: false }).limit(1000);
-  if (cError) console.error('[fetchInstagramData] Error fetching comments:', cError.message);
-  const commentsData = rawComments || [];
-  console.log(`[fetchInstagramData] Fetched ${commentsData.length} comments from instagram_comments`);
+  // 3. Comments Fetch — ligados aos posts já filtrados
+  // Estratégia: buscar comentários apenas dos posts que temos (via post_ids)
+  // Isso garante que comentários de outros candidatos nunca vazam.
+  let commentsData: ReturnType<typeof Array.prototype.map> = [];
 
-  // 4. Fetch missing posts for comments — respecting candidate filter
-  const postIdsFromPosts = new Set(postsData.map(p => p.id));
-  const missingPostIds = [...new Set(commentsData.map(c => c.post_id))].filter(id => id && !postIdsFromPosts.has(id));
+  if (postsData.length > 0) {
+    const postIds = postsData.map(p => p.id);
+    let cQuery = client
+      .from('instagram_comments')
+      .select('*')
+      .in('post_id', postIds); // ← restrição por post_id dos posts filtrados
 
-  if (missingPostIds.length > 0) {
-    let missingQuery = client.from('social_posts').select('*').eq('platform', 'instagram').in('id', missingPostIds);
-    // Apply candidate filter here too so we don't pull posts from other candidates
-    if (filters?.candidate) {
-      missingQuery = missingQuery.eq('target_id', filters.candidate);
+    if (filters?.period) {
+      const days = parseInt(filters.period, 10);
+      if (!isNaN(days) && days > 0) {
+        const from = new Date();
+        from.setDate(from.getDate() - days);
+        cQuery = cQuery.gte('created_at_instagram', from.toISOString());
+      }
     }
-    const { data: missingPosts } = await missingQuery;
-    if (missingPosts) postsData.push(...missingPosts);
+
+    const { data: rawComments, error: cError } = await cQuery
+      .order('created_at_instagram', { ascending: false })
+      .limit(1000);
+    if (cError) console.error('[fetchInstagramData] Error fetching comments:', cError.message);
+    commentsData = rawComments || [];
   }
+
+  console.log(`[fetchInstagramData] Fetched ${commentsData.length} comments`);
 
   const allPostIds = [...new Set(postsData.map(p => p.id))];
 
-  // 5. Fetch AI Analysis strictly for POSTS
+  // 4. AI Analysis para os posts filtrados
   const aiMap = new Map();
   if (allPostIds.length > 0) {
     const { data: aiData } = await client
@@ -116,7 +154,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
     }
   }
 
-  // 6. Map Posts + AI + candidate_name
+  // 5. Map Posts + AI + candidate_name
   let posts = postsData.map(p => {
     const ai = aiMap.get(p.id);
     return {
@@ -142,7 +180,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
     };
   });
 
-  // Apply in-memory filters on posts
+  // 6. Filtros em memória (sentimento, risco, tópico, post específico)
   if (filters?.sentiment) {
     posts = posts.filter(p => p.sentiment?.toLowerCase() === filters.sentiment!.toLowerCase());
   }
@@ -160,7 +198,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   const postsMap = new Map();
   for (const p of posts) postsMap.set(p.id, p);
 
-  // Sort by engagement DESC then date DESC
+  // Sort: engajamento DESC, data DESC
   posts.sort((a, b) => {
     const engA = a.like_count + a.comment_count;
     const engB = b.like_count + b.comment_count;
@@ -168,10 +206,10 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   });
 
-  // 7. Map Comments — only for filtered posts
-  const comments = commentsData
-    .filter(c => filteredPostIds.has(c.post_id))
-    .map(c => {
+  // 7. Map Comments — somente dos posts filtrados
+  const comments = (commentsData as any)
+    .filter((c: { post_id: string }) => filteredPostIds.has(c.post_id))
+    .map((c: { id: string; comment_text: string; created_at_instagram: string; like_count: number; post_id: string }) => {
       const p = postsMap.get(c.post_id);
       return {
         id: c.id,
@@ -180,21 +218,23 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
         like_count: c.like_count || 0,
         post_id: c.post_id,
         post_url: p?.url || '#',
-        post_caption: p?.text || 'Post'
+        post_caption: p?.text || 'Post',
       };
     });
 
-  console.log(`[fetchInstagramData] Final mapped: ${posts.length} posts, ${comments.length} comments`);
+  console.log(`[fetchInstagramData] Final: ${posts.length} posts, ${comments.length} comments`);
   return { posts, comments };
-});
+}
+
+// ─── KPIs ────────────────────────────────────────────────────────────────────
 
 export async function getInstagramKPIs(filters?: InstagramFilters) {
   const { posts, comments } = await fetchInstagramData(filters);
   const totalPosts = posts.length;
   const totalComments = comments.length;
 
-  const postLikes = posts.reduce((acc, p) => acc + p.like_count + p.comment_count, 0);
-  const commentLikes = comments.reduce((acc, c) => acc + c.like_count, 0);
+  const postLikes = posts.reduce((acc: number, p: any) => acc + p.like_count + p.comment_count, 0);
+  const commentLikes = comments.reduce((acc: number, c: any) => acc + c.like_count, 0);
   const engajamento = postLikes + commentLikes;
 
   const positivos = posts.filter(d => d.sentiment === 'positivo').length;
@@ -210,6 +250,8 @@ export async function getInstagramKPIs(filters?: InstagramFilters) {
     { title: 'Posts c/ Risco Alto', value: altoRisco },
   ];
 }
+
+// ─── Alertas ─────────────────────────────────────────────────────────────────
 
 export async function getInstagramAlerts(filters?: InstagramFilters) {
   const { posts } = await fetchInstagramData(filters);
@@ -228,6 +270,8 @@ export async function getInstagramAlerts(filters?: InstagramFilters) {
   return alerts;
 }
 
+// ─── Chart Data ──────────────────────────────────────────────────────────────
+
 export async function getInstagramChartData(filters?: InstagramFilters) {
   const { posts, comments } = await fetchInstagramData(filters);
 
@@ -243,12 +287,17 @@ export async function getInstagramChartData(filters?: InstagramFilters) {
     { name: 'Alto', value: posts.filter(d => d.risk === 'alto').length, itemStyle: { color: '#FF3B3B' } },
   ];
 
-  const sortedByEng = [...posts].sort((a, b) => (b.like_count + b.comment_count) - (a.like_count + a.comment_count)).slice(0, 5);
+  const sortedByEng = [...posts]
+    .sort((a, b) => (b.like_count + b.comment_count) - (a.like_count + a.comment_count))
+    .slice(0, 5);
   const topEng = sortedByEng.length > 0
     ? sortedByEng.map(p => ({ name: (p.text || '').substring(0, 25) || 'Post', value: p.like_count + p.comment_count }))
     : [{ name: 'Sem posts', value: 0 }];
 
-  const sortedByRisk = [...posts].filter(p => p.risk === 'alto' || p.risk === 'medio').sort((a, b) => (b.risk === 'alto' ? 1 : 0) - (a.risk === 'alto' ? 1 : 0)).slice(0, 5);
+  const sortedByRisk = [...posts]
+    .filter(p => p.risk === 'alto' || p.risk === 'medio')
+    .sort((a, b) => (b.risk === 'alto' ? 1 : 0) - (a.risk === 'alto' ? 1 : 0))
+    .slice(0, 5);
   const topRisk = sortedByRisk.length > 0
     ? sortedByRisk.map(p => ({ name: (p.text || '').substring(0, 25) || 'Post', value: p.risk === 'alto' ? 100 : 50 }))
     : [{ name: 'Sem posts de risco', value: 0 }];
@@ -266,15 +315,32 @@ export async function getInstagramChartData(filters?: InstagramFilters) {
   return { sentimentData, riskData, topEng, topRisk, byDay };
 }
 
-export async function getInstagramFiltersOptions() {
+// ─── Opções de filtro — respeitam allowedTargetIds ───────────────────────────
+/**
+ * Retorna as opções de filtro (candidatos, tópicos, posts).
+ * Candidatos: restringidos por allowedTargetIds quando não-admin.
+ * Tópicos/Posts: extraídos dos posts já filtrados.
+ */
+export async function getInstagramFiltersOptions(allowedTargetIds?: string[] | null) {
   const client = createClient();
-  const { posts } = await fetchInstagramData();
-  const topics = new Set<string>();
 
-  for (const p of posts) p.topics.forEach((t: string) => topics.add(t));
+  // Candidatos visíveis: respeitar allowedTargetIds
+  let targetsQuery = client.from('targets').select('id, candidate_name').order('candidate_name');
+  if (allowedTargetIds !== null && allowedTargetIds !== undefined && allowedTargetIds.length > 0) {
+    targetsQuery = targetsQuery.in('id', allowedTargetIds) as typeof targetsQuery;
+  } else if (allowedTargetIds !== null && allowedTargetIds !== undefined && allowedTargetIds.length === 0) {
+    // sem acesso a nenhum candidato
+    return { topics: [], posts: [], candidates: [] };
+  }
+  // null = admin = sem filtro (retorna todos)
 
-  const { data: targetsData } = await client.from('targets').select('id, candidate_name').order('candidate_name');
+  const { data: targetsData } = await targetsQuery;
   const candidates = (targetsData || []).map(t => ({ id: t.id, name: t.candidate_name as string }));
+
+  // Tópicos e posts: extraídos dos dados filtrados (passa allowedTargetIds)
+  const { posts } = await fetchInstagramData({ allowedTargetIds });
+  const topics = new Set<string>();
+  for (const p of posts) p.topics.forEach((t: string) => topics.add(t));
 
   return {
     topics: Array.from(topics).sort(),

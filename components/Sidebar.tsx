@@ -102,10 +102,9 @@ export default function Sidebar({ permissions }: Props) {
   const isActive = (href: string) => pathname.startsWith(href);
 
   const linkClass = (active: boolean) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-      active
-        ? 'bg-blue-600/10 text-[#2563EB] border border-blue-500/20'
-        : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${active
+      ? 'bg-blue-600/10 text-[#2563EB] border border-blue-500/20'
+      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
     } ${collapsed ? 'justify-center' : ''}`;
 
   if (!mounted) return null;

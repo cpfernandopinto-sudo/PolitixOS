@@ -32,7 +32,9 @@ export default async function InstagramPage({ searchParams }: PageProps) {
     getInstagramChartData(filters),
     fetchInstagramData(filters),
     getInstagramAlerts(filters),
-    getInstagramFiltersOptions(),
+    // Passa allowedTargetIds para que o seletor de candidatos
+    // mostre apenas os candidatos permitidos para este usuário
+    getInstagramFiltersOptions(allowedTargetIds),
   ]);
 
   return (

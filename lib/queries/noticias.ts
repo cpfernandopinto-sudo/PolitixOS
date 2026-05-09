@@ -402,12 +402,30 @@ export async function getFeedNoticias(filters?: NoticiasFilters): Promise<Notici
 
 // ─── Opções para selects dos filtros ─────────────────────────────────────────
 
-export async function getCandidateOptions(): Promise<string[]> {
+export async function getCandidateOptions(
+  allowedTargetIds?: string[] | null
+): Promise<string[]> {
   const client = createClient()
-  const { data } = await client
-    .from('mentions')
-    .select('candidate_name')
-    .not('candidate_name', 'is', null)
+
+  // Se não-admin com array vazio → sem candidatos disponíveis
+  if (allowedTargetIds !== null && allowedTargetIds !== undefined && allowedTargetIds.length === 0) {
+    return []
+  }
+
+  let q = client.from('mentions').select('candidate_name').not('candidate_name', 'is', null)
+
+  // Se não-admin: resolver IDs → nomes e filtrar
+  if (allowedTargetIds !== null && allowedTargetIds !== undefined && allowedTargetIds.length > 0) {
+    const { data: targetRows } = await client
+      .from('targets')
+      .select('candidate_name')
+      .in('id', allowedTargetIds)
+    const allowedNames = (targetRows || []).map((r: { candidate_name: string }) => r.candidate_name)
+    if (allowedNames.length === 0) return []
+    q = q.in('candidate_name', allowedNames) as typeof q
+  }
+
+  const { data } = await q
   if (!data) return []
   return [...new Set(data.map((r) => r.candidate_name as string))].sort()
 }

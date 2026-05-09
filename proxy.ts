@@ -24,16 +24,28 @@ export default async function middleware(req: NextRequest) {
 
   const isPublic = PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
   const token = req.cookies.get('politixos_session')?.value;
-  const session = await decryptSession(token);
+
+  let session = null;
+  if (token) {
+    try {
+      session = await decryptSession(token);
+    } catch (err) {
+      console.error('[Middleware] Erro ao descriptografar sessão:', err);
+    }
+  }
 
   // ── Não autenticado ────────────────────────────────────────────────────────
   if (!session) {
-    if (isPublic) return NextResponse.next();
+    if (isPublic) {
+      return NextResponse.next();
+    }
+    console.log(`[Middleware] Acesso negado a ${pathname}. Redirecionando para /login`);
     return NextResponse.redirect(new URL('/login', req.nextUrl));
   }
 
   // ── Autenticado em rota pública (ex: /login) → redirecionar para dashboard
   if (isPublic) {
+    console.log(`[Middleware] Usuário autenticado acessando rota pública ${pathname}. Redirecionando para dashboard.`);
     return NextResponse.redirect(new URL('/dashboard/noticias', req.nextUrl));
   }
 
@@ -57,6 +69,7 @@ export default async function middleware(req: NextRequest) {
   }
 
   if (screenKey && !session.permissions.includes(screenKey)) {
+    console.warn(`[Middleware] Usuário ${session.email} sem permissão para ${screenKey}. Redirecionando.`);
     return NextResponse.redirect(new URL('/dashboard/sem-permissao', req.nextUrl));
   }
 

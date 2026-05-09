@@ -86,9 +86,9 @@ export default async function NoticiasDashboard({ searchParams }: PageProps) {
   const allowedTargetIds = await getAllowedTargetIds();
   const filters = { ...buildFilters(params), allowedTargetIds };
 
-  // Opções de filtro carregadas sem restrições (sempre completas)
+  // Opções de filtro: candidatos respeitam allowedTargetIds do usuário
   const [candidates, cities, sources] = await Promise.all([
-    getCandidateOptions(),
+    getCandidateOptions(allowedTargetIds),
     getCityOptions(),
     getSourceOptions(),
   ]);

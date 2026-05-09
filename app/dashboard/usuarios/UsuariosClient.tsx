@@ -232,11 +232,10 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
               <button
                 type="button"
                 onClick={() => setIsActive((v) => !v)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg border transition-all ${
-                  isActive
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg border transition-all ${isActive
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                     : 'bg-white/5 border-white/10 text-gray-400'
-                }`}
+                  }`}
               >
                 <span>{isActive ? 'Ativo' : 'Inativo'}</span>
                 <Power size={16} />
@@ -256,18 +255,16 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
                   key={t.id}
                   type="button"
                   onClick={() => toggleTarget(t.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all text-left ${
-                    selectedTargets.includes(t.id)
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all text-left ${selectedTargets.includes(t.id)
                       ? 'bg-[#2563EB]/10 border-blue-500/30 text-[#2563EB]'
                       : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-                  }`}
+                    }`}
                 >
                   <div
-                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                      selectedTargets.includes(t.id)
+                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selectedTargets.includes(t.id)
                         ? 'bg-[#2563EB] border-[#2563EB]'
                         : 'border-white/20'
-                    }`}
+                      }`}
                   >
                     {selectedTargets.includes(t.id) && (
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -298,18 +295,16 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
                   key={key}
                   type="button"
                   onClick={() => toggleScreen(key)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all text-left ${
-                    selectedScreens.includes(key)
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all text-left ${selectedScreens.includes(key)
                       ? 'bg-[#2563EB]/10 border-blue-500/30 text-[#2563EB]'
                       : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-                  }`}
+                    }`}
                 >
                   <div
-                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                      selectedScreens.includes(key)
+                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selectedScreens.includes(key)
                         ? 'bg-[#2563EB] border-[#2563EB]'
                         : 'border-white/20'
-                    }`}
+                      }`}
                   >
                     {selectedScreens.includes(key) && (
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -544,11 +539,10 @@ export default function UsuariosClient({ initialUsers, targets }: Props) {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                          user.is_active
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${user.is_active
                             ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
                             : 'text-gray-500 bg-white/5 border-white/10'
-                        }`}
+                          }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-400' : 'bg-gray-600'}`}
@@ -585,11 +579,10 @@ export default function UsuariosClient({ initialUsers, targets }: Props) {
                           onClick={() => handleToggle(user)}
                           disabled={toggling === user.id}
                           title={user.is_active ? 'Desativar' : 'Ativar'}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            user.is_active
+                          className={`p-1.5 rounded-lg transition-colors ${user.is_active
                               ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
                               : 'text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10'
-                          }`}
+                            }`}
                         >
                           {toggling === user.id ? (
                             <Loader2 size={15} className="animate-spin" />
