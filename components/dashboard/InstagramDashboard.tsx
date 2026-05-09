@@ -12,35 +12,30 @@ const MediaRenderer = ({ post }: { post: any }) => {
     setImageError(false);
   }, [post.id]);
 
-  const hasVideo = post.media_type === 'VIDEO' || !!post.video_url;
-  const mediaUrl = post.video_url || post.image_url;
+  const hasVideo = post.video_url || (post.image_url && post.image_url.includes('.mp4'));
+  const mediaUrl = post.video_url || (hasVideo ? post.image_url : null);
   const imageUrl = post.thumbnail_url || post.image_url;
 
   return (
     <div className="w-full min-h-[200px] max-h-[420px] rounded-lg mb-6 flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden relative group" onClick={(e) => e.stopPropagation()}>
       
-      {hasVideo && !mediaError && (
-        <>
-          {/* O vídeo provavelmente está em codec não compatível com Chrome/Firefox. A solução definitiva é converter no pipeline n8n para MP4 H.264/AAC. */}
-          <video
-            controls
-            playsInline
-            preload="metadata"
-            poster={imageUrl}
-            className="max-h-[420px] w-auto max-w-full mx-auto rounded-lg bg-black object-contain"
-            onCanPlay={() => setMediaError(false)}
-            onLoadedMetadata={() => setMediaError(false)}
-            onError={(e) => {
-              e.stopPropagation();
-              setMediaError(true);
-            }}
-          >
-            <source src={mediaUrl} />
-          </video>
-        </>
+      {mediaUrl && !mediaError && (
+        <video
+          controls
+          playsInline
+          preload="metadata"
+          poster={imageUrl || undefined}
+          className="max-h-[420px] w-auto max-w-full mx-auto rounded-lg bg-black object-contain"
+          onError={(e) => {
+            e.stopPropagation();
+            setMediaError(true);
+          }}
+        >
+          <source src={mediaUrl} />
+        </video>
       )}
 
-      {(mediaError || !hasVideo) && (
+      {(mediaError || !mediaUrl) && (
         <>
           {imageUrl && !imageError ? (
             <div className="relative w-full flex flex-col items-center justify-center">
@@ -68,10 +63,10 @@ const MediaRenderer = ({ post }: { post: any }) => {
                 <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
               </div>
               <p className="text-gray-200 text-base mb-1 font-bold text-center">
-                {mediaError ? 'Não foi possível reproduzir este vídeo neste navegador.' : 'Mídia indisponível'}
+                Mídia indisponível
               </p>
               <p className="text-gray-400 text-sm mb-5 text-center px-4 max-w-xs">
-                {mediaError ? 'O arquivo pode estar em formato incompatível. Abra o post original.' : 'Não foi possível carregar a prévia visual.'}
+                A mídia deste post não pôde ser carregada.
               </p>
               <a href={post.url} target="_blank" rel="noreferrer" className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg text-sm transition-colors shadow-lg backdrop-blur-sm font-medium">
                 Abrir post original
