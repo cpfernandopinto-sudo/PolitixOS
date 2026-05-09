@@ -3,6 +3,23 @@
 import ReactECharts from 'echarts-for-react';
 
 export default function InstagramDashboard({ kpis, charts, posts, comments }: { kpis: any[], charts: any, posts: any[], comments: any[] }) {
+  const getSentimentBadge = (sentiment: string) => {
+    const s = (sentiment || '').toLowerCase();
+    if (s === 'positivo') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/20 capitalize">{sentiment}</span>;
+    if (s === 'neutro') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20 capitalize">{sentiment}</span>;
+    if (s === 'misto') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20 capitalize">{sentiment}</span>;
+    if (s === 'negativo') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 capitalize">{sentiment}</span>;
+    return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 capitalize">{sentiment}</span>;
+  };
+
+  const getRiskBadge = (risk: string) => {
+    const r = (risk || '').toLowerCase();
+    if (r === 'baixo') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/20 capitalize">{risk}</span>;
+    if (r === 'médio' || r === 'medio') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20 capitalize">{risk}</span>;
+    if (r === 'alto') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#dc2626]/10 text-[#dc2626] border border-[#dc2626]/20 capitalize">{risk}</span>;
+    return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 capitalize">{risk}</span>;
+  };
+
   const optionSentiment = {
     tooltip: { trigger: 'item' },
     series: [{ type: 'pie', radius: ['40%', '70%'], data: charts.sentimentData }],
@@ -92,7 +109,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
             </thead>
             <tbody className="divide-y divide-white/5">
               {posts.slice(0, 20).map((p) => (
-                <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                <tr key={p.id} className={`hover:bg-white/5 transition-colors ${p.risk?.toLowerCase() === 'alto' ? 'border-l-2 border-l-[#dc2626]' : ''}`}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '—'}
                   </td>
@@ -102,8 +119,8 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                   <td className="px-4 py-3 min-w-[100px]">
                     <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.topic}>{p.topic}</div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{p.sentiment}</td>
-                  <td className="px-4 py-3 capitalize">{p.risk}</td>
+                  <td className="px-4 py-3">{getSentimentBadge(p.sentiment)}</td>
+                  <td className="px-4 py-3">{getRiskBadge(p.risk)}</td>
                   <td className="px-4 py-3 min-w-[200px]">
                     <div className="line-clamp-2 text-ellipsis overflow-hidden" title={p.riskReason}>{p.riskReason}</div>
                   </td>
