@@ -39,14 +39,20 @@ export default function Sidebar() {
 
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#0D0D0D] border-r border-white/5 flex flex-col z-50 transition-all duration-300`}>
-      <div className={`p-6 flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
+      <div className={`p-6 flex items-center min-h-[80px] ${collapsed ? 'justify-center' : 'justify-start'}`}>
         {!collapsed && (
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2 overflow-hidden whitespace-nowrap">
-            <span className="text-[#00FFFF]">Politix</span>OS
-          </h1>
+          <img 
+            src="/brand/PolitixOS.png" 
+            alt="PolitixOS Logo" 
+            className="w-full max-w-[160px] h-auto object-contain" 
+          />
         )}
         {collapsed && (
-          <h1 className="text-2xl font-bold tracking-tight text-[#00FFFF]">P</h1>
+          <img 
+            src="/brand/PolitixOS.png" 
+            alt="PolitixOS" 
+            className="w-10 h-auto object-contain" 
+          />
         )}
       </div>
 

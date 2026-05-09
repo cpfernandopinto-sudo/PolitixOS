@@ -10,10 +10,12 @@ export default function LoginPage() {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#00FFFF]/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="glass w-full max-w-md p-8 rounded-2xl relative z-10 border border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.1)]">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold tracking-tight text-white flex items-center justify-center gap-2 mb-2">
-            <span className="text-[#00FFFF] drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">Politix</span>OS
-          </h1>
+        <div className="text-center mb-10 flex flex-col items-center">
+          <img 
+            src="/brand/PolitixOS.png" 
+            alt="PolitixOS Logo" 
+            className="w-auto h-auto max-w-[240px] mb-4 object-contain" 
+          />
           <p className="text-gray-400 text-sm">Painel de Inteligência Política em Tempo Real</p>
         </div>
 
