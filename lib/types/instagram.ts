@@ -13,6 +13,8 @@ export interface InstagramPost {
   summary: string;
   recommendedAction: string;
   image_url?: string | null;
+  video_url?: string | null;
+  thumbnail_url?: string | null;
 }
 
 export interface InstagramComment {

@@ -3,6 +3,63 @@
 import { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 
+const MediaRenderer = ({ post }: { post: any }) => {
+  const [mediaError, setMediaError] = useState(false);
+
+  useEffect(() => {
+    setMediaError(false);
+  }, [post.id]);
+
+  const hasVideo = post.video_url || (post.image_url && post.image_url.includes('.mp4'));
+  const videoUrl = post.video_url || (hasVideo ? post.image_url : null);
+  const imageUrl = post.thumbnail_url || post.image_url;
+
+  if (!hasVideo && !imageUrl) return null;
+
+  return (
+    <div className="w-full max-h-[420px] rounded-lg mb-6 flex flex-col items-center justify-center bg-[#0f172a] overflow-hidden relative group">
+      {hasVideo && !mediaError ? (
+        <>
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            className="max-h-[420px] w-auto max-w-full mx-auto rounded-lg bg-black object-contain"
+            onError={() => setMediaError(true)}
+          >
+            <source src={videoUrl} type="video/mp4" />
+            Seu navegador não suporta a reprodução deste vídeo.
+          </video>
+          <div className="absolute top-2 left-2 right-2 text-center text-[10px] sm:text-xs text-white/70 bg-black/60 p-1.5 rounded backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            Este vídeo pode usar codec não compatível com este navegador. Abra o post original.
+          </div>
+        </>
+      ) : imageUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img 
+          src={imageUrl} 
+          alt="Post media" 
+          className={`w-full max-h-[420px] object-contain rounded-lg transition-opacity duration-300 ${mediaError && hasVideo ? 'opacity-30 blur-sm' : 'opacity-100'}`} 
+          loading="lazy"
+          onError={(e) => {
+             if (!hasVideo) setMediaError(true);
+             e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : null}
+
+      {mediaError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4">
+          <p className="text-gray-300 text-sm mb-3 drop-shadow-md font-medium">Mídia indisponível ou incompatível.</p>
+          <a href={post.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg text-sm transition-colors shadow-lg backdrop-blur-sm">
+            Abrir post original
+          </a>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function InstagramDashboard({ kpis, charts, posts, comments }: { kpis: any[], charts: any, posts: any[], comments: any[] }) {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
 
@@ -239,17 +296,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                 </span>
               </div>
 
-              {selectedPost.image_url && (
-                <div className="w-full max-h-[450px] overflow-hidden rounded-lg mb-6 flex items-center justify-center bg-[#0f172a]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={selectedPost.image_url} 
-                    alt="Post media" 
-                    className="w-full max-h-[450px] object-contain rounded-lg" 
-                    loading="lazy"
-                  />
-                </div>
-              )}
+              <MediaRenderer post={selectedPost} />
 
               <div>
                 <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Texto do Post</h3>
