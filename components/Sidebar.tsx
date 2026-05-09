@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Newspaper, AlertTriangle, Users, Settings, LogOut, Hash, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Newspaper, AlertTriangle, Users, Settings, LogOut, Hash, ChevronLeft, ChevronRight, UserPlus, Zap } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -29,6 +29,8 @@ export default function Sidebar() {
   const isInstagram = pathname === '/dashboard/instagram';
   const isCrisis = pathname === '/dashboard/crise' || pathname === '/dashboard/gestao-crise';
   const isSupporters = pathname === '/dashboard/apoiadores';
+  const isCandidatos = pathname === '/dashboard/candidatos';
+  const isAutomacoes = pathname === '/dashboard/automacoes';
 
   const linkClass = (isActive: boolean) => 
     `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
@@ -79,6 +81,14 @@ export default function Sidebar() {
         <Link href="/dashboard/instagram" className={linkClass(isInstagram)} title="Radar Instagram">
           <Hash size={20} className="shrink-0" />
           {!collapsed && <span className="font-medium whitespace-nowrap">Radar Instagram</span>}
+        </Link>
+        <Link href="/dashboard/candidatos" className={linkClass(isCandidatos)} title="Candidatos">
+          <UserPlus size={20} className="shrink-0" />
+          {!collapsed && <span className="font-medium whitespace-nowrap">Candidatos</span>}
+        </Link>
+        <Link href="/dashboard/automacoes" className={linkClass(isAutomacoes)} title="Automação">
+          <Zap size={20} className="shrink-0" />
+          {!collapsed && <span className="font-medium whitespace-nowrap">Automação</span>}
         </Link>
         <Link href="#" className={linkClass(isCrisis)} title="Gestão de Crise">
           <AlertTriangle size={20} className="shrink-0" />
