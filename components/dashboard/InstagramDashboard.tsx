@@ -1,8 +1,19 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 
 export default function InstagramDashboard({ kpis, charts, posts, comments }: { kpis: any[], charts: any, posts: any[], comments: any[] }) {
+  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedPost(null);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
   const getSentimentBadge = (sentiment: string) => {
     const s = (sentiment || '').toLowerCase();
     if (s === 'positivo') return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/20 capitalize">{sentiment}</span>;
@@ -109,7 +120,11 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
             </thead>
             <tbody className="divide-y divide-white/5">
               {posts.slice(0, 20).map((p) => (
-                <tr key={p.id} className={`hover:bg-white/5 transition-colors ${p.risk?.toLowerCase() === 'alto' ? 'border-l-2 border-l-[#dc2626]' : ''}`}>
+                <tr 
+                  key={p.id} 
+                  className={`cursor-pointer hover:bg-white/10 transition-colors ${p.risk?.toLowerCase() === 'alto' ? 'border-l-2 border-l-[#dc2626]' : ''}`}
+                  onClick={() => setSelectedPost(p)}
+                >
                   <td className="px-4 py-3 whitespace-nowrap">
                     {p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '—'}
                   </td>
@@ -132,7 +147,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                   </td>
                   <td className="px-4 py-3">{p.like_count + p.comment_count}</td>
                   <td className="px-4 py-3">
-                    <a href={p.url} target="_blank" rel="noreferrer" className="text-[#00FFFF] hover:underline">Ver</a>
+                    <a href={p.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-[#00FFFF] hover:underline">Ver</a>
                   </td>
                 </tr>
               ))}
@@ -191,6 +206,79 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
           </table>
         </div>
       </div>
+
+      {/* Modal do Post */}
+      {selectedPost && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setSelectedPost(null)}
+        >
+          <div 
+            className="bg-[#12192A] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-[#12192A]/90 backdrop-blur-md z-10">
+              <h2 className="text-xl font-bold text-white">Análise Detalhada</h2>
+              <button 
+                onClick={() => setSelectedPost(null)}
+                className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="flex flex-wrap gap-3 items-center">
+                {getSentimentBadge(selectedPost.sentiment)}
+                {getRiskBadge(selectedPost.risk)}
+                <span className="text-gray-400 text-sm">
+                  Engajamento: <span className="text-white font-medium">{selectedPost.like_count + selectedPost.comment_count}</span>
+                </span>
+                <span className="text-gray-400 text-sm">
+                  Data: <span className="text-white font-medium">{selectedPost.created_at ? new Date(selectedPost.created_at).toLocaleDateString('pt-BR') : '—'}</span>
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Texto do Post</h3>
+                <p className="text-gray-200 bg-white/5 p-4 rounded-lg whitespace-pre-wrap">{selectedPost.text || 'Sem texto'}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Tema (IA)</h3>
+                  <p className="text-gray-200 bg-white/5 p-3 rounded-lg">{selectedPost.topic}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Motivo do Risco</h3>
+                  <p className="text-gray-200 bg-white/5 p-3 rounded-lg">{selectedPost.riskReason}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Resumo IA</h3>
+                <p className="text-gray-200 bg-white/5 p-4 rounded-lg">{selectedPost.summary}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Ação Recomendada</h3>
+                <p className="text-[#00FFFF] bg-[#00FFFF]/10 border border-[#00FFFF]/20 p-4 rounded-lg">{selectedPost.recommendedAction}</p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-white/5 flex justify-end">
+              <a 
+                href={selectedPost.url} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="px-6 py-2 bg-[#00FFFF] text-black font-medium rounded-lg hover:bg-[#00FFFF]/80 transition-colors"
+              >
+                Ver Post Original
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
