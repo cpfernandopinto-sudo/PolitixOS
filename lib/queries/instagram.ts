@@ -76,7 +76,7 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   if (allPostIds.length > 0) {
     const { data: aiData } = await client
       .from('ai_analysis')
-      .select('content_id, sentiment, risk_level, ai_topics, summary, risk_reason')
+      .select('*')
       .eq('content_type', 'post')
       .in('content_id', allPostIds);
 
@@ -95,20 +95,22 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
       like_count: p.like_count || 0,
       comment_count: p.comment_count || 0,
       url: p.post_url || '#',
-      sentiment: ai?.sentiment || 'neutro',
-      risk: ai?.risk_level || 'baixo',
+      sentiment: ai?.sentiment || 'Sem análise',
+      risk: ai?.risk_level || 'Sem análise',
+      main_theme: ai?.main_theme || 'Sem análise',
+      summary: ai?.summary || 'Sem análise',
+      score: ai?.score || null,
       topics: parseJsonField(ai?.ai_topics),
-      ai_summary: ai?.summary || '',
       ai_risk_reason: ai?.risk_reason || '',
     };
   });
 
   // Apply Filters on Posts (AI filters apply only to posts)
   if (filters?.sentiment) {
-    posts = posts.filter(p => p.sentiment.toLowerCase() === filters.sentiment!.toLowerCase());
+    posts = posts.filter(p => p.sentiment?.toLowerCase() === filters.sentiment!.toLowerCase());
   }
   if (filters?.risk) {
-    posts = posts.filter(p => p.risk.toLowerCase() === filters.risk!.toLowerCase());
+    posts = posts.filter(p => p.risk?.toLowerCase() === filters.risk!.toLowerCase());
   }
   if (filters?.topic) {
     posts = posts.filter(p => p.topics.includes(filters.topic!));
@@ -120,6 +122,14 @@ export const fetchInstagramData = cache(async (filters?: InstagramFilters) => {
   const filteredPostIds = new Set(posts.map(p => p.id));
   const postsMap = new Map();
   for (const p of posts) postsMap.set(p.id, p);
+
+  // Ordenação: Engajamento DESC ou Data DESC
+  posts.sort((a, b) => {
+    const engA = a.like_count + a.comment_count;
+    const engB = b.like_count + b.comment_count;
+    if (engB !== engA) return engB - engA;
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
 
   // 6. Map Comments and relate to filtered posts
   // If the post was filtered out (by sentiment/risk/topic), its comments should not appear.

@@ -80,8 +80,9 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               <tr>
                 <th className="px-4 py-3 font-medium">Data</th>
                 <th className="px-4 py-3 font-medium">Texto / Legenda</th>
-                <th className="px-4 py-3 font-medium">Sentimento IA</th>
-                <th className="px-4 py-3 font-medium">Risco IA</th>
+                <th className="px-4 py-3 font-medium">Tema (IA)</th>
+                <th className="px-4 py-3 font-medium">Sentimento (IA)</th>
+                <th className="px-4 py-3 font-medium">Risco (IA)</th>
                 <th className="px-4 py-3 font-medium">Engajamento</th>
                 <th className="px-4 py-3 font-medium">Link</th>
               </tr>
@@ -92,7 +93,8 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                   <td className="px-4 py-3 whitespace-nowrap">
                     {p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '—'}
                   </td>
-                  <td className="px-4 py-3 max-w-sm truncate">{p.text}</td>
+                  <td className="px-4 py-3 max-w-xs truncate" title={p.text}>{p.text}</td>
+                  <td className="px-4 py-3 max-w-xs truncate" title={p.main_theme}>{p.main_theme}</td>
                   <td className="px-4 py-3 capitalize">{p.sentiment}</td>
                   <td className="px-4 py-3 capitalize">{p.risk}</td>
                   <td className="px-4 py-3">{p.like_count + p.comment_count}</td>
@@ -103,7 +105,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               ))}
               {posts.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     Nenhum post encontrado.
                   </td>
                 </tr>
