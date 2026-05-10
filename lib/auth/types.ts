@@ -26,3 +26,4 @@ export const ALL_SCREENS: string[] = [
   'apoiadores',
   'configuracoes',
 ];
+// force deploy
