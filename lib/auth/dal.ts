@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient } from '@/lib/supabaseClient';
+import { createClient, createAdminClient } from '@/lib/supabaseClient';
 import { getSession } from '@/lib/auth/session';
 import type { SessionPayload } from '@/lib/auth/session';
 import type { AppUser, UserRole } from '@/lib/auth/types';
@@ -36,28 +36,38 @@ export async function getAllowedTargetIds(): Promise<string[] | null> {
 // ─── Carregar permissões e targets do DB ────────────────────────────────────
 
 export async function loadUserPermissions(userId: string): Promise<string[]> {
-  const client = createClient();
-  const { data } = await client
+  const client = createAdminClient();
+  const { data, error } = await client
     .from('app_user_permissions')
     .select('screen_key')
     .eq('user_id', userId)
     .eq('can_access', true);
+
+  if (error) {
+    console.error(`[loadUserPermissions] Erro para ${userId}:`, error.message);
+    return [];
+  }
   return (data || []).map((r: { screen_key: string }) => r.screen_key);
 }
 
 export async function loadUserTargets(userId: string): Promise<string[]> {
-  const client = createClient();
-  const { data } = await client
+  const client = createAdminClient();
+  const { data, error } = await client
     .from('app_user_targets')
     .select('target_id')
     .eq('user_id', userId);
+
+  if (error) {
+    console.error(`[loadUserTargets] Erro para ${userId}:`, error.message);
+    return [];
+  }
   return (data || []).map((r: { target_id: string }) => r.target_id);
 }
 
 // ─── Listar usuários ─────────────────────────────────────────────────────────
 
 export async function listUsers(): Promise<AppUser[]> {
-  const client = createClient();
+  const client = createAdminClient();
   const { data, error } = await client
     .from('app_users')
     .select('id, name, email, role, is_active, created_at')
@@ -74,7 +84,7 @@ export async function getUserWithRelations(userId: string): Promise<{
   targetIds: string[];
   permissionKeys: string[];
 } | null> {
-  const client = createClient();
+  const client = createAdminClient();
   const { data: user, error } = await client
     .from('app_users')
     .select('id, name, email, role, is_active, created_at')

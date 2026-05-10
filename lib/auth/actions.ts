@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabaseClient';
+import { createClient, createAdminClient } from '@/lib/supabaseClient';
 import { createSession, deleteSession } from '@/lib/auth/session';
 import { loadUserPermissions, loadUserTargets } from '@/lib/auth/dal';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
@@ -27,15 +27,20 @@ export async function loginAction(
   }
 
   try {
-    const client = createClient();
+    const client = createAdminClient();
     const { data: user, error } = await client
       .from('app_users')
       .select('id, name, email, role, password_hash, is_active')
       .eq('email', email)
       .single();
 
-    if (error || !user) {
-      console.warn(`[Auth] Usuário não encontrado ou erro no DB: ${email}`);
+    if (error) {
+      console.error(`[Auth] Erro ao buscar usuário ${email}:`, error.message);
+      return { error: 'E-mail ou senha inválidos.' };
+    }
+
+    if (!user) {
+      console.warn(`[Auth] Usuário não encontrado: ${email}`);
       return { error: 'E-mail ou senha inválidos.' };
     }
 
@@ -105,7 +110,7 @@ export async function createUserAction(
   }
 
   const password_hash = await hashPassword(password);
-  const client = createClient();
+  const client = createAdminClient();
 
   // 1. Inserir usuário
   const { data: userRow, error: userErr } = await client
@@ -159,7 +164,7 @@ export async function updateUserAction(
     return { error: 'Preencha todos os campos obrigatórios.' };
   }
 
-  const client = createClient();
+  const client = createAdminClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateData: Record<string, any> = { name, email, role, is_active: isActive };
@@ -201,7 +206,7 @@ export async function toggleUserActiveAction(
   userId: string,
   isActive: boolean
 ): Promise<{ error?: string }> {
-  const client = createClient();
+  const client = createAdminClient();
   const { error } = await client
     .from('app_users')
     .update({ is_active: isActive })
@@ -220,7 +225,7 @@ export async function changePasswordAction(
     return { error: 'Senha deve ter no mínimo 6 caracteres.' };
   }
   const password_hash = await hashPassword(newPassword);
-  const client = createClient();
+  const client = createAdminClient();
   const { error } = await client
     .from('app_users')
     .update({ password_hash })
@@ -232,7 +237,7 @@ export async function changePasswordAction(
 // ─── Listar usuários (re-exported para server components) ─────────────────────
 
 export async function listUsers(): Promise<AppUser[]> {
-  const client = createClient();
+  const client = createAdminClient();
   const { data, error } = await client
     .from('app_users')
     .select('id, name, email, role, is_active, created_at')
@@ -251,7 +256,7 @@ export async function getUserWithRelations(userId: string): Promise<{
   targetIds: string[];
   permissionKeys: string[];
 } | null> {
-  const client = createClient();
+  const client = createAdminClient();
   const { data: user, error } = await client
     .from('app_users')
     .select('id, name, email, role, is_active, created_at')

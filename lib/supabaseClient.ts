@@ -19,3 +19,21 @@ export function createClient() {
     key ?? 'placeholder-anon-key'
   )
 }
+
+/**
+ * Cliente para uso exclusivo no servidor (Server Actions / Server Components).
+ * Ignora RLS usando a Service Role Key.
+ */
+export function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!key) {
+    console.error('[PolitixOS] SUPABASE_SERVICE_ROLE_KEY não configurada');
+  }
+
+  return createBrowserClient(
+    url ?? 'https://placeholder.supabase.co',
+    key ?? 'placeholder-service-key'
+  )
+}
