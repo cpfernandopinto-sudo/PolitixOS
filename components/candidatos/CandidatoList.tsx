@@ -117,8 +117,8 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 {/* Avatar */}
                 <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm border ${t.is_active
-                    ? 'bg-[#2563EB]/15 text-[#2563EB] border-[#2563EB]/20'
-                    : 'bg-white/5 text-gray-500 border-white/5'
+                  ? 'bg-[#2563EB]/15 text-[#2563EB] border-[#2563EB]/20'
+                  : 'bg-white/5 text-gray-500 border-white/5'
                   }`}>
                   {t.candidate_name.charAt(0).toUpperCase()}
                 </div>
@@ -128,8 +128,8 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-white font-semibold text-sm truncate">{t.candidate_name}</h4>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${t.is_active
-                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                        : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                      ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                      : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
                       }`}>
                       {t.is_active ? 'Ativo' : 'Inativo'}
                     </span>
@@ -190,8 +190,8 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
                   onClick={() => handleToggleTarget(t.id, t.is_active)}
                   disabled={isToggling}
                   className={`p-2 rounded-lg transition-all disabled:opacity-50 ${t.is_active
-                      ? 'text-green-400 hover:text-red-400 hover:bg-red-400/10'
-                      : 'text-gray-500 hover:text-green-400 hover:bg-green-400/10'
+                    ? 'text-green-400 hover:text-red-400 hover:bg-red-400/10'
+                    : 'text-gray-500 hover:text-green-400 hover:bg-green-400/10'
                     }`}
                   title={t.is_active ? 'Desativar candidato' : 'Ativar candidato'}
                 >
@@ -226,8 +226,8 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
                     <div
                       key={acc.id}
                       className={`flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all ${acc.is_active
-                          ? 'border-white/5 bg-white/2'
-                          : 'border-white/5 bg-transparent opacity-50'
+                        ? 'border-white/5 bg-white/2'
+                        : 'border-white/5 bg-transparent opacity-50'
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -261,16 +261,16 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
                           onClick={() => handleToggleAccount(acc.id, acc.is_active)}
                           disabled={isAccToggling}
                           className={`p-1.5 rounded-lg transition-all disabled:opacity-50 ${acc.is_active
-                              ? 'text-green-400 hover:text-red-400 hover:bg-red-400/10'
-                              : 'text-gray-500 hover:text-green-400 hover:bg-green-400/10'
+                            ? 'text-green-400 hover:text-red-400 hover:bg-red-400/10'
+                            : 'text-gray-500 hover:text-green-400 hover:bg-green-400/10'
                             }`}
                           title={acc.is_active ? 'Desativar conta' : 'Ativar conta'}
                         >
                           {acc.is_active ? <Wifi size={13} /> : <WifiOff size={13} />}
                         </button>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${acc.is_active
-                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                            : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                          ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                          : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
                           }`}>
                           {acc.is_active ? 'Ativa' : 'Inativa'}
                         </span>

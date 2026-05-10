@@ -2,9 +2,9 @@
 
 import { createAdminClient } from '@/lib/supabaseClient';
 import { revalidatePath } from 'next/cache';
-import { 
-  TargetInput, 
-  SocialAccountInput, 
+import {
+  TargetInput,
+  SocialAccountInput,
   Target
 } from '@/lib/queries/candidatos';
 
@@ -54,7 +54,7 @@ export async function createCandidateAction(
 
     if (accountsError) {
       console.error('[createCandidateAction] Error inserting social_accounts:', accountsError.message);
-      
+
       // Cleanup: apagar o target criado para evitar candidatos órfãos sem contas ou em estado inconsistente
       // se a falha for crítica.
       await adminClient.from('targets').delete().eq('id', createdTarget.id);
@@ -106,7 +106,7 @@ export async function updateCandidateAction(
       .from('social_accounts')
       .delete()
       .in('id', deletedAccountIds);
-    
+
     if (deleteError) {
       console.error('[updateCandidateAction] Error deleting social accounts:', deleteError.message);
       return { success: false, error: deleteError.message };
@@ -147,11 +147,11 @@ export async function updateCandidateAction(
 export async function deleteSocialAccountAction(id: string) {
   const adminClient = createAdminClient();
   const { error } = await adminClient.from('social_accounts').delete().eq('id', id);
-  
+
   if (error) {
     return { success: false, error: error.message };
   }
-  
+
   revalidatePath('/dashboard/candidatos');
   return { success: true };
 }
@@ -161,7 +161,7 @@ export async function deleteSocialAccountAction(id: string) {
  */
 export async function toggleTargetActiveAction(id: string, isActive: boolean) {
   const adminClient = createAdminClient();
-  
+
   // 1. Atualiza o target
   const { error: targetError } = await adminClient
     .from('targets')
