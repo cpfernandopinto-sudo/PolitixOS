@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -32,8 +33,15 @@ export function createAdminClient() {
     console.error('[PolitixOS] SUPABASE_SERVICE_ROLE_KEY não configurada');
   }
 
-  return createBrowserClient(
+  // Usa createSupabaseClient direto do supabase-js para bypass de RLS mais robusto no server
+  return createSupabaseClient(
     url ?? 'https://placeholder.supabase.co',
-    key ?? 'placeholder-service-key'
+    key ?? 'placeholder-service-key',
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
   )
 }

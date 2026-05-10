@@ -27,6 +27,13 @@ export async function loginAction(
   }
 
   try {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    console.log('[Auth] Verificando variáveis de ambiente:');
+    console.log(`- SUPABASE_SERVICE_ROLE_KEY: ${serviceRoleKey ? 'Configurada' : 'NÃO CONFIGURADA'}`);
+    console.log(`- NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? 'Configurada' : 'NÃO CONFIGURADA'}`);
+
     const client = createAdminClient();
     const { data: user, error } = await client
       .from('app_users')
@@ -35,14 +42,16 @@ export async function loginAction(
       .single();
 
     if (error) {
-      console.error(`[Auth] Erro ao buscar usuário ${email}:`, error.message);
+      console.error(`[Auth] Erro do Supabase ao buscar usuário ${email}:`, error.message, error.details, error.hint);
       return { error: 'E-mail ou senha inválidos.' };
     }
 
     if (!user) {
-      console.warn(`[Auth] Usuário não encontrado: ${email}`);
+      console.warn(`[Auth] Usuário não encontrado no banco: ${email}`);
       return { error: 'E-mail ou senha inválidos.' };
     }
+
+    console.log(`[Auth] Usuário encontrado: ${user.email}, Ativo: ${user.is_active}, Role: ${user.role}`);
 
     if (!user.is_active) {
       console.warn(`[Auth] Usuário inativo tentando login: ${email}`);
@@ -50,6 +59,8 @@ export async function loginAction(
     }
 
     const valid = await verifyPassword(password, user.password_hash);
+    console.log(`[Auth] Verificação de senha para ${email}: ${valid ? 'SUCESSO' : 'FALHA'}`);
+
     if (!valid) {
       console.warn(`[Auth] Senha incorreta para: ${email}`);
       return { error: 'E-mail ou senha inválidos.' };
