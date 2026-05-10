@@ -6,10 +6,9 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Users, Wifi, WifiOff,
 } from 'lucide-react';
 import {
-  toggleTargetActive,
-  toggleSocialAccountActive,
   type TargetWithAccounts,
 } from '@/lib/queries/candidatos';
+import { toggleTargetActiveAction, toggleSocialAccountActiveAction } from '@/lib/actions/candidatos';
 
 // Social platform icons (SVG inline)
 const InstagramIcon = () => (
@@ -62,7 +61,10 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
   const handleToggleTarget = useCallback(async (id: string, currentActive: boolean) => {
     setTogglingIds((prev) => new Set(prev).add(id));
     try {
-      await toggleTargetActive(id, !currentActive);
+      const result = await toggleTargetActiveAction(id, !currentActive);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
       onRefresh();
     } catch (err) {
       console.error('[CandidatoList] toggleTarget error:', err);
@@ -74,7 +76,10 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
   const handleToggleAccount = useCallback(async (accountId: string, currentActive: boolean) => {
     setTogglingIds((prev) => new Set(prev).add(accountId));
     try {
-      await toggleSocialAccountActive(accountId, !currentActive);
+      const result = await toggleSocialAccountActiveAction(accountId, !currentActive);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
       onRefresh();
     } catch (err) {
       console.error('[CandidatoList] toggleAccount error:', err);

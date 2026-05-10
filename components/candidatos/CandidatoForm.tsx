@@ -3,14 +3,11 @@
 import { useState } from 'react';
 import { Plus, Trash2, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import {
-  createTarget,
-  updateTarget,
-  upsertSocialAccounts,
-  deleteSocialAccount,
   type TargetWithAccounts,
   type SocialAccountInput,
   type TargetInput,
 } from '@/lib/queries/candidatos';
+import { createCandidateAction, updateCandidateAction } from '@/lib/actions/candidatos';
 
 // Social platform icons (SVG inline)
 const InstagramIcon = () => (
@@ -154,24 +151,18 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
 
     try {
       if (isEditing && target) {
-        // 1. Update target
-        await updateTarget(target.id, form);
-
-        // 2. Delete removed accounts
-        for (const id of deletedAccountIds) {
-          await deleteSocialAccount(id);
-        }
-
-        // 3. Upsert accounts
-        const newAccounts = accounts.map<SocialAccountInput>((a) => ({
+        // 1. Prepare accounts for update
+        const accountsToSave = accounts.map<SocialAccountInput>((a) => ({
           platform: a.platform,
           handle: a.handle.trim(),
           profile_url: a.profile_url,
           is_active: a.is_active,
         }));
 
-        if (newAccounts.length > 0) {
-          await upsertSocialAccounts(target.id, newAccounts);
+        const result = await updateCandidateAction(target.id, form, accountsToSave, deletedAccountIds);
+
+        if (!result.success) {
+          throw new Error(result.error);
         }
 
         setFeedback({ type: 'success', message: 'Candidato atualizado com sucesso!' });
@@ -185,7 +176,12 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
           is_active: a.is_active,
         }));
 
-        await createTarget(form, accountsInput);
+        const result = await createCandidateAction(form, accountsInput);
+
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+
         setFeedback({ type: 'success', message: 'Candidato cadastrado com sucesso!' });
         onSuccess('created');
       }
