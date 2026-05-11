@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache';
 import {
   TargetInput,
   SocialAccountInput,
-  Target
+  Target,
+  TargetWithAccounts
 } from '@/lib/queries/candidatos';
 
 /**
@@ -205,4 +206,40 @@ export async function toggleSocialAccountActiveAction(id: string, isActive: bool
 
   revalidatePath('/dashboard/candidatos');
   return { success: true };
+}
+
+/**
+ * Server Action para buscar todos os candidatos e suas contas sociais.
+ * Usa createAdminClient para bypass de RLS.
+ */
+export async function fetchTargetsAction(): Promise<TargetWithAccounts[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from('targets')
+    .select(`
+      id,
+      candidate_id,
+      candidate_name,
+      city,
+      state,
+      keywords,
+      is_active,
+      social_accounts (
+        id,
+        target_id,
+        platform,
+        handle,
+        profile_url,
+        is_active
+      )
+    `)
+    .order('candidate_name', { ascending: true });
+
+  if (error) {
+    console.error('[fetchTargetsAction] Error:', error.message);
+    throw new Error(error.message);
+  }
+
+  return (data || []) as TargetWithAccounts[];
 }

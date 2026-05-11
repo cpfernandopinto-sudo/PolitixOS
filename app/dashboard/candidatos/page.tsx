@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Users, RefreshCw, Search, X, Filter } from 'lucide-react';
 import CandidatoForm from '@/components/candidatos/CandidatoForm';
 import CandidatoList from '@/components/candidatos/CandidatoList';
-import { fetchTargets, type TargetWithAccounts } from '@/lib/queries/candidatos';
+import { type TargetWithAccounts } from '@/lib/queries/candidatos';
+import { fetchTargetsAction } from '@/lib/actions/candidatos';
 
 type View = 'list' | 'form';
 
@@ -22,7 +23,7 @@ export default function CandidatosPage() {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const data = await fetchTargets();
+      const data = await fetchTargetsAction();
       setTargets(data);
     } catch (err) {
       console.error('[CandidatosPage] loadTargets error:', err);
