@@ -31,12 +31,18 @@ const YouTubeIcon = () => (
     <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
   </svg>
 );
+const XIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.482 3.239H4.293L17.607 20.65z" />
+  </svg>
+);
 
 const PLATFORM_META: Record<string, { label: string; icon: React.FC; color: string }> = {
   instagram: { label: 'Instagram', icon: InstagramIcon, color: '#E1306C' },
   facebook: { label: 'Facebook', icon: FacebookIcon, color: '#1877F2' },
   tiktok: { label: 'TikTok', icon: TikTokIcon, color: '#69C9D0' },
   youtube: { label: 'YouTube', icon: YouTubeIcon, color: '#FF0000' },
+  x: { label: 'X / Twitter', icon: XIcon, color: '#FFFFFF' },
 };
 
 interface Props {

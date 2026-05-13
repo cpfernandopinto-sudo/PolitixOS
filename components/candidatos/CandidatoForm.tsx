@@ -30,12 +30,18 @@ const YouTubeIcon = () => (
     <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
   </svg>
 );
+const XIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.482 3.239H4.293L17.607 20.65z" />
+  </svg>
+);
 
 const PLATFORMS = [
   { value: 'instagram', label: 'Instagram', icon: InstagramIcon, color: '#E1306C' },
   { value: 'facebook', label: 'Facebook', icon: FacebookIcon, color: '#1877F2' },
   { value: 'tiktok', label: 'TikTok', icon: TikTokIcon, color: '#69C9D0' },
   { value: 'youtube', label: 'YouTube', icon: YouTubeIcon, color: '#FF0000' },
+  { value: 'x', label: 'X / Twitter', icon: XIcon, color: '#FFFFFF' },
 ];
 
 const STATES = [
@@ -150,16 +156,47 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
     setFeedback(null);
 
     try {
-      if (isEditing && target) {
-        // 1. Prepare accounts for update
-        const accountsToSave = accounts.map<SocialAccountInput>((a) => ({
-          platform: a.platform,
-          handle: a.handle.trim(),
-          profile_url: a.profile_url,
-          is_active: a.is_active,
-        }));
+      // Normalização de handles e geração de URLs antes de salvar
+      const normalizeSocial = (platform: string, handle: string, profile_url: string) => {
+        let cleanHandle = handle.trim();
+        if (cleanHandle.startsWith('@')) cleanHandle = cleanHandle.substring(1);
 
-        const result = await updateCandidateAction(target.id, form, accountsToSave, deletedAccountIds);
+        try {
+          if (cleanHandle.startsWith('http')) {
+            const url = new URL(cleanHandle);
+            // Pega o último segmento não vazio do path (funciona para x.com/user, instagram.com/user, etc)
+            const segments = url.pathname.split('/').filter(s => s);
+            let path = segments[segments.length - 1] || '';
+            if (path.startsWith('@')) path = path.substring(1);
+            cleanHandle = path;
+          }
+        } catch (e) { /* keep as is */ }
+
+        let finalUrl = profile_url.trim();
+        if (!finalUrl && cleanHandle) {
+          switch (platform) {
+            case 'instagram': finalUrl = `https://instagram.com/${cleanHandle}`; break;
+            case 'facebook': finalUrl = `https://facebook.com/${cleanHandle}`; break;
+            case 'tiktok': finalUrl = `https://tiktok.com/@${cleanHandle}`; break;
+            case 'youtube': finalUrl = `https://youtube.com/@${cleanHandle}`; break;
+            case 'x': finalUrl = `https://x.com/${cleanHandle}`; break;
+          }
+        }
+        return { handle: cleanHandle, profile_url: finalUrl };
+      };
+
+      const accountsInput = accounts.map<SocialAccountInput>((a) => {
+        const normalized = normalizeSocial(a.platform, a.handle, a.profile_url);
+        return {
+          platform: a.platform,
+          handle: normalized.handle,
+          profile_url: normalized.profile_url,
+          is_active: a.is_active,
+        };
+      });
+
+      if (isEditing && target) {
+        const result = await updateCandidateAction(target.id, form, accountsInput, deletedAccountIds);
 
         if (!result.success) {
           throw new Error(result.error);
@@ -168,14 +205,6 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
         setFeedback({ type: 'success', message: 'Candidato atualizado com sucesso!' });
         onSuccess('updated');
       } else {
-        // Create
-        const accountsInput = accounts.map<SocialAccountInput>((a) => ({
-          platform: a.platform,
-          handle: a.handle.trim(),
-          profile_url: a.profile_url,
-          is_active: a.is_active,
-        }));
-
         const result = await createCandidateAction(form, accountsInput);
 
         if (!result.success) {
