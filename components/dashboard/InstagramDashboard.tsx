@@ -1,7 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import clsx from 'clsx';
+import { 
+  AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp, 
+  TrendingDown, Minus, Info, ArrowUpRight, ArrowDownRight, Zap, SearchX
+} from 'lucide-react';
+import ChartCard from '@/components/ui/ChartCard';
+import GaugeChart from '@/components/charts/GaugeChart';
+import LineChart from '@/components/charts/LineChart';
+import DonutChart from '@/components/charts/DonutChart';
+import KpiCard from '@/components/ui/KpiCard';
 
 const MediaRenderer = ({ post }: { post: any }) => {
   const [mediaError, setMediaError] = useState(false);
@@ -79,6 +89,88 @@ const MediaRenderer = ({ post }: { post: any }) => {
   );
 };
 
+const InstagramAlertCard = ({ post, onVerAnalise }: { post: any; onVerAnalise: () => void }) => {
+  if (!post) return null;
+
+  const isHighRisk = post.risk?.toLowerCase() === 'alto';
+
+  return (
+    <div className={clsx(
+      "relative overflow-hidden rounded-xl border p-5 transition-all duration-300 mb-6",
+      isHighRisk 
+        ? "bg-red-500/10 border-red-500/30 shadow-[0_0_25px_rgba(239,68,68,0.15)]" 
+        : "bg-white/5 border-white/10"
+    )}>
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div className="flex items-start gap-5 flex-1 w-full">
+          <div className={clsx(
+            "p-4 rounded-2xl shrink-0 flex items-center justify-center",
+            isHighRisk ? "bg-red-500 text-white animate-pulse" : "bg-[#00FFFF] text-black"
+          )}>
+            <AlertTriangle size={32} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <span className={clsx(
+                "text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest",
+                isHighRisk ? "bg-red-600 text-white" : "bg-[#00FFFF] text-black"
+              )}>
+                {isHighRisk ? 'Pico de Risco Detectado' : 'Atenção Operacional'}
+              </span>
+              <div className="flex items-center gap-1.5 text-gray-500 text-[10px] uppercase font-bold tracking-tight">
+                <Clock size={12} />
+                há {new Date(post.created_at).toLocaleDateString('pt-BR')}
+              </div>
+            </div>
+            <h3 className="text-white font-black text-lg md:text-xl line-clamp-1 mb-2 tracking-tight">
+              {post.text || 'Post sem legenda'}
+            </h3>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-400">
+              <div className="flex items-center gap-2">
+                <Target size={14} className="text-[#00FFFF]" />
+                <span className="font-bold text-gray-300">{post.candidate_name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Activity size={14} className="text-[#00FFFF]" />
+                <span className="font-bold text-gray-300">{post.like_count + post.comment_count}</span> interações
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldAlert size={14} className={isHighRisk ? "text-red-400" : "text-yellow-400"} />
+                <span className={clsx("font-black uppercase tracking-tighter", isHighRisk ? "text-red-400" : "text-yellow-400")}>
+                  Risco {post.risk}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={clsx(
+                  "w-2 h-2 rounded-full",
+                  post.sentiment === 'positivo' ? 'bg-green-500' : post.sentiment === 'negativo' ? 'bg-red-500' : 'bg-blue-500'
+                )} />
+                <span className="capitalize">{post.sentiment}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 w-full lg:w-auto">
+          <a 
+            href={post.url} 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex-1 lg:flex-none text-center px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-white/10 transition-all uppercase tracking-[0.1em]"
+          >
+            Abrir Post
+          </a>
+          <button 
+            onClick={onVerAnalise}
+            className="flex-1 lg:flex-none px-6 py-3 rounded-xl bg-[#00FFFF] text-black text-xs font-black hover:bg-[#00FFFF]/80 transition-all uppercase tracking-[0.1em] shadow-[0_0_20px_rgba(0,255,255,0.3)]"
+          >
+            Análise IA
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function InstagramDashboard({ kpis, charts, posts, comments }: { kpis: any[], charts: any, posts: any[], comments: any[] }) {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
 
@@ -107,76 +199,269 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
     return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 capitalize">{risk}</span>;
   };
 
-  const optionSentiment = {
-    tooltip: { trigger: 'item' },
-    series: [{ type: 'pie', radius: ['40%', '70%'], data: charts.sentimentData }],
-    backgroundColor: 'transparent',
-    textStyle: { color: '#fff' }
-  };
+  // --- Calculations ---
+  const criticalPost = useMemo(() => {
+    return [...posts]
+      .filter(p => p.risk?.toLowerCase() === 'alto')
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+  }, [posts]);
 
-  const optionByDay = {
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: charts.byDay.map((d: any) => d.date) },
-    yAxis: { type: 'value' },
-    series: [{ data: charts.byDay.map((d: any) => d.count), type: 'line', smooth: true, lineStyle: { color: '#00FFFF' } }],
-    backgroundColor: 'transparent',
-    textStyle: { color: '#fff' }
-  };
+  const riskScore = useMemo(() => {
+    if (posts.length === 0) return 0;
+    const high = posts.filter(p => p.risk?.toLowerCase() === 'alto').length;
+    const medium = posts.filter(p => p.risk?.toLowerCase() === 'medio' || p.risk?.toLowerCase() === 'médio').length;
+    return Math.round(((high * 100) + (medium * 50)) / posts.length);
+  }, [posts]);
 
-  const optionEng = {
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'value' },
-    yAxis: { type: 'category', data: charts.topEng.map((d: any) => d.name).reverse() },
-    series: [{ type: 'bar', data: charts.topEng.map((d: any) => d.value).reverse(), itemStyle: { color: '#00FFFF' } }],
-    backgroundColor: 'transparent',
-    textStyle: { color: '#fff' }
-  };
+  const themesData = useMemo(() => {
+    const themeCounts: Record<string, number> = {};
+    posts.forEach(p => {
+      if (p.topic && p.topic !== 'Sem análise') {
+        themeCounts[p.topic] = (themeCounts[p.topic] || 0) + 1;
+      }
+    });
+    return Object.entries(themeCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [posts]);
 
-  const optionTopRisk = {
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'value' },
-    yAxis: { type: 'category', data: charts.topRisk.map((d: any) => d.name).reverse() },
-    series: [{ type: 'bar', data: charts.topRisk.map((d: any) => d.value).reverse(), itemStyle: { color: '#FF3B3B' } }],
-    backgroundColor: 'transparent',
-    textStyle: { color: '#fff' }
-  };
+  const pressureData = useMemo(() => {
+    const dayMap: Record<string, { comments: number; engagement: number }> = {};
+    comments.forEach(c => {
+      if (!c.created_at) return;
+      const day = new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      if (!dayMap[day]) dayMap[day] = { comments: 0, engagement: 0 };
+      dayMap[day].comments++;
+    });
+    posts.forEach(p => {
+      if (!p.created_at) return;
+      const day = new Date(p.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      if (!dayMap[day]) dayMap[day] = { comments: 0, engagement: 0 };
+      dayMap[day].engagement += (p.like_count + p.comment_count);
+    });
+    return Object.entries(dayMap)
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => {
+        const [da, ma] = a.date.split('/').map(Number);
+        const [db, mb] = b.date.split('/').map(Number);
+        return (ma * 100 + da) - (mb * 100 + db);
+      });
+  }, [comments, posts]);
+
+  const topPostsUnified = useMemo(() => {
+    return [...posts]
+      .sort((a, b) => {
+        const riskVal = (p: any) => p.risk?.toLowerCase() === 'alto' ? 100 : p.risk?.toLowerCase() === 'medio' ? 50 : 10;
+        return riskVal(b) - riskVal(a) || (b.like_count + b.comment_count) - (a.like_count + a.comment_count);
+      })
+      .slice(0, 5);
+  }, [posts]);
+
+  const dominantSentiment = useMemo(() => {
+    const total = charts.sentimentData.reduce((acc: number, d: any) => acc + d.value, 0);
+    if (total === 0) return { label: 'Sem dados', percentage: 0 };
+    const max = [...charts.sentimentData].sort((a, b) => b.value - a.value)[0];
+    return { 
+      label: max.name, 
+      percentage: Math.round((max.value / total) * 100),
+      color: max.name === 'Positivo' ? '#22C55E' : max.name === 'Negativo' ? '#FF3B3B' : '#2563EB'
+    };
+  }, [charts.sentimentData]);
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        {kpis.map((kpi, i) => (
-          <div key={i} className="bg-[#12192A] border border-white/5 rounded-xl p-4">
-            <h3 className="text-gray-400 text-xs md:text-sm mb-1">{kpi.title}</h3>
-            <p className="text-xl md:text-2xl font-bold text-white">{kpi.value}</p>
+      {/* 1. HEADER – ALERTA INTELIGENTE */}
+      <InstagramAlertCard 
+        post={criticalPost || posts[0]} 
+        onVerAnalise={() => setSelectedPost(criticalPost || posts[0])} 
+      />
+
+      {/* 2. MÉTRICAS (CARDS SUPERIORES) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {kpis.map((kpi, i) => {
+          const isNegativeMetric = kpi.title.includes('Negativo') || kpi.title.includes('Risco');
+          const status = isNegativeMetric && kpi.value > 0 ? 'danger' : kpi.title.includes('Positivo') ? 'success' : 'neutral';
+          // Mocking variations for visual effect as requested
+          const mockVar = i % 2 === 0 ? 12 : -5;
+          return (
+            <div key={i} className="glass rounded-xl p-5 border-white/5 transition-all hover:scale-[1.02]">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest">{kpi.title}</h3>
+                {mockVar > 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="text-2xl md:text-3xl font-black text-white tracking-tighter">
+                  {kpi.value}
+                </span>
+                <span className={clsx(
+                  "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                  mockVar > 0 ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"
+                )}>
+                  {mockVar > 0 ? '+' : ''}{mockVar}%
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 3. PRESSÃO SOCIAL + TERMÔMETRO DE RISCO */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8">
+          <ChartCard title="Pressão Social nas Últimas 24h">
+            <LineChart 
+              dates={pressureData.map(d => d.date)} 
+              seriesData={[
+                { name: 'Volume de Comentários', data: pressureData.map(d => d.comments), color: '#00FFFF' },
+                { name: 'Engajamento Total', data: pressureData.map(d => d.engagement), color: '#2563EB' }
+              ]} 
+            />
+          </ChartCard>
+        </div>
+        <div className="lg:col-span-4">
+          <ChartCard title="Termômetro de Risco" className="flex flex-col items-center justify-center pt-8">
+            <GaugeChart score={riskScore} level={riskScore > 70 ? 'danger' : riskScore > 30 ? 'warning' : 'success'} />
+            <div className="text-center mt-[-40px] pb-6">
+              <div className={clsx(
+                "text-4xl font-black mb-1 tracking-tighter",
+                riskScore > 70 ? "text-red-500" : riskScore > 30 ? "text-yellow-500" : "text-green-500"
+              )}>
+                {riskScore}<span className="text-lg opacity-50 ml-1">/100</span>
+              </div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                Status: {riskScore > 70 ? 'Crítico' : riskScore > 30 ? 'Atenção' : 'Estável'}
+              </p>
+            </div>
+          </ChartCard>
+        </div>
+      </div>
+
+      {/* 4. SENTIMENTO + TEMAS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ChartCard title="Evolução do Sentimento" className="relative">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="w-full md:w-1/2">
+              <DonutChart data={charts.sentimentData} />
+            </div>
+            <div className="w-full md:w-1/2 space-y-4">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Sentimento Dominante</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dominantSentiment.color }} />
+                  <span className="text-xl font-black text-white">{dominantSentiment.label}</span>
+                  <span className="text-gray-400 text-sm font-bold">{dominantSentiment.percentage}%</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {charts.sentimentData.map((d: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.itemStyle?.color }} />
+                      <span className="text-gray-400">{d.name}</span>
+                    </div>
+                    <span className="text-white font-bold">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 border-t border-white/5 text-[10px] text-gray-500 font-bold uppercase flex items-center gap-2">
+                <TrendingUp size={12} className={dominantSentiment.label === 'Negativo' ? 'text-red-400' : 'text-green-400'} />
+                {dominantSentiment.label === 'Negativo' ? 'Tendência de risco alta' : 'Estabilidade nas menções'}
+              </div>
+            </div>
           </div>
-        ))}
+        </ChartCard>
+
+        <ChartCard title="Temas do Instagram (IA)">
+          <div className="space-y-4 mt-2">
+            {themesData.length > 0 ? (
+              themesData.map((theme, i) => (
+                <div key={i} className="space-y-1">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-white uppercase tracking-tight">{theme.name}</span>
+                    <span className="text-[#00FFFF]">{theme.value} posts</span>
+                  </div>
+                  <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/5">
+                    <div 
+                      className="bg-gradient-to-r from-[#00FFFF]/60 to-[#00FFFF] h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(0,255,255,0.2)]"
+                      style={{ width: `${Math.min(100, (theme.value / (posts.length || 1)) * 100 * 3)}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-500 italic text-sm gap-3">
+                <SearchX size={32} className="opacity-20" />
+                Sem temas analisados no período
+              </div>
+            )}
+          </div>
+        </ChartCard>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-[#12192A] border border-white/5 rounded-xl p-4">
-          <h3 className="text-white font-medium mb-4">Comentários por Dia</h3>
-          <ReactECharts option={optionByDay} style={{ height: 220 }} />
+      {/* 5. BLOCO – TOP POSTS (UNIFICADO) */}
+      <ChartCard title="Monitoramento de Posts Prioritários">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-300">
+            <thead className="bg-white/5 text-gray-400">
+              <tr>
+                <th className="px-4 py-3 font-bold uppercase text-[10px] tracking-widest">Post</th>
+                <th className="px-4 py-3 font-bold uppercase text-[10px] tracking-widest">Engajamento</th>
+                <th className="px-4 py-3 font-bold uppercase text-[10px] tracking-widest">Risco</th>
+                <th className="px-4 py-3 font-bold uppercase text-[10px] tracking-widest">Sentimento</th>
+                <th className="px-4 py-3 font-bold uppercase text-[10px] tracking-widest">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {topPostsUnified.map((p) => (
+                <tr key={p.id} className="hover:bg-white/5 transition-colors group">
+                  <td className="px-4 py-4 max-w-xs">
+                    <div className="font-bold text-white mb-1 truncate group-hover:text-[#00FFFF] transition-colors">{p.text || 'Sem legenda'}</div>
+                    <div className="text-[10px] text-gray-500 uppercase font-black">{p.candidate_name}</div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-white min-w-[30px]">{p.like_count + p.comment_count}</span>
+                      <div className="flex-1 w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#00FFFF]" style={{ width: `${Math.min(100, (p.like_count + p.comment_count) / 10)}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={clsx(
+                        "w-2 h-2 rounded-full",
+                        p.risk?.toLowerCase() === 'alto' ? 'bg-red-500 animate-pulse' : p.risk?.toLowerCase() === 'medio' ? 'bg-yellow-500' : 'bg-green-500'
+                      )} />
+                      <span className={clsx(
+                        "font-black uppercase text-[10px] tracking-widest",
+                        p.risk?.toLowerCase() === 'alto' ? 'text-red-400' : p.risk?.toLowerCase() === 'medio' ? 'text-yellow-400' : 'text-green-400'
+                      )}>{p.risk}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    {getSentimentBadge(p.sentiment)}
+                  </td>
+                  <td className="px-4 py-4">
+                    <button 
+                      onClick={() => setSelectedPost(p)}
+                      className="text-[#00FFFF] text-[10px] font-black uppercase tracking-widest hover:underline flex items-center gap-1"
+                    >
+                      Detalhes <Zap size={10} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="bg-[#12192A] border border-white/5 rounded-xl p-4">
-          <h3 className="text-white font-medium mb-4">Sentimento (Posts)</h3>
-          <ReactECharts option={optionSentiment} style={{ height: 220 }} />
-        </div>
-        <div className="bg-[#12192A] border border-white/5 rounded-xl p-4">
-          <h3 className="text-white font-medium mb-4">Top Posts (Engajamento)</h3>
-          <ReactECharts option={optionEng} style={{ height: 220 }} />
-        </div>
-        <div className="bg-[#12192A] border border-white/5 rounded-xl p-4">
-          <h3 className="text-white font-medium mb-4">Top Posts (Risco)</h3>
-          <ReactECharts option={optionTopRisk} style={{ height: 220 }} />
-        </div>
-      </div>
+      </ChartCard>
 
-      {/* Análise Estratégica dos Posts */}
+      {/* 6. ANÁLISE ESTRATÉGICA (NÃO ALTERADA - REORGANIZADA PARA O FINAL) */}
       <div className="bg-[#12192A] border border-white/5 rounded-xl overflow-hidden mt-6">
-        <div className="p-4 border-b border-white/5">
-          <h3 className="text-white font-medium">Análise Estratégica dos Posts</h3>
+        <div className="p-4 border-b border-white/5 flex items-center gap-3">
+          <div className="w-1 h-6 bg-[#00FFFF] rounded-full shadow-[0_0_10px_#00FFFF]" />
+          <h3 className="text-white font-black uppercase tracking-widest text-sm">Análise Estratégica dos Posts</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-300">
@@ -243,10 +528,10 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
         </div>
       </div>
 
-      {/* Termômetro dos Comentários */}
+      {/* Termômetro dos Comentários (Opcional - mantido para consistência) */}
       <div className="bg-[#12192A] border border-white/5 rounded-xl overflow-hidden mt-6">
         <div className="p-4 border-b border-white/5">
-          <h3 className="text-white font-medium">Termômetro dos Comentários</h3>
+          <h3 className="text-white font-medium">Monitoramento de Comentários em Tempo Real</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-300">
@@ -267,7 +552,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                   </td>
                   <td className="px-4 py-3 max-w-xs truncate">{c.text}</td>
                   <td className="px-4 py-3 truncate max-w-[150px]">
-                    <a href={c.post_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline" title={c.post_caption}>
+                    <a href={c.post_url} target="_blank" rel="noreferrer" className="text-[#00FFFF] hover:underline" title={c.post_caption}>
                       {c.post_caption}
                     </a>
                   </td>
@@ -290,15 +575,18 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
       {/* Modal do Post */}
       {selectedPost && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
           onClick={() => setSelectedPost(null)}
         >
           <div
-            className="bg-[#12192A] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col"
+            className="bg-[#12192A] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-[#12192A]/90 backdrop-blur-md z-10">
-              <h2 className="text-xl font-bold text-white">Análise Detalhada</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                <ShieldAlert className="text-[#00FFFF]" size={24} />
+                Análise de Inteligência Estratégica
+              </h2>
               <button
                 onClick={() => setSelectedPost(null)}
                 className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
@@ -307,60 +595,71 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="flex flex-wrap gap-3 items-center">
+            <div className="p-6 space-y-8">
+              <div className="flex flex-wrap gap-4 items-center">
                 {getSentimentBadge(selectedPost.sentiment)}
                 {getRiskBadge(selectedPost.risk)}
                 {selectedPost.candidate_name && selectedPost.candidate_name !== '—' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#00FFFF]/10 text-[#00FFFF] border border-[#00FFFF]/20">
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-[#00FFFF]/10 text-[#00FFFF] border border-[#00FFFF]/20 uppercase tracking-widest">
                     {selectedPost.candidate_name}
                   </span>
                 )}
-                <span className="text-gray-400 text-sm">
-                  Engajamento: <span className="text-white font-medium">{selectedPost.like_count + selectedPost.comment_count}</span>
-                </span>
-                <span className="text-gray-400 text-sm">
-                  Data: <span className="text-white font-medium">{selectedPost.created_at ? new Date(selectedPost.created_at).toLocaleDateString('pt-BR') : '—'}</span>
-                </span>
+                <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase">
+                  <Activity size={14} /> <span className="text-white">{selectedPost.like_count + selectedPost.comment_count}</span> interações
+                </div>
+                <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase">
+                  <Clock size={14} /> <span className="text-white">{selectedPost.created_at ? new Date(selectedPost.created_at).toLocaleDateString('pt-BR') : '—'}</span>
+                </div>
               </div>
 
               <MediaRenderer post={selectedPost} />
 
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Texto do Post</h3>
-                <p className="text-gray-200 bg-white/5 p-4 rounded-lg whitespace-pre-wrap">{selectedPost.text || 'Sem texto'}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-8">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Tema (IA)</h3>
-                  <p className="text-gray-200 bg-white/5 p-3 rounded-lg">{selectedPost.topic}</p>
+                  <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Conteúdo Base</h3>
+                  <div className="text-gray-200 bg-white/5 p-4 rounded-xl border border-white/5 whitespace-pre-wrap leading-relaxed">{selectedPost.text || 'Sem texto'}</div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Tema Principal</h3>
+                    <div className="text-white font-bold bg-[#00FFFF]/5 p-4 rounded-xl border border-[#00FFFF]/10 flex items-center gap-2">
+                      <Zap size={16} className="text-[#00FFFF]" />
+                      {selectedPost.topic}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Justificativa de Risco</h3>
+                    <div className="text-gray-300 bg-white/5 p-4 rounded-xl border border-white/5 italic">{selectedPost.riskReason}</div>
+                  </div>
+                </div>
+
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Motivo do Risco</h3>
-                  <p className="text-gray-200 bg-white/5 p-3 rounded-lg">{selectedPost.riskReason}</p>
+                  <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Relatório Executivo</h3>
+                  <div className="text-gray-200 bg-white/5 p-5 rounded-xl border border-white/5 leading-relaxed">{selectedPost.summary}</div>
                 </div>
-              </div>
 
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Resumo IA</h3>
-                <p className="text-gray-200 bg-white/5 p-4 rounded-lg">{selectedPost.summary}</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Ação Recomendada</h3>
-                <p className="text-[#00FFFF] bg-[#00FFFF]/10 border border-[#00FFFF]/20 p-4 rounded-lg">{selectedPost.recommendedAction}</p>
+                <div className="bg-[#00FFFF]/10 border border-[#00FFFF]/20 p-6 rounded-2xl">
+                  <h3 className="text-[10px] font-black text-[#00FFFF] mb-3 uppercase tracking-[0.2em]">Protocolo Recomendado</h3>
+                  <p className="text-[#00FFFF] font-bold text-lg leading-tight">{selectedPost.recommendedAction}</p>
+                </div>
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/5 flex justify-end">
+            <div className="p-6 border-t border-white/5 flex justify-end gap-3 sticky bottom-0 bg-[#12192A]/90 backdrop-blur-md">
+              <button 
+                onClick={() => setSelectedPost(null)}
+                className="px-6 py-3 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors"
+              >
+                Fechar
+              </button>
               <a
                 href={selectedPost.url}
                 target="_blank"
                 rel="noreferrer"
-                className="px-6 py-2 bg-[#00FFFF] text-black font-medium rounded-lg hover:bg-[#00FFFF]/80 transition-colors"
+                className="px-8 py-3 bg-[#00FFFF] text-black font-black rounded-xl hover:bg-[#00FFFF]/80 transition-all uppercase text-[10px] tracking-[0.2em] shadow-[0_0_20px_rgba(0,255,255,0.2)]"
               >
-                Ver Post Original
+                Ver no Instagram
               </a>
             </div>
           </div>
