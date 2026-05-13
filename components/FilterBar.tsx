@@ -203,21 +203,35 @@ export default function FilterBar({ candidates, cities, sources }: FilterBarProp
         </div>
       </div>
 
-      {/* Botão Limpar */}
-      {hasActive && (
+      {/* Botões de Ação */}
+      <div className="flex items-center gap-2">
+        {hasActive && (
+          <button
+            onClick={clearFilters}
+            disabled={isPending}
+            className={
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
+              'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 ' +
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            }
+          >
+            <X size={12} />
+            Limpar
+          </button>
+        )}
+        
         <button
-          onClick={clearFilters}
           disabled={isPending}
           className={
-            'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ' +
-            'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 ' +
-            'disabled:opacity-50 disabled:cursor-not-allowed'
+            'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ' +
+            'bg-[#00FFFF]/10 text-[#00FFFF] border border-[#00FFFF]/20 hover:bg-[#00FFFF]/20 ' +
+            'shadow-[0_0_15px_rgba(0,255,255,0.1)] uppercase tracking-wider'
           }
         >
-          <X size={12} />
-          Limpar
+          <Filter size={12} />
+          Filtros Avançados
         </button>
-      )}
+      </div>
     </div>
   );
 }

@@ -6,7 +6,8 @@ import LineChart from '@/components/charts/LineChart';
 import BarChart from '@/components/charts/BarChart';
 import DonutChart from '@/components/charts/DonutChart';
 import DataTable from '@/components/ui/DataTable';
-import { AlertTriangle, SearchX } from 'lucide-react';
+import { AlertTriangle, SearchX, Clock, Activity, Target, ShieldAlert, Zap, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import clsx from 'clsx';
 
 import {
   getKPIs,
@@ -20,6 +21,10 @@ import {
   getRiscos,
   getRiscoTempo,
   getFeedNoticias,
+  getRealTimeStatus,
+  getNegativeThemesPareto,
+  getImpactSources,
+  getCrisisTimeline24h,
 } from '@/lib/queries/noticias';
 import type { NoticiasFilters } from '@/lib/types/noticias';
 
@@ -40,6 +45,10 @@ export default async function DashboardContent({ filters }: Props) {
     riscosData,
     riscoTempoData,
     feedData,
+    realTimeStatus,
+    negativeThemesPareto,
+    impactSources,
+    crisisTimeline,
   ] = await Promise.all([
     getKPIs(filters),
     getGaugeScore(filters),
@@ -51,27 +60,14 @@ export default async function DashboardContent({ filters }: Props) {
     getEntidades(filters),
     getRiscos(filters),
     getRiscoTempo(filters),
-    getFeedNoticias(filters),
+    getFeedNoticias(filters, 5), // Apenas top 5 para o feed lateral
+    getRealTimeStatus(filters),
+    getNegativeThemesPareto(filters),
+    getImpactSources(filters),
+    getCrisisTimeline24h(filters),
   ]);
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const hasMissingEnv = !supabaseUrl || supabaseUrl.includes('placeholder');
-  const hasData = kpis[0].value !== 0;
-
-  if (hasMissingEnv) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4 text-gray-500">
-        <AlertTriangle size={48} className="text-yellow-500" />
-        <p className="text-lg font-medium text-gray-300">Banco de dados não configurado</p>
-        <p className="text-sm text-center max-w-md">
-          As variáveis de ambiente Supabase não estão configuradas neste ambiente.
-          Adicione <code className="text-[#00FFFF] bg-white/5 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> e{' '}
-          <code className="text-[#00FFFF] bg-white/5 px-1 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> nas
-          configurações da Vercel e faça um novo deploy.
-        </p>
-      </div>
-    );
-  }
+  const hasData = kpis.some(kpi => kpi.value !== 0 && kpi.value !== '0%');
 
   if (!hasData) {
     return (
@@ -84,77 +80,309 @@ export default async function DashboardContent({ filters }: Props) {
   }
 
   return (
-    <>
-      {/* SEÇÃO 1: KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="space-y-6">
+      {/* 1. CARDS SUPERIORES DE CONTEXTO */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {kpis.map((kpi, idx) => (
-          <div key={idx} className={idx === 0 ? 'lg:col-span-2' : 'col-span-1'}>
-            <KpiCard title={kpi.title} value={kpi.value} status={kpi.status} />
-          </div>
+          <KpiCard key={idx} title={kpi.title} value={kpi.value} status={kpi.status} />
         ))}
-        <div className="lg:col-span-2 row-span-2">
-          <ChartCard title="Termômetro de Crise" className="h-full flex flex-col items-center justify-center pt-8">
-            <GaugeChart score={gauge.score} level={gauge.level as 'success' | 'warning' | 'danger'} />
-            <div className="text-center mt-[-30px]">
-              <span className={`text-xl font-bold px-4 py-1 rounded-full ${
-                gauge.level === 'danger'  ? 'bg-[#FF3B3B]/10 text-[#FF3B3B]' :
-                gauge.level === 'warning' ? 'bg-[#FACC15]/10 text-[#FACC15]' :
-                                            'bg-[#22C55E]/10 text-[#22C55E]'
-              }`}>
+      </div>
+
+      {/* 2. BLOCO PRINCIPAL — TERMÔMETRO + STATUS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+        {/* Termômetro de Crise */}
+        <div className="lg:col-span-7 md:col-span-2 order-1">
+          <ChartCard title="Termômetro de Crise" className="h-full flex flex-col items-center justify-center pt-12 relative overflow-hidden">
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              <div className={clsx(
+                "flex items-center gap-1 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider",
+                realTimeStatus?.hasRecentPeak ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse" : "bg-green-500/20 text-green-400 border border-green-500/30"
+              )}>
+                <Activity size={12} />
+                {realTimeStatus?.hasRecentPeak ? 'Pico Detectado' : 'Estável'}
+              </div>
+            </div>
+
+            <div className="w-full max-w-md mx-auto">
+              <GaugeChart score={gauge.score} level={gauge.level} />
+            </div>
+            
+            <div className="text-center mt-[-40px] pb-8 z-10">
+              <div className={clsx(
+                "text-4xl font-black mb-2 tracking-tighter",
+                gauge.level === 'danger' ? 'text-[#FF3B3B]' : gauge.level === 'warning' ? 'text-[#FACC15]' : 'text-[#22C55E]'
+              )}>
+                {gauge.score}<span className="text-xl opacity-50 ml-1">/100</span>
+              </div>
+              <span className={clsx(
+                'text-lg font-bold px-6 py-1.5 rounded-full border',
+                gauge.level === 'danger'  ? 'bg-[#FF3B3B]/10 text-[#FF3B3B] border-[#FF3B3B]/20' :
+                gauge.level === 'warning' ? 'bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/20' :
+                                            'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20'
+              )}>
                 {gauge.statusText}
               </span>
+
+              <div className="grid grid-cols-3 gap-8 mt-10 px-6">
+                <div className="text-center">
+                  <div className="text-gray-400 text-xs uppercase mb-1">Tendência</div>
+                  <div className="flex items-center justify-center gap-1 font-bold text-white">
+                    {gauge.score > 50 ? <ArrowUpRight size={16} className="text-red-500" /> : <ArrowDownRight size={16} className="text-green-500" />}
+                    {gauge.score > 60 ? 'Crescente' : gauge.score > 30 ? 'Estável' : 'Queda'}
+                  </div>
+                </div>
+                <div className="text-center border-x border-white/5">
+                  <div className="text-gray-400 text-xs uppercase mb-1">Sentimento Médio</div>
+                  <div className={clsx(
+                    "font-bold",
+                    gauge.score > 40 ? "text-red-400" : "text-green-400"
+                  )}>
+                    {gauge.score > 40 ? 'Negativo' : 'Positivo'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-gray-400 text-xs uppercase mb-1">Pico 6h</div>
+                  <div className="font-bold text-white">
+                    {realTimeStatus?.hasRecentPeak ? 'Sim' : 'Não'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ChartCard>
+        </div>
+
+        {/* Status em Tempo Real */}
+        <div className="lg:col-span-5 md:col-span-2 order-3 lg:order-2">
+          <ChartCard title="Status em Tempo Real" className="h-full">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              <span className="text-green-500 text-xs font-bold uppercase tracking-widest">Ao Vivo</span>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white/5 rounded-lg p-4 border border-white/5">
+                <div className="flex items-center gap-2 text-red-400 mb-2 font-bold text-sm uppercase tracking-tight">
+                  <ShieldAlert size={16} />
+                  Última Menção Crítica
+                </div>
+                <p className="text-white font-medium line-clamp-2 text-sm">
+                  {realTimeStatus?.lastCriticalTitle}
+                </p>
+                <div className="flex items-center gap-1 text-gray-500 text-xs mt-2">
+                  <Clock size={12} />
+                  há {realTimeStatus?.timeSinceLastCritical}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Fonte Dominante</div>
+                  <div className="text-white font-bold text-sm truncate">{realTimeStatus?.dominantSource}</div>
+                </div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Tema Dominante</div>
+                  <div className="text-white font-bold text-sm truncate">{realTimeStatus?.dominantTheme}</div>
+                </div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Fonte Mais Ativa</div>
+                  <div className="text-white font-bold text-sm truncate">{realTimeStatus?.mostActiveSource}</div>
+                </div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Velocidade</div>
+                  <div className="text-white font-bold text-sm">{realTimeStatus?.velocity}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-[#00FFFF]/5 rounded-lg border border-[#00FFFF]/10">
+                <div className="flex items-center gap-2 text-[#00FFFF]">
+                  <Zap size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Ação Recomendada</span>
+                </div>
+                <span className="text-white text-xs font-medium">Monitoramento Ativo</span>
+              </div>
             </div>
           </ChartCard>
         </div>
       </div>
 
-      {/* SEÇÃO 2: ANÁLISE PRINCIPAL */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Evolução da Relevância no Tempo">
-          <LineChart dates={tempoData.dates} values={tempoData.values} />
+      {/* 3. TEMAS NEGATIVOS + FONTES IMPACTO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 order-4">
+        <ChartCard title="Principais Temas Negativos">
+          <div className="space-y-4 mt-2">
+            {negativeThemesPareto.length > 0 ? (
+              negativeThemesPareto.map((item, i) => (
+                <div key={i} className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-white">{item.name}</span>
+                    <span className="text-red-400">{item.percentage}%</span>
+                  </div>
+                  <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-red-600 to-red-400 h-full rounded-full transition-all duration-1000"
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center text-gray-500 italic text-sm">
+                Sem temas negativos no período.
+              </div>
+            )}
+          </div>
         </ChartCard>
-        <ChartCard title="Volume por Fonte">
-          <BarChart categories={fontesData.categories} values={fontesData.values} horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Distribuição de Sentimento">
-          <DonutChart data={sentimentoData} />
-        </ChartCard>
-        <ChartCard title="Riscos por Fonte" danger={true}>
-          <BarChart categories={riscosFonteData.categories} values={riscosFonteData.values} color="#FF3B3B" horizontal={true} />
+
+        <ChartCard title="Fontes com Maior Impacto">
+          <div className="space-y-4 mt-2">
+            {impactSources.map((item, i) => (
+              <div key={i} className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span className="text-white">{item.name}</span>
+                  <span className="text-[#00FFFF]">{item.score} pts</span>
+                </div>
+                <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-[#00FFFF]/80 to-[#00FFFF] h-full rounded-full transition-all duration-1000"
+                    style={{ width: `${item.score}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </ChartCard>
       </div>
 
-      {/* SEÇÃO 3: INTELIGÊNCIA */}
-      <h3 className="text-xl font-bold text-white tracking-tight mt-10 mb-4 flex items-center gap-2">
-        <span className="w-1 h-6 bg-[#00FFFF] rounded-full" /> Inteligência Tática
-      </h3>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Temas Mais Citados">
-          <BarChart categories={temasData.categories} values={temasData.values} color="#22C55E" horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Entidades Mais Citadas">
-          <BarChart categories={entidadesData.categories} values={entidadesData.values} color="#00FFFF" horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Riscos Mais Recorrentes" danger={true}>
-          <BarChart categories={riscosData.categories} values={riscosData.values} color="#FF3B3B" horizontal={true} />
-        </ChartCard>
-        <ChartCard title="Evolução do Risco">
-          <LineChart
-            dates={riscoTempoData.dates}
-            seriesData={[
-              { name: 'Baixo',  data: riscoTempoData.baixo, color: '#22C55E' },
-              { name: 'Médio',  data: riscoTempoData.medio, color: '#FACC15' },
-              { name: 'Alto',   data: riscoTempoData.alto,  color: '#FF3B3B' },
-            ]}
-          />
-        </ChartCard>
+      {/* 4. LINHA DO TEMPO DE CRISE — FULL WIDTH */}
+      <ChartCard title="Linha do Tempo de Crise — Últimas 24 horas" className="w-full overflow-hidden">
+        <div className="relative mt-4 mb-8">
+          {/* Barra temporal */}
+          <div className="flex h-12 w-full rounded-lg overflow-hidden bg-white/5 border border-white/10">
+            {crisisTimeline.map((step, i) => (
+              <div 
+                key={i} 
+                className={clsx(
+                  "flex-1 border-r border-white/5 transition-all hover:opacity-80 group relative",
+                  step.status === 'red' ? 'bg-red-500/40' : step.status === 'yellow' ? 'bg-yellow-500/30' : 'bg-green-500/10'
+                )}
+              >
+                {/* Marcador de pico */}
+                {step.risk > 4 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <ShieldAlert size={16} className="text-red-500 animate-bounce" />
+                  </div>
+                )}
+                
+                {/* Tooltip simples */}
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  <div className="bg-[#12192A] border border-white/10 rounded-lg p-2 shadow-2xl min-w-[200px]">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[#00FFFF] font-bold text-[10px]">{step.hour}</span>
+                      <span className={clsx(
+                        "text-[10px] px-1.5 py-0.5 rounded uppercase font-black",
+                        step.status === 'red' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
+                      )}>
+                        {step.risk > 0 ? `${step.risk} Riscos` : 'Normal'}
+                      </span>
+                    </div>
+                    {step.topNews && (
+                      <p className="text-white text-[10px] leading-tight line-clamp-2">
+                        {step.topNews.title}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Labels de tempo */}
+          <div className="flex justify-between mt-2 px-1 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+            <span>00:00</span>
+            <span>06:00</span>
+            <span>12:00</span>
+            <span>18:00</span>
+            <span>24:00</span>
+          </div>
+        </div>
+      </ChartCard>
+
+      {/* 5. EVOLUÇÃO, IMPACTO E FEED CRÍTICO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 order-5 lg:order-none">
+        {/* Evolução do Risco */}
+        <div className="lg:col-span-4 md:col-span-1">
+          <ChartCard title="Evolução do Risco" className="h-full">
+            <LineChart
+              dates={riscoTempoData.dates}
+              seriesData={[
+                { name: 'Geral', data: riscoTempoData.alto.map((v, i) => v + riscoTempoData.medio[i]), color: '#FF3B3B' },
+                { name: 'Crítico', data: riscoTempoData.alto, color: '#991B1B' },
+              ]}
+            />
+          </ChartCard>
+        </div>
+
+        {/* Distribuição por Fonte */}
+        <div className="lg:col-span-4 md:col-span-1">
+          <ChartCard title="Distribuição do Impacto" className="h-full">
+            <DonutChart 
+              data={fontesData.categories.slice(0, 5).map((cat, i) => ({
+                name: cat,
+                value: fontesData.values[i],
+                itemStyle: { color: i === 0 ? '#00FFFF' : i === 1 ? '#2563EB' : i === 2 ? '#7C3AED' : i === 3 ? '#DB2777' : '#4B5563' }
+              }))} 
+            />
+          </ChartCard>
+        </div>
+
+        {/* Feed Crítico */}
+        <div className="lg:col-span-4 md:col-span-2 order-2 lg:order-none">
+          <ChartCard title="Feed Crítico — Últimas" className="h-full">
+            <div className="space-y-4">
+              {feedData.slice(0, 5).map((news, i) => (
+                <div key={i} className="group cursor-pointer">
+                  <div className="flex items-start gap-3">
+                    <div className={clsx(
+                      "mt-1 w-2 h-2 rounded-full shrink-0",
+                      news.risco === 'alto' ? 'bg-red-500 animate-pulse' : news.risco === 'médio' ? 'bg-yellow-500' : 'bg-green-500'
+                    )} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className={clsx(
+                          "text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                          news.risco === 'alto' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                        )}>
+                          {news.risco === 'alto' ? 'Urgente' : news.risco === 'médio' ? 'Atenção' : 'Monitorar'}
+                        </span>
+                        <span className="text-[10px] text-gray-500">{news.data.split(' ')[1]}</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white group-hover:text-[#00FFFF] transition-colors line-clamp-2">
+                        {news.titulo}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-gray-400 truncate">{news.fonte}</span>
+                        <span className="text-[10px] text-gray-600">•</span>
+                        <span className="text-[10px] text-gray-400">Impacto {news.relevancia > 7 ? 'Alto' : news.relevancia > 4 ? 'Médio' : 'Baixo'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {i < feedData.length - 1 && <div className="h-px bg-white/5 mt-4" />}
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        </div>
       </div>
 
-      {/* SEÇÃO 4: FEED */}
-      <h3 className="text-xl font-bold text-white tracking-tight mt-10 mb-4 flex items-center gap-2">
-        <span className="w-1 h-6 bg-[#2563EB] rounded-full" /> Feed de Notícias em Tempo Real
-      </h3>
-      <DataTable data={feedData} />
-    </>
+      {/* Tabela Completa (Opcional - mantida para profundidade se o usuário descer) */}
+      <div className="pt-10">
+        <h3 className="text-xl font-bold text-white tracking-tight mb-4 flex items-center gap-2">
+          <span className="w-1 h-6 bg-[#00FFFF] rounded-full shadow-[0_0_10px_#00FFFF]" /> Base Completa de Monitoramento
+        </h3>
+        <DataTable data={feedData} />
+      </div>
+    </div>
   );
 }

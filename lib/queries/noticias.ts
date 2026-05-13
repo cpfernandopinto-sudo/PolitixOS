@@ -174,7 +174,6 @@ export async function getKPIs(filters?: NoticiasFilters): Promise<KPI[]> {
   if (rows.length === 0) return kpisFallback()
 
   const total = rows.length
-  const sobreCandidato = rows.filter((r) => r.is_about === true).length
   const fontes = new Set(rows.map((r) => r.source).filter(Boolean)).size
   const analisados = rows.filter((r) => r.local_relevance !== null)
   const relevanciaMedia =
@@ -183,30 +182,49 @@ export async function getKPIs(filters?: NoticiasFilters): Promise<KPI[]> {
       : 0
   const alertas = rows.filter((r) => parseJsonField(r.ai_risk_flags).length > 0).length
 
+  // Crescimento 24h
+  const now = new Date()
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const prev24h = new Date(now.getTime() - 48 * 60 * 60 * 1000)
+
+  const countLast24h = rows.filter(r => r.published_at && new Date(r.published_at) >= last24h).length
+  const countPrev24h = rows.filter(r => r.published_at && new Date(r.published_at) >= prev24h && new Date(r.published_at) < last24h).length
+
+  let growth = 0
+  if (countPrev24h > 0) {
+    growth = Math.round(((countLast24h - countPrev24h) / countPrev24h) * 100)
+  } else if (countLast24h > 0) {
+    growth = 100
+  }
+
   return [
-    { title: 'Total de Notícias', value: total },
-    { title: 'Sobre a Candidata', value: sobreCandidato },
-    { title: 'Fontes Monitoradas', value: fontes },
-    {
-      title: 'Relevância Média',
-      value: `${(relevanciaMedia / 10).toFixed(1)}/10`,
-      status: relevanciaMedia >= 80 ? 'success' : relevanciaMedia >= 50 ? 'warning' : 'neutral',
-    },
     {
       title: 'Alertas Ativos',
       value: alertas,
       status: alertas > 10 ? 'danger' : alertas > 3 ? 'warning' : 'neutral',
+    },
+    {
+      title: 'Crescimento 24h',
+      value: `${growth > 0 ? '+' : ''}${growth}%`,
+      status: growth > 20 ? 'warning' : 'neutral',
+    },
+    { title: 'Volume de Menções', value: total, status: 'success' },
+    { title: 'Fontes Monitoradas', value: fontes, status: 'warning' },
+    {
+      title: 'Relevância Média',
+      value: `${(relevanciaMedia / 10).toFixed(1)}/10`,
+      status: relevanciaMedia >= 80 ? 'success' : relevanciaMedia >= 50 ? 'warning' : 'neutral',
     },
   ]
 }
 
 function kpisFallback(): KPI[] {
   return [
-    { title: 'Total de Notícias', value: 0 },
-    { title: 'Sobre a Candidata', value: 0 },
-    { title: 'Fontes Monitoradas', value: 0 },
-    { title: 'Relevância Média', value: '—/10' },
-    { title: 'Alertas Ativos', value: 0 },
+    { title: 'Alertas Ativos', value: 0, status: 'danger' },
+    { title: 'Crescimento 24h', value: '0%', status: 'neutral' },
+    { title: 'Volume de Menções', value: 0, status: 'success' },
+    { title: 'Fontes Monitoradas', value: 0, status: 'warning' },
+    { title: 'Relevância Média', value: '—/10', status: 'neutral' },
   ]
 }
 
@@ -381,9 +399,9 @@ export async function getRiscoTempo(
 
 // ─── Feed de Notícias (50 mais recentes) ──────────────────────────────────────
 
-export async function getFeedNoticias(filters?: NoticiasFilters): Promise<Noticia[]> {
+export async function getFeedNoticias(filters?: NoticiasFilters, limit = 50): Promise<Noticia[]> {
   const rows = await fetchMencoes(filters)
-  return rows.slice(0, 50).map((r): Noticia => {
+  return rows.slice(0, limit).map((r): Noticia => {
     const flags = parseJsonField(r.ai_risk_flags)
     return {
       id: r.id || r.hash,
@@ -398,6 +416,134 @@ export async function getFeedNoticias(filters?: NoticiasFilters): Promise<Notici
       relevancia: r.local_relevance !== null ? r.local_relevance / 10 : 0,
     }
   })
+}
+
+export async function getRealTimeStatus(filters?: NoticiasFilters) {
+  const rows = await fetchMencoes(filters)
+  if (rows.length === 0) return null
+
+  const now = new Date()
+  const critical = rows.filter(r => isCrise(parseJsonField(r.ai_risk_flags)))
+  const lastCritical = critical[0]
+  
+  let timeSinceLastCritical = '—'
+  if (lastCritical?.published_at) {
+    const diff = now.getTime() - new Date(lastCritical.published_at).getTime()
+    const minutes = Math.floor(diff / 60000)
+    if (minutes < 60) timeSinceLastCritical = `${minutes}min`
+    else timeSinceLastCritical = `${Math.floor(minutes / 60)}h`
+  }
+
+  // Fonte mais ativa
+  const sourceCounts: Record<string, number> = {}
+  rows.forEach(r => { if (r.source) sourceCounts[r.source] = (sourceCounts[r.source] || 0) + 1 })
+  const mostActiveSource = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
+
+  // Tema dominante
+  const themeCounts: Record<string, number> = {}
+  rows.forEach(r => {
+    parseJsonField(r.ai_topics).forEach(t => { themeCounts[t] = (themeCounts[t] || 0) + 1 })
+  })
+  const dominantTheme = Object.entries(themeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
+
+  // Velocidade (mensagens por hora na última 6h)
+  const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000)
+  const recentRows = rows.filter(r => r.published_at && new Date(r.published_at) >= sixHoursAgo)
+  const velocity = (recentRows.length / 6).toFixed(1)
+
+  return {
+    lastCriticalTitle: lastCritical?.title || 'Nenhuma crise detectada',
+    timeSinceLastCritical,
+    dominantSource: mostActiveSource,
+    dominantTheme,
+    mostActiveSource,
+    velocity: `${velocity} menções/h`,
+    hasRecentPeak: recentRows.length > (rows.length / (24 * 7)) * 12 // Simplificação de pico
+  }
+}
+
+export async function getNegativeThemesPareto(filters?: NoticiasFilters) {
+  const rows = await fetchMencoes(filters)
+  const negativeRows = rows.filter(r => (r.ai_sentiment ?? 0) < 0 || isCrise(parseJsonField(r.ai_risk_flags)))
+  
+  const themeCounts: Record<string, number> = {}
+  negativeRows.forEach(r => {
+    parseJsonField(r.ai_topics).forEach(t => { themeCounts[t] = (themeCounts[t] || 0) + 1 })
+  })
+
+  const sorted = Object.entries(themeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+
+  const total = sorted.reduce((acc, [, v]) => acc + v, 0)
+  
+  return sorted.map(([theme, count]) => ({
+    name: theme,
+    value: count,
+    percentage: total > 0 ? Math.round((count / total) * 100) : 0
+  }))
+}
+
+export async function getImpactSources(filters?: NoticiasFilters) {
+  const rows = await fetchMencoes(filters)
+  const sourceImpact: Record<string, number> = {}
+
+  rows.forEach(r => {
+    if (!r.source) return
+    const riskCount = parseJsonField(r.ai_risk_flags).length
+    const impact = (r.local_relevance || 0) * (1 + riskCount) * ((r.ai_sentiment || 0) < 0 ? 1.5 : 1)
+    sourceImpact[r.source] = (sourceImpact[r.source] || 0) + impact
+  })
+
+  const sorted = Object.entries(sourceImpact)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+
+  const maxImpact = sorted[0]?.[1] || 1
+
+  return sorted.map(([source, impact]) => ({
+    name: source,
+    score: Math.round((impact / maxImpact) * 100)
+  }))
+}
+
+export async function getCrisisTimeline24h(filters?: NoticiasFilters) {
+  const rows = await fetchMencoes(filters)
+  const now = new Date()
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  
+  const hours = Array.from({ length: 24 }).map((_, i) => {
+    const d = new Date(last24h.getTime() + i * 60 * 60 * 1000)
+    return d.getHours().toString().padStart(2, '0') + ':00'
+  })
+
+  const hourlyData = hours.map(h => ({
+    hour: h,
+    risk: 0,
+    sentiment: 0,
+    count: 0,
+    topNews: null as any
+  }))
+
+  rows.filter(r => r.published_at && new Date(r.published_at) >= last24h).forEach(r => {
+    const d = new Date(r.published_at!)
+    const h = d.getHours().toString().padStart(2, '0') + ':00'
+    const idx = hourlyData.findIndex(item => item.hour === h)
+    if (idx !== -1) {
+      const risk = parseJsonField(r.ai_risk_flags).length
+      hourlyData[idx].risk += risk
+      hourlyData[idx].sentiment += (r.ai_sentiment || 0)
+      hourlyData[idx].count += 1
+      if (!hourlyData[idx].topNews || risk > parseJsonField(hourlyData[idx].topNews.ai_risk_flags).length) {
+        hourlyData[idx].topNews = r
+      }
+    }
+  })
+
+  return hourlyData.map(d => ({
+    ...d,
+    status: d.risk > 5 ? 'red' : d.risk > 2 ? 'yellow' : 'green'
+  }))
 }
 
 // ─── Opções para selects dos filtros ─────────────────────────────────────────

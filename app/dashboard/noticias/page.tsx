@@ -45,19 +45,29 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={`${i === 0 ? 'lg:col-span-2' : ''} h-24 rounded-xl bg-white/5`} />
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-28 rounded-xl bg-white/5" />
         ))}
       </div>
-      {/* Gráficos */}
+      {/* Blocos Principais */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7 h-[400px] rounded-xl bg-white/5" />
+        <div className="lg:col-span-5 h-[400px] rounded-xl bg-white/5" />
+      </div>
+      {/* Secundários */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-72 rounded-xl bg-white/5" />
-        ))}
+        <div className="h-64 rounded-xl bg-white/5" />
+        <div className="h-64 rounded-xl bg-white/5" />
       </div>
-      {/* Feed */}
-      <div className="h-64 rounded-xl bg-white/5" />
+      {/* Timeline */}
+      <div className="h-32 rounded-xl bg-white/5" />
+      {/* Inferiores */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="h-72 rounded-xl bg-white/5" />
+        <div className="h-72 rounded-xl bg-white/5" />
+        <div className="h-72 rounded-xl bg-white/5" />
+      </div>
     </div>
   );
 }
@@ -97,9 +107,9 @@ export default async function NoticiasDashboard({ searchParams }: PageProps) {
     <div className="space-y-6 pb-12">
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Radar de Notícias</h2>
-          <p className="text-gray-400 text-sm mt-1">
-            Monitoramento em tempo real de citações, sentimento e risco político.
+          <h2 className="text-3xl font-bold text-white tracking-tight">Central de Inteligência Política</h2>
+          <p className="text-gray-400 text-base mt-1">
+            Monitoramento em tempo real de notícias, sentimentos e riscos.
           </p>
         </div>
       </div>
