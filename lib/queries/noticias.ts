@@ -102,11 +102,10 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
   const client = createClient()
 
   // ── Resolver allowedTargetIds → candidate_names ───────────────────────────
-  // null = admin (sem restrição). Array vazio = sem acesso a nada.
   let allowedCandidateNames: string[] | null = null
   if (filters?.allowedTargetIds !== null && filters?.allowedTargetIds !== undefined) {
     if (filters.allowedTargetIds.length === 0) {
-      return [] // usuário sem nenhum target vinculado
+      return []
     }
     const { data: targetRows } = await client
       .from('targets')
@@ -125,13 +124,19 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
       'local_relevance, is_about, candidate_name, city'
     )
 
-  // ── Filtro de acesso por candidato (server-side, não apenas frontend) ─────
+  // ── Filtro de acesso por candidato ─────
   if (allowedCandidateNames !== null) {
     q = q.in('candidate_name', allowedCandidateNames)
   }
 
-  // Filtros aplicados no Supabase (não em memória)
+  // Filtros Globais
   if (filters?.candidate) q = q.eq('candidate_name', filters.candidate)
+  // Se vier candidateId, podemos resolver para nome se necessário, mas mantendo compatibilidade:
+  if (filters?.candidateId) {
+    const { data: t } = await client.from('targets').select('candidate_name').eq('id', filters.candidateId).single()
+    if (t) q = q.eq('candidate_name', t.candidate_name)
+  }
+  
   if (filters?.city) q = q.eq('city', filters.city)
   if (filters?.source) q = q.eq('source', filters.source)
 
@@ -141,21 +146,27 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
     else if (filters.sentiment === 'neutro') q = q.eq('ai_sentiment', 0)
   }
 
-  if (filters?.period) {
-    const days = parseInt(filters.period, 10)
-    if (!isNaN(days) && days > 0) {
-      const from = new Date()
-      from.setDate(from.getDate() - days)
-      q = q.gte('published_at', from.toISOString())
+  // Período e Datas
+  if (filters?.period && filters.period !== 'custom') {
+    const from = new Date()
+    if (filters.period === '24h') from.setHours(from.getHours() - 24)
+    else if (filters.period === '7d') from.setDate(from.getDate() - 7)
+    else if (filters.period === '30d') from.setDate(from.getDate() - 30)
+    else {
+      const days = parseInt(filters.period, 10)
+      if (!isNaN(days)) from.setDate(from.getDate() - days)
+    }
+    q = q.gte('published_at', from.toISOString())
+  } else if (filters?.startDate) {
+    q = q.gte('published_at', new Date(filters.startDate).toISOString())
+    if (filters.endDate) {
+      q = q.lte('published_at', new Date(filters.endDate).toISOString())
     }
   }
 
   if (filters?.search) {
-    // busca parcial em title, source e candidate_name
     const s = filters.search.replace(/%/g, '\\%').replace(/_/g, '\\_')
-    q = q.or(
-      `title.ilike.%${s}%,source.ilike.%${s}%,candidate_name.ilike.%${s}%`
-    )
+    q = q.or(`title.ilike.%${s}%,source.ilike.%${s}%,candidate_name.ilike.%${s}%`)
   }
 
   const { data, error } = await q.order('published_at', { ascending: false })
@@ -169,8 +180,7 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
 
 // ─── KPIs ────────────────────────────────────────────────────────────────────
 
-export async function getKPIs(filters?: NoticiasFilters): Promise<KPI[]> {
-  const rows = await fetchMencoes(filters)
+export function getKPIs(rows: MencaoRow[]): KPI[] {
   if (rows.length === 0) return kpisFallback()
 
   const total = rows.length
@@ -228,10 +238,7 @@ function kpisFallback(): KPI[] {
   ]
 }
 
-// ─── Gauge ───────────────────────────────────────────────────────────────────
-
-export async function getGaugeScore(filters?: NoticiasFilters): Promise<GaugeScore> {
-  const rows = await fetchMencoes(filters)
+export function getGaugeScore(rows: MencaoRow[]): GaugeScore {
   if (rows.length === 0) return { score: 0, statusText: 'Sem dados', level: 'success' }
 
   const analisados = rows.filter((r) => r.ai_sentiment !== null)
@@ -253,10 +260,9 @@ export async function getGaugeScore(filters?: NoticiasFilters): Promise<GaugeSco
 
 // ─── Evolução da Relevância (semanal) ────────────────────────────────────────
 
-export async function getNoticiasPorTempo(
-  filters?: NoticiasFilters
-): Promise<{ dates: string[]; values: number[] }> {
-  const rows = await fetchMencoes(filters)
+export function getNoticiasPorTempo(
+  rows: MencaoRow[]
+): { dates: string[]; values: number[] } {
   const comData = rows.filter((r) => r.published_at && r.local_relevance !== null)
   if (comData.length === 0) return { dates: [], values: [] }
 
@@ -282,10 +288,9 @@ export async function getNoticiasPorTempo(
 
 // ─── Sentimento ───────────────────────────────────────────────────────────────
 
-export async function getSentimento(
-  filters?: NoticiasFilters
-): Promise<{ name: string; value: number; itemStyle: { color: string } }[]> {
-  const rows = await fetchMencoes(filters)
+export function getSentimento(
+  rows: MencaoRow[]
+): { name: string; value: number; itemStyle: { color: string } }[] {
   const analisados = rows.filter((r) => r.ai_sentiment !== null)
   if (analisados.length === 0) return sentimentoFallback()
 
@@ -306,20 +311,18 @@ function sentimentoFallback() {
 
 // ─── Volume por Fonte (top 8) ─────────────────────────────────────────────────
 
-export async function getFontes(
-  filters?: NoticiasFilters
-): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes(filters)
+export function getFontes(
+  rows: MencaoRow[]
+): { categories: string[]; values: number[] } {
   const result = countByKey(rows.map((r) => r.source).filter(Boolean) as string[])
   return { categories: result.categories.slice(0, 8), values: result.values.slice(0, 8) }
 }
 
 // ─── Riscos por Fonte (top 8) ─────────────────────────────────────────────────
 
-export async function getRiscosPorFonte(
-  filters?: NoticiasFilters
-): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes(filters)
+export function getRiscosPorFonte(
+  rows: MencaoRow[]
+): { categories: string[]; values: number[] } {
   const comRisco = rows.filter((r) => parseJsonField(r.ai_risk_flags).length > 0)
   const result = countByKey(comRisco.map((r) => r.source).filter(Boolean) as string[])
   return { categories: result.categories.slice(0, 8), values: result.values.slice(0, 8) }
@@ -327,10 +330,9 @@ export async function getRiscosPorFonte(
 
 // ─── Temas Mais Citados (top 8) ───────────────────────────────────────────────
 
-export async function getTemas(
-  filters?: NoticiasFilters
-): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes(filters)
+export function getTemas(
+  rows: MencaoRow[]
+): { categories: string[]; values: number[] } {
   const all: string[] = []
   for (const r of rows) all.push(...parseJsonField(r.ai_topics))
   if (all.length === 0) return { categories: [], values: [] }
@@ -340,10 +342,9 @@ export async function getTemas(
 
 // ─── Entidades Mais Citadas (top 8) ───────────────────────────────────────────
 
-export async function getEntidades(
-  filters?: NoticiasFilters
-): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes(filters)
+export function getEntidades(
+  rows: MencaoRow[]
+): { categories: string[]; values: number[] } {
   const all: string[] = []
   for (const r of rows) all.push(...parseJsonField(r.ai_entities))
   if (all.length === 0) return { categories: [], values: [] }
@@ -353,10 +354,9 @@ export async function getEntidades(
 
 // ─── Riscos Mais Recorrentes (top 8) ──────────────────────────────────────────
 
-export async function getRiscos(
-  filters?: NoticiasFilters
-): Promise<{ categories: string[]; values: number[] }> {
-  const rows = await fetchMencoes(filters)
+export function getRiscos(
+  rows: MencaoRow[]
+): { categories: string[]; values: number[] } {
   const all: string[] = []
   for (const r of rows) all.push(...parseJsonField(r.ai_risk_flags).map(labelRiskFlag))
   if (all.length === 0) return { categories: [], values: [] }
@@ -366,10 +366,9 @@ export async function getRiscos(
 
 // ─── Evolução do Risco por Semana ────────────────────────────────────────────
 
-export async function getRiscoTempo(
-  filters?: NoticiasFilters
-): Promise<{ dates: string[]; baixo: number[]; medio: number[]; alto: number[] }> {
-  const rows = await fetchMencoes(filters)
+export function getRiscoTempo(
+  rows: MencaoRow[]
+): { dates: string[]; baixo: number[]; medio: number[]; alto: number[] } {
   const comData = rows.filter((r) => r.published_at)
   if (comData.length === 0) return { dates: [], baixo: [], medio: [], alto: [] }
 
@@ -399,8 +398,7 @@ export async function getRiscoTempo(
 
 // ─── Feed de Notícias (50 mais recentes) ──────────────────────────────────────
 
-export async function getFeedNoticias(filters?: NoticiasFilters, limit = 50): Promise<Noticia[]> {
-  const rows = await fetchMencoes(filters)
+export function getFeedNoticias(rows: MencaoRow[], limit = 50): Noticia[] {
   return rows.slice(0, limit).map((r): Noticia => {
     const flags = parseJsonField(r.ai_risk_flags)
     return {
@@ -418,8 +416,7 @@ export async function getFeedNoticias(filters?: NoticiasFilters, limit = 50): Pr
   })
 }
 
-export async function getRealTimeStatus(filters?: NoticiasFilters) {
-  const rows = await fetchMencoes(filters)
+export function getRealTimeStatus(rows: MencaoRow[]) {
   if (rows.length === 0) return null
 
   const now = new Date()
@@ -462,8 +459,7 @@ export async function getRealTimeStatus(filters?: NoticiasFilters) {
   }
 }
 
-export async function getNegativeThemesPareto(filters?: NoticiasFilters) {
-  const rows = await fetchMencoes(filters)
+export function getNegativeThemesPareto(rows: MencaoRow[]) {
   const negativeRows = rows.filter(r => (r.ai_sentiment ?? 0) < 0 || isCrise(parseJsonField(r.ai_risk_flags)))
   
   const themeCounts: Record<string, number> = {}
@@ -473,7 +469,7 @@ export async function getNegativeThemesPareto(filters?: NoticiasFilters) {
 
   const sorted = Object.entries(themeCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 10) // Pega mais no Pareto para permitir filtro local topN
 
   const total = sorted.reduce((acc, [, v]) => acc + v, 0)
   
@@ -484,8 +480,7 @@ export async function getNegativeThemesPareto(filters?: NoticiasFilters) {
   }))
 }
 
-export async function getImpactSources(filters?: NoticiasFilters) {
-  const rows = await fetchMencoes(filters)
+export function getImpactSources(rows: MencaoRow[]) {
   const sourceImpact: Record<string, number> = {}
 
   rows.forEach(r => {
@@ -497,7 +492,7 @@ export async function getImpactSources(filters?: NoticiasFilters) {
 
   const sorted = Object.entries(sourceImpact)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 10) // Pega mais para filtro local
 
   const maxImpact = sorted[0]?.[1] || 1
 
@@ -507,8 +502,7 @@ export async function getImpactSources(filters?: NoticiasFilters) {
   }))
 }
 
-export async function getCrisisTimeline24h(filters?: NoticiasFilters) {
-  const rows = await fetchMencoes(filters)
+export function getCrisisTimeline24h(rows: MencaoRow[]) {
   const now = new Date()
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   
@@ -550,30 +544,22 @@ export async function getCrisisTimeline24h(filters?: NoticiasFilters) {
 
 export async function getCandidateOptions(
   allowedTargetIds?: string[] | null
-): Promise<string[]> {
+): Promise<{ id: string; name: string }[]> {
   const client = createClient()
 
-  // Se não-admin com array vazio → sem candidatos disponíveis
-  if (allowedTargetIds !== null && allowedTargetIds !== undefined && allowedTargetIds.length === 0) {
-    return []
-  }
+  let q = client.from('targets').select('id, candidate_name').order('candidate_name')
 
-  let q = client.from('mentions').select('candidate_name').not('candidate_name', 'is', null)
-
-  // Se não-admin: resolver IDs → nomes e filtrar
-  if (allowedTargetIds !== null && allowedTargetIds !== undefined && allowedTargetIds.length > 0) {
-    const { data: targetRows } = await client
-      .from('targets')
-      .select('candidate_name')
-      .in('id', allowedTargetIds)
-    const allowedNames = (targetRows || []).map((r: { candidate_name: string }) => r.candidate_name)
-    if (allowedNames.length === 0) return []
-    q = q.in('candidate_name', allowedNames) as typeof q
+  if (allowedTargetIds !== null && allowedTargetIds !== undefined) {
+    if (allowedTargetIds.length === 0) return []
+    q = q.in('id', allowedTargetIds)
   }
 
   const { data } = await q
   if (!data) return []
-  return [...new Set(data.map((r) => r.candidate_name as string))].sort()
+  return data.map((r: { id: string; candidate_name: string }) => ({
+    id: r.id,
+    name: r.candidate_name
+  }))
 }
 
 export async function getCityOptions(): Promise<string[]> {
@@ -604,9 +590,7 @@ export interface CrisisAlert {
   mensagem: string;
 }
 
-export async function getCrisisAlerts(filters?: NoticiasFilters): Promise<CrisisAlert[]> {
-  const rows = await fetchMencoes(filters)
-
+export function getCrisisAlerts(rows: MencaoRow[]): CrisisAlert[] {
   const now = new Date()
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -658,3 +642,6 @@ export async function getCrisisAlerts(filters?: NoticiasFilters): Promise<Crisis
 
   return alerts
 }
+
+// Exportação para o Server Component usar inicialmente
+export { fetchMencoes }

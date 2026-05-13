@@ -25,11 +25,14 @@ export interface Noticia {
 
 // Filtros do dashboard — mapeiam direto para URL search params
 export interface NoticiasFilters {
+  candidateId?: string | null
   candidate?: string | null
   city?: string | null
   source?: string | null
   sentiment?: string | null   // 'positivo' | 'neutro' | 'negativo'
-  period?: string | null      // '7' | '30' | '90' (dias) | null = todos
+  period?: string | null      // '24h' | '7d' | '30d' | 'custom'
+  startDate?: string | null
+  endDate?: string | null
   search?: string | null
   /**
    * IDs de targets permitidos para o usuário atual.
