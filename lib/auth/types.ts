@@ -20,6 +20,7 @@ export const ALL_SCREENS: string[] = [
   'dashboard',
   'noticias',
   'instagram',
+  'x',
   'candidatos',
   'automacoes',
   'gestao_crise',

@@ -57,7 +57,11 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
     else if (gaugeConfig.window === '48h') hours = 48;
     
     const limit = new Date(now.getTime() - hours * 60 * 60 * 1000);
-    return filteredRows.filter(r => r.published_at && new Date(r.published_at) >= limit);
+    const rows = filteredRows.filter(r => r.published_at && new Date(r.published_at) >= limit);
+    
+    // Se a janela selecionada não tiver dados, mas houver dados no painel, 
+    // retorna todos os dados para não exibir "Sem dados".
+    return rows.length > 0 ? rows : filteredRows;
   }, [filteredRows, gaugeConfig.window]);
 
   const gauge = useMemo(() => getGaugeScore(gaugeRows), [gaugeRows]);

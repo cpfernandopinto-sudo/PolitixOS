@@ -15,6 +15,8 @@ import {
   UserPlus,
   Zap,
   UserCog,
+  MessageSquare,
+  Radio,
 } from 'lucide-react';
 
 export interface SidebarPermissions {
@@ -43,6 +45,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Radar Instagram',
     screenKey: 'instagram',
     icon: <Hash size={20} className="shrink-0" />,
+  },
+  {
+    href: '/dashboard/x',
+    label: 'Radar X',
+    screenKey: 'x',
+    icon: <Radio size={20} className="shrink-0" />,
   },
   {
     href: '/dashboard/candidatos',

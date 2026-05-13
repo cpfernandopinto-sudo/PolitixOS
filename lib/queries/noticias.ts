@@ -241,13 +241,29 @@ function kpisFallback(): KPI[] {
 export function getGaugeScore(rows: MencaoRow[]): GaugeScore {
   if (rows.length === 0) return { score: 0, statusText: 'Sem dados', level: 'success' }
 
+  // Fallback: se não houver análise de sentimento, consideramos como 0 (neutro)
+  // Para o cálculo do termômetro, focamos em negativos e riscos detectados
   const analisados = rows.filter((r) => r.ai_sentiment !== null)
   const negativos = analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length
-  const comRisco = rows.filter((r) => parseJsonField(r.ai_risk_flags).length > 0).length
+  
+  // Proporção de negativos (se nada analisado, assume base de 5% de ruído)
+  const negativoPct = analisados.length > 0 ? negativos / analisados.length : 0.05
+  
+  // Risco: flags de IA OU relevância local muito alta (proxy de risco se não houver IA)
+  const comRisco = rows.filter((r) => {
+    const flags = parseJsonField(r.ai_risk_flags)
+    return flags.length > 0 || (r.local_relevance !== null && r.local_relevance > 80)
+  }).length
 
-  const negativoPct = analisados.length > 0 ? negativos / analisados.length : 0
   const riscoPct = rows.length > 0 ? comRisco / rows.length : 0
-  const score = Math.min(100, Math.round(negativoPct * 60 + riscoPct * 40))
+  
+  // Score final ponderado (60% sentiment, 40% risco)
+  let score = Math.min(100, Math.round(negativoPct * 60 + riscoPct * 40))
+  
+  // Se existem notícias mas o score deu 0, mantemos um nível base de "monitoramento" (ex: 5-8)
+  if (score < 5 && rows.length > 0) {
+    score = Math.min(15, rows.length > 5 ? 8 : 5)
+  }
 
   let level: GaugeScore['level']
   let statusText: string
