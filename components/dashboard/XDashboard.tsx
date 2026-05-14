@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import clsx from 'clsx';
-import { 
-  AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp, 
+import {
+  AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp,
   TrendingDown, Info, ArrowUpRight, ArrowDownRight, Zap, SearchX,
   MessageSquare, Share2, Heart, ExternalLink, BarChart2, ShieldCheck, Thermometer
 } from 'lucide-react';
@@ -31,12 +31,12 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
 
   // Calculate Top 5 by Impact
   const priorityPosts = [...posts].sort((a, b) => b.impactScore - a.impactScore).slice(0, 5);
-  
+
   // Avg Crisis Score
-  const avgCrisis = posts.length > 0 
+  const avgCrisis = posts.length > 0
     ? Math.round(posts.reduce((acc: number, p: any) => acc + (p.crisisScore || 0), 0) / posts.length)
     : 0;
-  
+
   const getCrisisStatus = (score: number) => {
     if (score > 80) return { label: 'Crise', color: 'text-red-500', bg: 'bg-red-500/10' };
     if (score > 60) return { label: 'Alerta', color: 'text-orange-500', bg: 'bg-orange-500/10' };
@@ -68,9 +68,9 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
                 <div key={p.id} className="p-4 hover:bg-white/5 transition-all cursor-pointer flex items-center justify-between gap-4" onClick={() => setSelectedPost(p)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <span className={clsx("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter", 
-                        p.priorityLevel === 'Alta' ? "bg-red-500 text-white" : 
-                        p.priorityLevel === 'Média' ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400")}>
+                      <span className={clsx("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter",
+                        p.priorityLevel === 'Alta' ? "bg-red-500 text-white" :
+                          p.priorityLevel === 'Média' ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400")}>
                         Prioridade {p.priorityLevel}
                       </span>
                       <span className="text-[10px] font-bold text-gray-500">{p.candidate_name}</span>
@@ -114,7 +114,7 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
 
           <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 shadow-2xl">
             <h3 className="text-white font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
-              <Zap className="text-yellow-400" size={16} /> 
+              <Zap className="text-yellow-400" size={16} />
               ⚠️ Divergências Detectadas
             </h3>
             <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
@@ -395,9 +395,9 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
                     <span className={clsx("font-black text-lg", p.crisisScore > 75 ? "text-red-500" : "text-white")}>{p.crisisScore}</span>
                   </td>
                   <td className="px-4 py-4 text-center">
-                    <span className={clsx("px-2 py-0.5 rounded text-[9px] font-black uppercase", 
-                      p.priorityLevel === 'Alta' ? "bg-red-500 text-white" : 
-                      p.priorityLevel === 'Média' ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400")}>
+                    <span className={clsx("px-2 py-0.5 rounded text-[9px] font-black uppercase",
+                      p.priorityLevel === 'Alta' ? "bg-red-500 text-white" :
+                        p.priorityLevel === 'Média' ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400")}>
                       {p.priorityLevel}
                     </span>
                   </td>

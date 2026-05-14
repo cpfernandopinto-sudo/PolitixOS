@@ -146,7 +146,7 @@ export default function Sidebar({ permissions }: Props) {
         {/* Visão Geral — só admin ou quem tem permissão dashboard */}
         {(isAdmin || permissions.permissions.includes('dashboard')) && (
           <Link
-            href="/dashboard"
+            href="/dashboard/overview"
             className={linkClass(pathname === '/dashboard' || pathname === '/dashboard/overview')}
             title="Visão Geral"
           >

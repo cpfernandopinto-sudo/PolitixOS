@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { 
-  Calendar, Filter, Loader2, MapPin, Search, Target, Type, X, ThumbsUp, 
-  ChevronDown, CalendarDays 
+import {
+  Calendar, Filter, Loader2, MapPin, Search, Target, Type, X, ThumbsUp,
+  ChevronDown, CalendarDays
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -49,7 +49,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
       if (value) params.set(key, value);
       else params.delete(key);
     });
-    
+
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`);
     });
@@ -150,10 +150,10 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
               onChange={(e) => {
                 const val = e.target.value;
                 setShowDates(val === 'custom');
-                updateURL({ 
-                  period: val, 
+                updateURL({
+                  period: val,
                   startDate: val === 'custom' ? get('startDate') : null,
-                  endDate: val === 'custom' ? get('endDate') : null 
+                  endDate: val === 'custom' ? get('endDate') : null
                 });
               }}
               className={SELECT_CLS}

@@ -219,7 +219,7 @@ export default function FilterBar({ candidates, cities, sources }: FilterBarProp
             Limpar
           </button>
         )}
-        
+
         <button
           disabled={isPending}
           className={

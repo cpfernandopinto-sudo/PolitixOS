@@ -31,9 +31,9 @@ export default function XFilterBar({ options }: { options: any }) {
     <div className="bg-[#12192A] border border-white/5 rounded-xl p-4 flex flex-wrap gap-4 items-center mb-6">
       <div className="flex-1 min-w-[200px] relative">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-        <input 
-          type="text" 
-          placeholder="Buscar posts..." 
+        <input
+          type="text"
+          placeholder="Buscar posts..."
           className="w-full bg-[#0D0D0D] border border-white/10 rounded-lg pl-10 pr-10 py-2 text-sm text-gray-300 focus:outline-none focus:border-[#00FFFF]/50"
           value={searchValue}
           onChange={e => setSearchValue(e.target.value)}

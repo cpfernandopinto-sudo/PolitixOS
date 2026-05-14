@@ -30,8 +30,8 @@ export function ChartFilterPopover({ children, label = 'Filtros' }: Props) {
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border",
-          isOpen 
-            ? "bg-[#00FFFF]/10 border-[#00FFFF]/30 text-[#00FFFF]" 
+          isOpen
+            ? "bg-[#00FFFF]/10 border-[#00FFFF]/30 text-[#00FFFF]"
             : "bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10"
         )}
       >

@@ -8,9 +8,9 @@ import LineChart from '@/components/charts/LineChart';
 import BarChart from '@/components/charts/BarChart';
 import DonutChart from '@/components/charts/DonutChart';
 import DataTable from '@/components/ui/DataTable';
-import { 
-  AlertTriangle, SearchX, Clock, Activity, Target, ShieldAlert, Zap, 
-  ArrowUpRight, ArrowDownRight, Filter, Settings2, BarChart3, ListFilter 
+import {
+  AlertTriangle, SearchX, Clock, Activity, Target, ShieldAlert, Zap,
+  ArrowUpRight, ArrowDownRight, Filter, Settings2, BarChart3, ListFilter
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -48,17 +48,17 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
   const filteredRows = useMemo(() => initialRows, [initialRows]);
 
   const kpis = useMemo(() => getKPIs(filteredRows), [filteredRows]);
-  
+
   // Local window filter for Gauge
   const gaugeRows = useMemo(() => {
     const now = new Date();
     let hours = 24;
     if (gaugeConfig.window === '6h') hours = 6;
     else if (gaugeConfig.window === '48h') hours = 48;
-    
+
     const limit = new Date(now.getTime() - hours * 60 * 60 * 1000);
     const rows = filteredRows.filter(r => r.published_at && new Date(r.published_at) >= limit);
-    
+
     // Se a janela selecionada não tiver dados, mas houver dados no painel, 
     // retorna todos os dados para não exibir "Sem dados".
     return rows.length > 0 ? rows : filteredRows;
@@ -70,7 +70,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
     const data = getNegativeThemesPareto(filteredRows);
     return data.slice(0, themesConfig.topN);
   }, [filteredRows, themesConfig.topN]);
-  
+
   const impactSources = useMemo(() => {
     const data = getImpactSources(filteredRows);
     return data.slice(0, sourcesConfig.topN);
@@ -79,7 +79,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
   const crisisTimeline = useMemo(() => getCrisisTimeline24h(filteredRows), [filteredRows]);
   const riscoTempoData = useMemo(() => getRiscoTempo(filteredRows), [filteredRows]);
   const fontesData = useMemo(() => getFontes(filteredRows), [filteredRows]);
-  
+
   const feedData = useMemo(() => {
     let data = getFeedNoticias(filteredRows, 50);
     if (feedConfig.priority === 'high') {
@@ -112,16 +112,16 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
       {/* 2. TERMÔMETRO + STATUS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 md:col-span-2 order-1">
-          <ChartCard 
-            title="Termômetro de Crise" 
+          <ChartCard
+            title="Termômetro de Crise"
             className="h-full flex flex-col items-center justify-center pt-12 relative overflow-hidden"
             extra={
               <ChartFilterPopover>
                 <div className="space-y-3">
                   <div>
                     <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Base de Cálculo</label>
-                    <select 
-                      value={gaugeConfig.base} 
+                    <select
+                      value={gaugeConfig.base}
                       onChange={e => setGaugeConfig(prev => ({ ...prev, base: e.target.value }))}
                       className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
                     >
@@ -132,8 +132,8 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                   </div>
                   <div>
                     <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Janela Temporal</label>
-                    <select 
-                      value={gaugeConfig.window} 
+                    <select
+                      value={gaugeConfig.window}
                       onChange={e => setGaugeConfig(prev => ({ ...prev, window: e.target.value }))}
                       className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
                     >
@@ -159,7 +159,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
             <div className="w-full max-w-md mx-auto">
               <GaugeChart score={gauge.score} level={gauge.level} />
             </div>
-            
+
             <div className="text-center mt-[-40px] pb-8 z-10">
               <div className={clsx(
                 "text-4xl font-black mb-2 tracking-tighter",
@@ -169,9 +169,9 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
               </div>
               <span className={clsx(
                 'text-lg font-bold px-6 py-1.5 rounded-full border',
-                gauge.level === 'danger'  ? 'bg-[#FF3B3B]/10 text-[#FF3B3B] border-[#FF3B3B]/20' :
-                gauge.level === 'warning' ? 'bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/20' :
-                                            'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20'
+                gauge.level === 'danger' ? 'bg-[#FF3B3B]/10 text-[#FF3B3B] border-[#FF3B3B]/20' :
+                  gauge.level === 'warning' ? 'bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/20' :
+                    'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20'
               )}>
                 {gauge.statusText}
               </span>
@@ -262,15 +262,15 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
 
       {/* 3. TEMAS NEGATIVOS + FONTES IMPACTO */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 order-4">
-        <ChartCard 
+        <ChartCard
           title="Principais Temas Negativos"
           extra={
             <ChartFilterPopover>
               <div className="space-y-3">
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Exibir Top</label>
-                  <select 
-                    value={themesConfig.topN} 
+                  <select
+                    value={themesConfig.topN}
                     onChange={e => setThemesConfig(prev => ({ ...prev, topN: Number(e.target.value) }))}
                     className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
                   >
@@ -280,7 +280,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Risco Mínimo</label>
-                  <input 
+                  <input
                     type="range" min="0" max="100" step="10"
                     value={themesConfig.minRisk}
                     onChange={e => setThemesConfig(prev => ({ ...prev, minRisk: Number(e.target.value) }))}
@@ -304,7 +304,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <span className="text-red-400">{item.percentage}%</span>
                   </div>
                   <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-red-600 to-red-400 h-full rounded-full transition-all duration-1000"
                       style={{ width: `${item.percentage}%` }}
                     />
@@ -319,15 +319,15 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
           </div>
         </ChartCard>
 
-        <ChartCard 
+        <ChartCard
           title="Fontes com Maior Impacto"
           extra={
             <ChartFilterPopover>
               <div className="space-y-3">
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Métrica</label>
-                  <select 
-                    value={sourcesConfig.metric} 
+                  <select
+                    value={sourcesConfig.metric}
                     onChange={e => setSourcesConfig(prev => ({ ...prev, metric: e.target.value }))}
                     className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
                   >
@@ -338,8 +338,8 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Top N</label>
-                  <select 
-                    value={sourcesConfig.topN} 
+                  <select
+                    value={sourcesConfig.topN}
                     onChange={e => setSourcesConfig(prev => ({ ...prev, topN: Number(e.target.value) }))}
                     className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
                   >
@@ -359,7 +359,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                   <span className="text-[#00FFFF]">{item.score} pts</span>
                 </div>
                 <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-[#00FFFF]/80 to-[#00FFFF] h-full rounded-full transition-all duration-1000"
                     style={{ width: `${item.score}%` }}
                   />
@@ -371,15 +371,15 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
       </div>
 
       {/* 4. LINHA DO TEMPO */}
-      <ChartCard 
-        title="Linha do Tempo de Crise — Últimas 24 horas" 
+      <ChartCard
+        title="Linha do Tempo de Crise — Últimas 24 horas"
         className="w-full overflow-hidden"
         extra={
           <ChartFilterPopover>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-white">Exibir Picos</span>
-                <input 
+                <input
                   type="checkbox" checked={timelineConfig.showPeaks}
                   onChange={e => setTimelineConfig(prev => ({ ...prev, showPeaks: e.target.checked }))}
                   className="accent-[#00FFFF]"
@@ -387,7 +387,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
               </div>
               <div>
                 <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Agrupamento</label>
-                <select 
+                <select
                   className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
                   defaultValue="1h"
                 >
@@ -402,8 +402,8 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
         <div className="relative mt-4 mb-8">
           <div className="flex h-12 w-full rounded-lg overflow-hidden bg-white/5 border border-white/10">
             {crisisTimeline.map((step, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={clsx(
                   "flex-1 border-r border-white/5 transition-all hover:opacity-80 group relative",
                   step.status === 'red' ? 'bg-red-500/40' : step.status === 'yellow' ? 'bg-yellow-500/30' : 'bg-green-500/10'
@@ -414,7 +414,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <ShieldAlert size={16} className="text-red-500 animate-bounce" />
                   </div>
                 )}
-                
+
                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   <div className="bg-[#12192A] border border-white/10 rounded-lg p-2 shadow-2xl min-w-[200px]">
                     <div className="flex justify-between items-center mb-1">
@@ -462,26 +462,26 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
 
         <div className="lg:col-span-4 md:col-span-1">
           <ChartCard title="Distribuição do Impacto" className="h-full">
-            <DonutChart 
+            <DonutChart
               data={fontesData.categories.slice(0, 5).map((cat, i) => ({
                 name: cat,
                 value: fontesData.values[i],
                 itemStyle: { color: i === 0 ? '#00FFFF' : i === 1 ? '#2563EB' : i === 2 ? '#7C3AED' : i === 3 ? '#DB2777' : '#4B5563' }
-              }))} 
+              }))}
             />
           </ChartCard>
         </div>
 
         <div className="lg:col-span-4 md:col-span-2 order-2 lg:order-none">
-          <ChartCard 
-            title="Feed Crítico — Últimas" 
+          <ChartCard
+            title="Feed Crítico — Últimas"
             className="h-full"
             extra={
               <ChartFilterPopover>
                 <div className="space-y-3">
                   <div>
                     <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Prioridade</label>
-                    <select 
+                    <select
                       value={feedConfig.priority}
                       onChange={e => setFeedConfig(prev => ({ ...prev, priority: e.target.value }))}
                       className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
@@ -492,7 +492,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                   </div>
                   <div>
                     <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Limite</label>
-                    <select 
+                    <select
                       value={feedConfig.limit}
                       onChange={e => setFeedConfig(prev => ({ ...prev, limit: Number(e.target.value) }))}
                       className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"

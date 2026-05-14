@@ -100,7 +100,7 @@ export async function fetchXData(filters?: XFilters) {
   const getStrategicInsights = (p: any, maxEng: number) => {
     // 1.1 Impact Score
     const engNormalizado = maxEng > 0 ? ((p.totalEngagement || 0) / maxEng) * 100 : 0;
-    
+
     // Map risk to numeric
     const riskMap: Record<string, number> = { 'critico': 100, 'alto': 75, 'medio': 50, 'médio': 50, 'baixo': 25 };
     const riskVal = riskMap[p.risk?.toLowerCase()] || 0;
@@ -114,16 +114,16 @@ export async function fetchXData(filters?: XFilters) {
     const negativityVal = reactMap[p.publicReaction?.toLowerCase()] || 30;
 
     const impactScore = Math.round(
-      (engNormalizado * 0.3) + 
-      (riskVal * 0.3) + 
-      (polVal * 0.2) + 
+      (engNormalizado * 0.3) +
+      (riskVal * 0.3) +
+      (polVal * 0.2) +
       (negativityVal * 0.2)
     );
 
     // 1.2 Crisis Score
     const crisisScore = Math.round(
-      (negativityVal * 0.4) + 
-      (polVal * 0.3) + 
+      (negativityVal * 0.4) +
+      (polVal * 0.3) +
       (riskVal * 0.3)
     );
 
@@ -169,7 +169,7 @@ export async function fetchXData(filters?: XFilters) {
   let posts = postsData.map(p => {
     const ai = aiMap.get(p.id);
     const totalEngagement = (p.like_count || 0) + (p.comment_count || 0) + (p.share_count || 0);
-    
+
     // Basic fields first
     const basePost = {
       id: p.id,
@@ -290,10 +290,10 @@ export async function getXChartData(filters?: XFilters) {
     .slice(0, 5);
 
   // Crisis Thermometer Calculation
-  const avgTemp = posts.length > 0 
-    ? posts.reduce((acc, p) => acc + (p.crisisTemperature || 0), 0) / posts.length 
+  const avgTemp = posts.length > 0
+    ? posts.reduce((acc, p) => acc + (p.crisisTemperature || 0), 0) / posts.length
     : 0;
-  
+
   // polarization level
   const polCounts: Record<string, number> = {};
   posts.forEach(p => polCounts[p.polarizationLevel] = (polCounts[p.polarizationLevel] || 0) + 1);
@@ -306,7 +306,7 @@ export async function getXAlert(filters?: XFilters) {
   const critical = [...posts]
     .filter(p => p.risk === 'alto' || p.risk === 'critico')
     .sort((a, b) => b.totalEngagement - a.totalEngagement || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-  
+
   return critical || null;
 }
 

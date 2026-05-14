@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import clsx from 'clsx';
-import { 
-  AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp, 
+import {
+  AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp,
   TrendingDown, Minus, Info, ArrowUpRight, ArrowDownRight, Zap, SearchX
 } from 'lucide-react';
 import ChartCard from '@/components/ui/ChartCard';
@@ -97,8 +97,8 @@ const InstagramAlertCard = ({ post, onVerAnalise }: { post: any; onVerAnalise: (
   return (
     <div className={clsx(
       "relative overflow-hidden rounded-xl border p-5 transition-all duration-300 mb-6",
-      isHighRisk 
-        ? "bg-red-500/10 border-red-500/30 shadow-[0_0_25px_rgba(239,68,68,0.15)]" 
+      isHighRisk
+        ? "bg-red-500/10 border-red-500/30 shadow-[0_0_25px_rgba(239,68,68,0.15)]"
         : "bg-white/5 border-white/10"
     )}>
       <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
@@ -151,15 +151,15 @@ const InstagramAlertCard = ({ post, onVerAnalise }: { post: any; onVerAnalise: (
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0 w-full lg:w-auto">
-          <a 
-            href={post.url} 
-            target="_blank" 
+          <a
+            href={post.url}
+            target="_blank"
             rel="noreferrer"
             className="flex-1 lg:flex-none text-center px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-white/10 transition-all uppercase tracking-[0.1em]"
           >
             Abrir Post
           </a>
-          <button 
+          <button
             onClick={onVerAnalise}
             className="flex-1 lg:flex-none px-6 py-3 rounded-xl bg-[#00FFFF] text-black text-xs font-black hover:bg-[#00FFFF]/80 transition-all uppercase tracking-[0.1em] shadow-[0_0_20px_rgba(0,255,255,0.3)]"
           >
@@ -262,8 +262,8 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
     const total = charts.sentimentData.reduce((acc: number, d: any) => acc + d.value, 0);
     if (total === 0) return { label: 'Sem dados', percentage: 0 };
     const max = [...charts.sentimentData].sort((a, b) => b.value - a.value)[0];
-    return { 
-      label: max.name, 
+    return {
+      label: max.name,
       percentage: Math.round((max.value / total) * 100),
       color: max.name === 'Positivo' ? '#22C55E' : max.name === 'Negativo' ? '#FF3B3B' : '#2563EB'
     };
@@ -272,9 +272,9 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
   return (
     <div className="space-y-6">
       {/* 1. HEADER – ALERTA INTELIGENTE */}
-      <InstagramAlertCard 
-        post={criticalPost || posts[0]} 
-        onVerAnalise={() => setSelectedPost(criticalPost || posts[0])} 
+      <InstagramAlertCard
+        post={criticalPost || posts[0]}
+        onVerAnalise={() => setSelectedPost(criticalPost || posts[0])}
       />
 
       {/* 2. MÉTRICAS (CARDS SUPERIORES) */}
@@ -310,12 +310,12 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
           <ChartCard title="Pressão Social nas Últimas 24h">
-            <LineChart 
-              dates={pressureData.map(d => d.date)} 
+            <LineChart
+              dates={pressureData.map(d => d.date)}
               seriesData={[
                 { name: 'Volume de Comentários', data: pressureData.map(d => d.comments), color: '#00FFFF' },
                 { name: 'Engajamento Total', data: pressureData.map(d => d.engagement), color: '#2563EB' }
-              ]} 
+              ]}
             />
           </ChartCard>
         </div>
@@ -382,7 +382,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                     <span className="text-[#00FFFF]">{theme.value} posts</span>
                   </div>
                   <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/5">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-[#00FFFF]/60 to-[#00FFFF] h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(0,255,255,0.2)]"
                       style={{ width: `${Math.min(100, (theme.value / (posts.length || 1)) * 100 * 3)}%` }}
                     />
@@ -443,7 +443,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                     {getSentimentBadge(p.sentiment)}
                   </td>
                   <td className="px-4 py-4">
-                    <button 
+                    <button
                       onClick={() => setSelectedPost(p)}
                       className="text-[#00FFFF] text-[10px] font-black uppercase tracking-widest hover:underline flex items-center gap-1"
                     >
@@ -647,7 +647,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
             </div>
 
             <div className="p-6 border-t border-white/5 flex justify-end gap-3 sticky bottom-0 bg-[#12192A]/90 backdrop-blur-md">
-              <button 
+              <button
                 onClick={() => setSelectedPost(null)}
                 className="px-6 py-3 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors"
               >

@@ -234,8 +234,8 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
                 type="button"
                 onClick={() => setIsActive((v) => !v)}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg border transition-all ${isActive
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                    : 'bg-white/5 border-white/10 text-gray-400'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-white/5 border-white/10 text-gray-400'
                   }`}
               >
                 <span>{isActive ? 'Ativo' : 'Inativo'}</span>
@@ -257,14 +257,14 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
                   type="button"
                   onClick={() => toggleTarget(t.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all text-left ${selectedTargets.includes(t.id)
-                      ? 'bg-[#2563EB]/10 border-blue-500/30 text-[#2563EB]'
-                      : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                    ? 'bg-[#2563EB]/10 border-blue-500/30 text-[#2563EB]'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
                     }`}
                 >
                   <div
                     className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selectedTargets.includes(t.id)
-                        ? 'bg-[#2563EB] border-[#2563EB]'
-                        : 'border-white/20'
+                      ? 'bg-[#2563EB] border-[#2563EB]'
+                      : 'border-white/20'
                       }`}
                   >
                     {selectedTargets.includes(t.id) && (
@@ -297,14 +297,14 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
                   type="button"
                   onClick={() => toggleScreen(key)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all text-left ${selectedScreens.includes(key)
-                      ? 'bg-[#2563EB]/10 border-blue-500/30 text-[#2563EB]'
-                      : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                    ? 'bg-[#2563EB]/10 border-blue-500/30 text-[#2563EB]'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
                     }`}
                 >
                   <div
                     className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selectedScreens.includes(key)
-                        ? 'bg-[#2563EB] border-[#2563EB]'
-                        : 'border-white/20'
+                      ? 'bg-[#2563EB] border-[#2563EB]'
+                      : 'border-white/20'
                       }`}
                   >
                     {selectedScreens.includes(key) && (
@@ -541,8 +541,8 @@ export default function UsuariosClient({ initialUsers, targets }: Props) {
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${user.is_active
-                            ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                            : 'text-gray-500 bg-white/5 border-white/10'
+                          ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                          : 'text-gray-500 bg-white/5 border-white/10'
                           }`}
                       >
                         <span
@@ -581,8 +581,8 @@ export default function UsuariosClient({ initialUsers, targets }: Props) {
                           disabled={toggling === user.id}
                           title={user.is_active ? 'Desativar' : 'Ativar'}
                           className={`p-1.5 rounded-lg transition-colors ${user.is_active
-                              ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
-                              : 'text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10'
+                            ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/10'
+                            : 'text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10'
                             }`}
                         >
                           {toggling === user.id ? (

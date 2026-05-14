@@ -136,7 +136,7 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
     const { data: t } = await client.from('targets').select('candidate_name').eq('id', filters.candidateId).single()
     if (t) q = q.eq('candidate_name', t.candidate_name)
   }
-  
+
   if (filters?.city) q = q.eq('city', filters.city)
   if (filters?.source) q = q.eq('source', filters.source)
 
@@ -245,10 +245,10 @@ export function getGaugeScore(rows: MencaoRow[]): GaugeScore {
   // Para o cálculo do termômetro, focamos em negativos e riscos detectados
   const analisados = rows.filter((r) => r.ai_sentiment !== null)
   const negativos = analisados.filter((r) => (r.ai_sentiment ?? 0) < 0).length
-  
+
   // Proporção de negativos (se nada analisado, assume base de 5% de ruído)
   const negativoPct = analisados.length > 0 ? negativos / analisados.length : 0.05
-  
+
   // Risco: flags de IA OU relevância local muito alta (proxy de risco se não houver IA)
   const comRisco = rows.filter((r) => {
     const flags = parseJsonField(r.ai_risk_flags)
@@ -256,10 +256,10 @@ export function getGaugeScore(rows: MencaoRow[]): GaugeScore {
   }).length
 
   const riscoPct = rows.length > 0 ? comRisco / rows.length : 0
-  
+
   // Score final ponderado (60% sentiment, 40% risco)
   let score = Math.min(100, Math.round(negativoPct * 60 + riscoPct * 40))
-  
+
   // Se existem notícias mas o score deu 0, mantemos um nível base de "monitoramento" (ex: 5-8)
   if (score < 5 && rows.length > 0) {
     score = Math.min(15, rows.length > 5 ? 8 : 5)
@@ -438,7 +438,7 @@ export function getRealTimeStatus(rows: MencaoRow[]) {
   const now = new Date()
   const critical = rows.filter(r => isCrise(parseJsonField(r.ai_risk_flags)))
   const lastCritical = critical[0]
-  
+
   let timeSinceLastCritical = '—'
   if (lastCritical?.published_at) {
     const diff = now.getTime() - new Date(lastCritical.published_at).getTime()
@@ -477,7 +477,7 @@ export function getRealTimeStatus(rows: MencaoRow[]) {
 
 export function getNegativeThemesPareto(rows: MencaoRow[]) {
   const negativeRows = rows.filter(r => (r.ai_sentiment ?? 0) < 0 || isCrise(parseJsonField(r.ai_risk_flags)))
-  
+
   const themeCounts: Record<string, number> = {}
   negativeRows.forEach(r => {
     parseJsonField(r.ai_topics).forEach(t => { themeCounts[t] = (themeCounts[t] || 0) + 1 })
@@ -488,7 +488,7 @@ export function getNegativeThemesPareto(rows: MencaoRow[]) {
     .slice(0, 10) // Pega mais no Pareto para permitir filtro local topN
 
   const total = sorted.reduce((acc, [, v]) => acc + v, 0)
-  
+
   return sorted.map(([theme, count]) => ({
     name: theme,
     value: count,
@@ -521,7 +521,7 @@ export function getImpactSources(rows: MencaoRow[]) {
 export function getCrisisTimeline24h(rows: MencaoRow[]) {
   const now = new Date()
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  
+
   const hours = Array.from({ length: 24 }).map((_, i) => {
     const d = new Date(last24h.getTime() + i * 60 * 60 * 1000)
     return d.getHours().toString().padStart(2, '0') + ':00'
