@@ -158,10 +158,11 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
               }}
               className={SELECT_CLS}
             >
-              <option value="">Período: Todo tempo</option>
+              <option value="">Todo período</option>
               <option value="24h">Últimas 24 horas</option>
               <option value="7d">Últimos 7 dias</option>
               <option value="30d">Últimos 30 dias</option>
+              <option value="90d">Últimos 90 dias</option>
               <option value="custom">Personalizado...</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" size={14} />

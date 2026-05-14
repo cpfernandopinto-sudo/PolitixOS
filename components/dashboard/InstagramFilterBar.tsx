@@ -8,7 +8,7 @@ export default function InstagramFilterBar({ options }: { options: any }) {
 
   const handleChange = (key: string, val: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (val && val !== 'todos') {
+    if (val && val !== 'todos' && val !== 'all') {
       params.set(key, val);
     } else {
       params.delete(key);
@@ -32,12 +32,13 @@ export default function InstagramFilterBar({ options }: { options: any }) {
       <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
         onChange={e => handleChange('period', e.target.value)}
-        defaultValue={searchParams.get('period') || ''}
+        defaultValue={searchParams.get('period') || 'all'}
       >
-        <option value="todos">Período: Todos</option>
+        <option value="all">Todo período</option>
         <option value="1">Últimas 24h</option>
         <option value="7">Últimos 7 dias</option>
         <option value="30">Últimos 30 dias</option>
+        <option value="90">Últimos 90 dias</option>
       </select>
 
       <select

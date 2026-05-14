@@ -30,7 +30,7 @@ export interface NoticiasFilters {
   city?: string | null
   source?: string | null
   sentiment?: string | null   // 'positivo' | 'neutro' | 'negativo'
-  period?: string | null      // '24h' | '7d' | '30d' | 'custom'
+  period?: string | null      // 'all' | '24h' | '7d' | '30d' | '90d' | 'custom'
   startDate?: string | null
   endDate?: string | null
   search?: string | null

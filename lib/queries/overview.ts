@@ -1,12 +1,12 @@
 import { fetchMencoes, getGaugeScore as getNoticiasGauge } from './noticias';
 import { fetchInstagramData, getInstagramChartData } from './instagram';
-import { fetchXData, getXChartData } from './x';
+import { fetchXData } from './x';
 import { createClient } from '@/lib/supabaseClient';
 
 export interface OverviewFilters {
   candidate?: string | null;
   city?: string | null;
-  period?: string | null; // '1' | '7' | '30'
+  period?: string | null; // 'all' | '1' | '7' | '30' | '90'
   allowedTargetIds?: string[] | null;
 }
 
@@ -20,14 +20,15 @@ export async function fetchOverviewData(filters?: OverviewFilters) {
     mode: allowedTargetIds === null ? "admin_all_data" : "restricted"
   });
 
-  // Padronizar filtros para as funções específicas
-  const period = filters?.period || '7';
+  // 'all' = sem restrição de data. Qualquer período ausente/nulo assume 'all'.
+  const period = filters?.period || 'all';
 
-  const [noticias, instagram, x] = await Promise.all([
+  const [noticias, instagram, xWithPeriod] = await Promise.all([
     fetchMencoes({
       candidateId: filters?.candidate,
       city: filters?.city,
-      period: period === '1' ? '24h' : period === '7' ? '7d' : '30d',
+      // 'all' → null para noticias (sem filtro de data)
+      period: period === 'all' ? null : period === '1' ? '24h' : period === '7' ? '7d' : period === '90' ? '90d' : '30d',
       allowedTargetIds: filters?.allowedTargetIds
     }),
     fetchInstagramData({
@@ -41,6 +42,20 @@ export async function fetchOverviewData(filters?: OverviewFilters) {
       allowedTargetIds: filters?.allowedTargetIds
     })
   ]);
+
+  console.log("[X INVESTIGATION] rawX count (with period):", xWithPeriod.posts.length);
+
+  // Fallback: se não há posts do X no período selecionado, exibe os mais recentes disponíveis.
+  // Ocorre quando a coleta de dados do X está desatualizada (ex: última coleta > 30 dias atrás).
+  const x = xWithPeriod.posts.length > 0
+    ? xWithPeriod
+    : await fetchXData({
+        candidate: filters?.candidate,
+        allowedTargetIds: filters?.allowedTargetIds
+      });
+
+  console.log("[X INVESTIGATION] rawX count (after fallback):", x.posts.length);
+  console.log("[X INVESTIGATION] rawX sample:", x.posts[0]);
 
   return { noticias, instagram, x };
 }
@@ -64,18 +79,28 @@ export async function getOverviewKPIs(filters?: OverviewFilters) {
   // Calculado como a média de saúde dos canais (100 - risco)
   const noticiasScore = 100 - getNoticiasGauge(noticias).score;
 
-  const xData = await getXChartData({ ...filters, period: filters?.period || '7' });
-  const xScore = 100 - (xData.crisisScore || 0);
+  // X risk proxy: usa risk level dos posts já buscados (mesmo campo da tabela executiva).
+  // crisis_temperature no banco é texto ("fria", "quente") — não pode ser somado numericamente.
+  const xAltoKPI = x.posts.filter(p => p.risk === 'alto' || p.risk === 'critico').length;
+  const xRiskPctKPI = x.posts.length > 0 ? (xAltoKPI / x.posts.length) * 100 : 0;
+  const xScore = 100 - xRiskPctKPI;
 
-  const instaData = await getInstagramChartData({ ...filters, period: filters?.period || '7' });
+  const instaData = await getInstagramChartData({ ...filters, period: filters?.period || 'all' });
   const instaRisk = instaData.riskData.find(r => r.name === 'Alto')?.value || 0;
   const instaScore = Math.max(0, 100 - (instaRisk * 10)); // Proxy simples para insta
+
+  console.log("[OVERVIEW CRISIS X]", {
+    baseX: x.posts.length,
+    xAlto: xAltoKPI,
+    xRiskPct: xRiskPctKPI,
+    xScore
+  });
 
   const score_geral = Math.round((noticiasScore * 0.5) + (xScore * 0.3) + (instaScore * 0.2));
 
   // Temperatura Geral
   let temperatura_geral = 'fria';
-  const maxCrisis = Math.max(getNoticiasGauge(noticias).score, xData.crisisScore || 0);
+  const maxCrisis = Math.max(getNoticiasGauge(noticias).score, xRiskPctKPI);
   if (maxCrisis > 70) temperatura_geral = 'crítica';
   else if (maxCrisis > 40) temperatura_geral = 'quente';
   else if (maxCrisis > 20) temperatura_geral = 'morna';
@@ -99,16 +124,28 @@ export async function getCrisisOverview(filters?: OverviewFilters) {
   const { noticias, instagram, x } = await fetchOverviewData(filters);
 
   const nGauge = getNoticiasGauge(noticias);
-  const xChart = await getXChartData({ ...filters, period: filters?.period || '7' });
+
+  // X risk proxy: usa risk level dos posts (mesmo campo da tabela executiva).
+  // crisis_temperature no banco é texto ("fria", "quente") — avgTemp resulta em NaN → 0.
+  const xPosts = x.posts;
+  const xAlto = xPosts.filter(p => p.risk === 'alto' || p.risk === 'critico').length;
+  const xScore = xPosts.length > 0 ? (xAlto / xPosts.length) * 100 : 0;
 
   // Instagram risk proxy
   const instaPosts = instagram.posts;
   const instaAlto = instaPosts.filter(p => p.risk === 'alto').length;
   const instaScore = instaPosts.length > 0 ? (instaAlto / instaPosts.length) * 100 : 0;
 
+  console.log("[OVERVIEW CRISIS X]", {
+    baseX: xPosts.length,
+    xAlto,
+    xScore,
+    breakdownX: Math.round(xScore)
+  });
+
   const score = Math.round(
     (nGauge.score * 0.5) +
-    ((xChart.crisisScore || 0) * 0.3) +
+    (xScore * 0.3) +
     (instaScore * 0.2)
   );
 
@@ -122,7 +159,7 @@ export async function getCrisisOverview(filters?: OverviewFilters) {
     status,
     breakdown: {
       noticias: nGauge.score,
-      x: xChart.crisisScore || 0,
+      x: Math.round(xScore),
       instagram: Math.round(instaScore)
     }
   };
@@ -148,6 +185,10 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
   const xSent = x.posts.reduce((acc, p) => acc + (iSentMap[p.sentiment?.toLowerCase()] || 0), 0) / (x.posts.length || 1);
   const xRisk = x.posts.filter(p => p.risk === 'alto' || p.risk === 'critico').length / (x.posts.length || 1);
   const xPol = x.posts.filter(p => p.polarizationLevel?.toLowerCase() === 'alto').length / (x.posts.length || 1);
+
+  console.log("[X INVESTIGATION] mappedX count:", x.posts.length);
+  console.log("[X INVESTIGATION] mappedX sample:", x.posts[0]);
+  console.log("[X INVESTIGATION] channelDistribution x volume:", x.posts.length);
 
   return {
     noticias: {

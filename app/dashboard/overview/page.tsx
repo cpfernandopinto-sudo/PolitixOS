@@ -43,7 +43,7 @@ export default async function OverviewPage(props: {
 
   const filters = {
     candidate: searchParams.candidate as string || null,
-    period: searchParams.period as string || '7',
+    period: searchParams.period as string || 'all',
     allowedTargetIds
   };
 

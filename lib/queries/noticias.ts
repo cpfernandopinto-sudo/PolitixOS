@@ -147,11 +147,12 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
   }
 
   // Período e Datas
-  if (filters?.period && filters.period !== 'custom') {
+  if (filters?.period && filters.period !== 'custom' && filters.period !== 'all') {
     const from = new Date()
     if (filters.period === '24h') from.setHours(from.getHours() - 24)
     else if (filters.period === '7d') from.setDate(from.getDate() - 7)
     else if (filters.period === '30d') from.setDate(from.getDate() - 30)
+    else if (filters.period === '90d') from.setDate(from.getDate() - 90)
     else {
       const days = parseInt(filters.period, 10)
       if (!isNaN(days)) from.setDate(from.getDate() - days)
