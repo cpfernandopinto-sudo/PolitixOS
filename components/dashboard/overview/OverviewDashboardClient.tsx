@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import OverviewKPI from './OverviewKPI';
 import OverviewGauge from './OverviewGauge';
 import OverviewAlerts from './OverviewAlerts';
@@ -23,12 +24,22 @@ interface Props {
     table: any;
   };
   candidates: { id: string; name: string }[];
+  currentCandidate?: string | null;
+  currentPeriod?: string | null;
 }
 
-export default function OverviewDashboardClient({ initialData, candidates }: Props) {
+export default function OverviewDashboardClient({ initialData, candidates, currentCandidate, currentPeriod }: Props) {
   console.log("[FRONT DATA]", initialData);
-  const [candidate, setCandidate] = useState('todos');
-  const [period, setPeriod] = useState('7');
+  const router = useRouter();
+  const [candidate, setCandidate] = useState(currentCandidate || 'todos');
+  const [period, setPeriod] = useState(currentPeriod || 'all');
+
+  const applyFilters = (nextCandidate: string, nextPeriod: string) => {
+    const params = new URLSearchParams();
+    if (nextCandidate !== 'todos') params.set('candidate', nextCandidate);
+    params.set('period', nextPeriod);
+    router.push(`?${params.toString()}`);
+  };
 
   // Charts
   const sentimentOption = {
@@ -84,7 +95,11 @@ export default function OverviewDashboardClient({ initialData, candidates }: Pro
         <div className="flex flex-wrap items-center gap-3">
           <select
             value={candidate}
-            onChange={(e) => setCandidate(e.target.value)}
+            onChange={(e) => {
+              const nextCandidate = e.target.value;
+              setCandidate(nextCandidate);
+              applyFilters(nextCandidate, period);
+            }}
             className="bg-[#1A1A1A] border border-white/10 text-white text-sm rounded-lg px-4 py-2.5 focus:border-cyan-500/50 outline-none transition-all"
           >
             <option value="todos">Todos os Candidatos</option>
@@ -93,9 +108,14 @@ export default function OverviewDashboardClient({ initialData, candidates }: Pro
 
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => {
+              const nextPeriod = e.target.value;
+              setPeriod(nextPeriod);
+              applyFilters(candidate, nextPeriod);
+            }}
             className="bg-[#1A1A1A] border border-white/10 text-white text-sm rounded-lg px-4 py-2.5 focus:border-cyan-500/50 outline-none transition-all"
           >
+            <option value="all">Todo período</option>
             <option value="1">Últimas 24h</option>
             <option value="7">Últimos 7 dias</option>
             <option value="30">Últimos 30 dias</option>

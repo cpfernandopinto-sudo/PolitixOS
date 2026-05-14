@@ -24,6 +24,8 @@ export default async function OverviewPage(props: {
 }) {
   const session = await requireAuth();
   const searchParams = await props.searchParams;
+  const readParam = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
 
   const allowedTargetIds =
     session.role === 'admin'
@@ -41,9 +43,15 @@ export default async function OverviewPage(props: {
     isAdmin: session.role === "admin"
   });
 
+  const requestedCandidate = readParam(searchParams.candidate);
+  const requestedPeriod = readParam(searchParams.period);
+  const period = ['all', '1', '7', '30'].includes(requestedPeriod || '')
+    ? requestedPeriod
+    : 'all';
+
   const filters = {
-    candidate: searchParams.candidate as string || null,
-    period: searchParams.period as string || '7',
+    candidate: requestedCandidate && !['todos', 'all'].includes(requestedCandidate) ? requestedCandidate : null,
+    period,
     allowedTargetIds
   };
 
@@ -91,6 +99,8 @@ export default async function OverviewPage(props: {
     <OverviewDashboardClient
       initialData={initialData}
       candidates={candidates}
+      currentCandidate={filters.candidate}
+      currentPeriod={filters.period}
     />
   );
 }

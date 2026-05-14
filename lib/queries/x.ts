@@ -30,6 +30,13 @@ export function cleanFilter(v: string | string[] | undefined): string | null {
   return s || null;
 }
 
+function normalizeRisk(value: string | null | undefined) {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 export async function fetchXData(filters?: XFilters) {
   const client = createClient();
 
@@ -211,7 +218,7 @@ export async function fetchXData(filters?: XFilters) {
     posts = posts.filter(p => p.sentiment?.toLowerCase() === filters.sentiment!.toLowerCase());
   }
   if (filters?.risk) {
-    posts = posts.filter(p => p.risk?.toLowerCase() === filters.risk!.toLowerCase());
+    posts = posts.filter(p => normalizeRisk(p.risk) === normalizeRisk(filters.risk));
   }
   if (filters?.topic) {
     posts = posts.filter(p => p.topic?.toLowerCase() === filters.topic!.toLowerCase());
@@ -290,7 +297,7 @@ export async function getXChartData(filters?: XFilters) {
   // Top Posts by Risk
   const topRisk = [...posts]
     .sort((a, b) => {
-      const riskVal = (r: string) => r === 'critico' ? 4 : r === 'alto' ? 3 : r === 'medio' ? 2 : 1;
+      const riskVal = (r: string) => normalizeRisk(r) === 'critico' ? 4 : normalizeRisk(r) === 'alto' ? 3 : normalizeRisk(r) === 'medio' ? 2 : 1;
       return riskVal(b.risk) - riskVal(a.risk);
     })
     .slice(0, 5);

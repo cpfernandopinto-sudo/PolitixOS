@@ -283,7 +283,7 @@ export async function getInstagramChartData(filters?: InstagramFilters) {
 
   const riskData = [
     { name: 'Baixo', value: posts.filter(d => d.risk === 'baixo').length, itemStyle: { color: '#22C55E' } },
-    { name: 'Médio', value: posts.filter(d => d.risk === 'medio').length, itemStyle: { color: '#EAB308' } },
+    { name: 'Médio', value: posts.filter(d => d.risk === 'medio' || d.risk === 'médio').length, itemStyle: { color: '#EAB308' } },
     { name: 'Alto', value: posts.filter(d => d.risk === 'alto').length, itemStyle: { color: '#FF3B3B' } },
   ];
 

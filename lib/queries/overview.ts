@@ -1,13 +1,102 @@
 import { fetchMencoes, getGaugeScore as getNoticiasGauge } from './noticias';
-import { fetchInstagramData, getInstagramChartData } from './instagram';
-import { fetchXData, getXChartData } from './x';
+import { fetchInstagramData } from './instagram';
+import { fetchXData } from './x';
 import { createClient } from '@/lib/supabaseClient';
 
 export interface OverviewFilters {
   candidate?: string | null;
   city?: string | null;
-  period?: string | null; // '1' | '7' | '30'
+  period?: string | null; // 'all' | '1' | '7' | '30'
   allowedTargetIds?: string[] | null;
+}
+
+function normalizeLabel(value: string | null | undefined) {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function riskScore(value: string | null | undefined) {
+  const risk = normalizeLabel(value);
+  if (risk === 'critico') return 100;
+  if (risk === 'alto') return 75;
+  if (risk === 'medio') return 50;
+  return 0;
+}
+
+function isHighRisk(value: string | null | undefined) {
+  return riskScore(value) >= 75;
+}
+
+function isCriticalRisk(value: string | null | undefined) {
+  return riskScore(value) === 100;
+}
+
+function averageRiskScore(items: Array<{ risk?: string | null }>) {
+  if (items.length === 0) return 0;
+  return items.reduce((sum, item) => sum + riskScore(item.risk), 0) / items.length;
+}
+
+function weightedAverage(entries: Array<{ value: number; weight: number; count: number }>) {
+  const available = entries.filter(entry => entry.count > 0);
+  const totalWeight = available.reduce((sum, entry) => sum + entry.weight, 0);
+  if (totalWeight === 0) return 0;
+  return available.reduce((sum, entry) => sum + entry.value * entry.weight, 0) / totalWeight;
+}
+
+function compareTrend(current: number, previous: number) {
+  if (previous === 0) return { direção: 'stable', variação: 0 };
+
+  const varPct = ((current - previous) / previous) * 100;
+  return {
+    direção: varPct > 5 ? 'up' : varPct < -5 ? 'down' : 'stable',
+    variação: Math.round(varPct)
+  };
+}
+
+function getItemTimestamp(item: { published_at?: string | null; created_at?: string | null }) {
+  const rawDate = item.published_at || item.created_at;
+  if (!rawDate) return null;
+
+  const timestamp = new Date(rawDate).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function calculateTrend(
+  data: Awaited<ReturnType<typeof fetchOverviewData>>,
+  period: string | null | undefined
+) {
+  const timestamps = [
+    ...data.noticias.map(getItemTimestamp),
+    ...data.instagram.posts.map(getItemTimestamp),
+    ...data.x.posts.map(getItemTimestamp)
+  ].filter((timestamp): timestamp is number => timestamp !== null);
+
+  if (timestamps.length < 2) return { direção: 'stable', variação: 0 };
+
+  if (period === 'all' || !period) {
+    const min = Math.min(...timestamps);
+    const max = Math.max(...timestamps);
+    if (max <= min) return { direção: 'stable', variação: 0 };
+
+    const midpoint = min + ((max - min) / 2);
+    const previous = timestamps.filter(timestamp => timestamp < midpoint).length;
+    const current = timestamps.filter(timestamp => timestamp >= midpoint).length;
+    return compareTrend(current, previous);
+  }
+
+  const periodDays = parseInt(period, 10);
+  if (isNaN(periodDays) || periodDays <= 0) return { direção: 'stable', variação: 0 };
+
+  const now = Date.now();
+  const periodMs = periodDays * 24 * 60 * 60 * 1000;
+  const currentStart = now - periodMs;
+  const previousStart = currentStart - periodMs;
+
+  const current = timestamps.filter(timestamp => timestamp >= currentStart && timestamp <= now).length;
+  const previous = timestamps.filter(timestamp => timestamp >= previousStart && timestamp < currentStart).length;
+  return compareTrend(current, previous);
 }
 
 /**
@@ -21,23 +110,25 @@ export async function fetchOverviewData(filters?: OverviewFilters) {
   });
 
   // Padronizar filtros para as funções específicas
-  const period = filters?.period || '7';
+  // period='all' = sem filtro de data (todo período)
+  const period = filters?.period || 'all';
+  const isAllPeriod = period === 'all';
 
   const [noticias, instagram, x] = await Promise.all([
     fetchMencoes({
       candidateId: filters?.candidate,
       city: filters?.city,
-      period: period === '1' ? '24h' : period === '7' ? '7d' : '30d',
+      period: isAllPeriod ? undefined : (period === '1' ? '24h' : period === '7' ? '7d' : '30d'),
       allowedTargetIds: filters?.allowedTargetIds
     }),
     fetchInstagramData({
       candidate: filters?.candidate,
-      period: period,
+      period: isAllPeriod ? undefined : period,
       allowedTargetIds: filters?.allowedTargetIds
     }),
     fetchXData({
       candidate: filters?.candidate,
-      period: period,
+      period: isAllPeriod ? undefined : period,
       allowedTargetIds: filters?.allowedTargetIds
     })
   ]);
@@ -68,37 +159,33 @@ export async function fetchOverviewData(filters?: OverviewFilters) {
 export async function getOverviewKPIs(filters?: OverviewFilters) {
   const { noticias, instagram, x } = await fetchOverviewData(filters);
 
-  // Total Volume
+  // Volume Total
   const volumeTotal = noticias.length + instagram.posts.length + x.posts.length;
 
   // Alertas Ativos (Risco Alto/Crítico)
   const alertasNoticias = noticias.filter(n => n.local_relevance && n.local_relevance > 80).length;
-  const alertasInstagram = instagram.posts.filter(p => p.risk === 'alto').length;
-  const alertasX = x.posts.filter(p => p.risk === 'alto' || p.risk === 'critico').length;
+  const alertasInstagram = instagram.posts.filter(p => isHighRisk(p.risk)).length;
+  const alertasX = x.posts.filter(p => isHighRisk(p.risk)).length;
   const alertasAtivos = alertasNoticias + alertasInstagram + alertasX;
 
-  // Score Geral (0-100)
-  // Calculado como a média de saúde dos canais (100 - risco)
-  const noticiasScore = 100 - getNoticiasGauge(noticias).score;
+  const noticiasGauge = getNoticiasGauge(noticias);
+  const xCrisisScore = averageRiskScore(x.posts);
+  const instaCrisisScore = averageRiskScore(instagram.posts);
+  const weightedRisk = weightedAverage([
+    { value: noticiasGauge.score, weight: 0.5, count: noticias.length },
+    { value: xCrisisScore, weight: 0.3, count: x.posts.length },
+    { value: instaCrisisScore, weight: 0.2, count: instagram.posts.length }
+  ]);
+  const score_geral = volumeTotal > 0 ? Math.round(100 - weightedRisk) : 0;
 
-  const xData = await getXChartData({ ...filters, period: filters?.period || '7' });
-  const xScore = 100 - (xData.crisisScore || 0);
+  let temperatura_geral = volumeTotal > 0 ? 'fria' : 'Sem dados';
+  const maxCrisis = Math.max(noticiasGauge.score, xCrisisScore, instaCrisisScore);
+  if (volumeTotal > 0 && maxCrisis > 70) temperatura_geral = 'crítica';
+  else if (volumeTotal > 0 && maxCrisis > 40) temperatura_geral = 'quente';
+  else if (volumeTotal > 0 && maxCrisis > 20) temperatura_geral = 'morna';
 
-  const instaData = await getInstagramChartData({ ...filters, period: filters?.period || '7' });
-  const instaRisk = instaData.riskData.find(r => r.name === 'Alto')?.value || 0;
-  const instaScore = Math.max(0, 100 - (instaRisk * 10)); // Proxy simples para insta
-
-  const score_geral = Math.round((noticiasScore * 0.5) + (xScore * 0.3) + (instaScore * 0.2));
-
-  // Temperatura Geral
-  let temperatura_geral = 'fria';
-  const maxCrisis = Math.max(getNoticiasGauge(noticias).score, xData.crisisScore || 0);
-  if (maxCrisis > 70) temperatura_geral = 'crítica';
-  else if (maxCrisis > 40) temperatura_geral = 'quente';
-  else if (maxCrisis > 20) temperatura_geral = 'morna';
-
-  // Tendência (Simulada ou comparativa se houver tempo, aqui baseada no score)
-  const tendencia = score_geral > 60 ? 'subindo' : score_geral < 40 ? 'caindo' : 'estável';
+  const trend = await getTrendOverview(filters);
+  const tendencia = trend.direção === 'up' ? 'subindo' : trend.direção === 'down' ? 'caindo' : 'estável';
 
   return {
     score_geral,
@@ -116,20 +203,16 @@ export async function getCrisisOverview(filters?: OverviewFilters) {
   const { noticias, instagram, x } = await fetchOverviewData(filters);
 
   const nGauge = getNoticiasGauge(noticias);
-  const xChart = await getXChartData({ ...filters, period: filters?.period || '7' });
+  const xCrisisScore = averageRiskScore(x.posts);
+  const instaScore = averageRiskScore(instagram.posts);
+  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length;
+  const score = Math.round(weightedAverage([
+    { value: nGauge.score, weight: 0.5, count: noticias.length },
+    { value: xCrisisScore, weight: 0.3, count: x.posts.length },
+    { value: instaScore, weight: 0.2, count: instagram.posts.length }
+  ]));
 
-  // Instagram risk proxy
-  const instaPosts = instagram.posts;
-  const instaAlto = instaPosts.filter(p => p.risk === 'alto').length;
-  const instaScore = instaPosts.length > 0 ? (instaAlto / instaPosts.length) * 100 : 0;
-
-  const score = Math.round(
-    (nGauge.score * 0.5) +
-    ((xChart.crisisScore || 0) * 0.3) +
-    (instaScore * 0.2)
-  );
-
-  let status = 'frio';
+  let status = volumeTotal > 0 ? 'frio' : 'Sem dados';
   if (score > 75) status = 'crítico';
   else if (score > 50) status = 'quente';
   else if (score > 25) status = 'morno';
@@ -139,7 +222,7 @@ export async function getCrisisOverview(filters?: OverviewFilters) {
     status,
     breakdown: {
       noticias: nGauge.score,
-      x: xChart.crisisScore || 0,
+      x: Math.round(xCrisisScore),
       instagram: Math.round(instaScore)
     }
   };
@@ -158,12 +241,12 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
   // Instagram
   const iSentMap: Record<string, number> = { 'positivo': 1, 'neutro': 0, 'misto': 0, 'negativo': -1 };
   const iSent = instagram.posts.reduce((acc, p) => acc + (iSentMap[p.sentiment?.toLowerCase()] || 0), 0) / (instagram.posts.length || 1);
-  const iRisk = instagram.posts.filter(p => p.risk === 'alto').length / (instagram.posts.length || 1);
+  const iRisk = instagram.posts.filter(p => isHighRisk(p.risk)).length / (instagram.posts.length || 1);
   const iEng = instagram.posts.reduce((acc, p) => acc + p.like_count + p.comment_count, 0);
 
   // X
   const xSent = x.posts.reduce((acc, p) => acc + (iSentMap[p.sentiment?.toLowerCase()] || 0), 0) / (x.posts.length || 1);
-  const xRisk = x.posts.filter(p => p.risk === 'alto' || p.risk === 'critico').length / (x.posts.length || 1);
+  const xRisk = x.posts.filter(p => isHighRisk(p.risk)).length / (x.posts.length || 1);
   const xPol = x.posts.filter(p => p.polarizationLevel?.toLowerCase() === 'alto').length / (x.posts.length || 1);
 
   const channelDistribution = {
@@ -216,11 +299,11 @@ export async function getPriorityAlerts(filters?: OverviewFilters) {
 
   // Instagram
   instagram.posts.forEach(p => {
-    if (p.risk === 'alto') {
+    if (isHighRisk(p.risk)) {
       alerts.push({
         canal: 'Instagram',
         resumo: p.text.substring(0, 100),
-        risco: 85,
+        risco: riskScore(p.risk),
         impacto: (p.like_count + p.comment_count) / 10,
         data: p.created_at,
         url: p.url
@@ -230,11 +313,11 @@ export async function getPriorityAlerts(filters?: OverviewFilters) {
 
   // X
   x.posts.forEach(p => {
-    if (p.risk === 'alto' || p.risk === 'critico') {
+    if (isHighRisk(p.risk)) {
       alerts.push({
         canal: 'X (Twitter)',
         resumo: p.text.substring(0, 100),
-        risco: p.risk === 'critico' ? 100 : 80,
+        risco: isCriticalRisk(p.risk) ? 100 : 80,
         impacto: p.impactScore || 50,
         data: p.created_at,
         url: p.url
@@ -328,17 +411,18 @@ export async function getRiskOverview(filters?: OverviewFilters) {
   });
 
   instagram.posts.forEach(p => {
-    const r = p.risk?.toLowerCase();
-    if (r === 'alto') stats.alto++;
-    else if (r === 'medio' || r === 'médio') stats.medio++;
+    const r = normalizeLabel(p.risk);
+    if (r === 'critico') stats.critico++;
+    else if (r === 'alto') stats.alto++;
+    else if (r === 'medio') stats.medio++;
     else stats.baixo++;
   });
 
   x.posts.forEach(p => {
-    const r = p.risk?.toLowerCase();
+    const r = normalizeLabel(p.risk);
     if (r === 'critico') stats.critico++;
     else if (r === 'alto') stats.alto++;
-    else if (r === 'medio' || r === 'médio') stats.medio++;
+    else if (r === 'medio') stats.medio++;
     else stats.baixo++;
   });
 
@@ -349,16 +433,8 @@ export async function getRiskOverview(filters?: OverviewFilters) {
  * 9. TENDÊNCIA
  */
 export async function getTrendOverview(filters?: OverviewFilters) {
-  // Simplificação: compara volume atual vs base 7 dias
-  const { volume_total } = await getOverviewKPIs(filters);
-  const baseline = 100; // Mock de baseline ou buscar período anterior se necessário
-
-  const varPct = volume_total > 0 ? ((volume_total - baseline) / baseline) * 100 : 0;
-
-  return {
-    direção: varPct > 5 ? 'up' : varPct < -5 ? 'down' : 'stable',
-    variação: Math.round(varPct)
-  };
+  const allData = await fetchOverviewData({ ...filters, period: 'all' });
+  return calculateTrend(allData, filters?.period || 'all');
 }
 
 /**
@@ -372,8 +448,8 @@ export async function getStrategicActions(filters?: OverviewFilters) {
   // Coleta as recomendações de IA dos itens mais críticos
   const allItems = [
     ...noticias.map(n => ({ ...n, canal: 'Notícias', type: 'news', riskVal: n.local_relevance || 0 })),
-    ...instagram.posts.map(p => ({ ...p, canal: 'Instagram', type: 'insta', riskVal: p.risk === 'alto' ? 80 : 40 })),
-    ...x.posts.map(p => ({ ...p, canal: 'X', type: 'x', riskVal: p.risk === 'critico' ? 100 : p.risk === 'alto' ? 80 : 40 }))
+    ...instagram.posts.map(p => ({ ...p, canal: 'Instagram', type: 'insta', riskVal: riskScore(p.risk) })),
+    ...x.posts.map(p => ({ ...p, canal: 'X', type: 'x', riskVal: riskScore(p.risk) }))
   ].sort((a, b) => b.riskVal - a.riskVal);
 
   const topItems = allItems.slice(0, 3);

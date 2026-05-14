@@ -258,12 +258,7 @@ export function getGaugeScore(rows: MencaoRow[]): GaugeScore {
   const riscoPct = rows.length > 0 ? comRisco / rows.length : 0
 
   // Score final ponderado (60% sentiment, 40% risco)
-  let score = Math.min(100, Math.round(negativoPct * 60 + riscoPct * 40))
-
-  // Se existem notícias mas o score deu 0, mantemos um nível base de "monitoramento" (ex: 5-8)
-  if (score < 5 && rows.length > 0) {
-    score = Math.min(15, rows.length > 5 ? 8 : 5)
-  }
+  const score = Math.min(100, Math.round(negativoPct * 60 + riscoPct * 40))
 
   let level: GaugeScore['level']
   let statusText: string
