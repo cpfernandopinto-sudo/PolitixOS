@@ -5,8 +5,7 @@ import ReactECharts from 'echarts-for-react';
 interface ChannelData {
   noticias: { sentimento_medio: number; risco_medio: number; volume: number };
   instagram: { sentimento_medio: number; risco_medio: number; engajamento: number; volume: number };
-  x: { sentimento_medio: number; risco_medio: number; polarização: number; volume: number };
-  xPosts: any[];
+  x: { sentimento_medio: number; risco_medio: number; polarização: number; volume: number; posts: any[] };
 }
 
 interface Props {
@@ -14,7 +13,7 @@ interface Props {
 }
 
 export default function OverviewChannels({ data }: Props) {
-  console.log("[X MAP INPUT]", data.xPosts?.length || 0);
+  console.log("[X MAP INPUT]", data.x.posts?.length || 0);
 
   const option = {
     radar: {
@@ -64,7 +63,7 @@ export default function OverviewChannels({ data }: Props) {
             areaStyle: { color: 'rgba(225, 48, 108, 0.1)' }
           },
           {
-            value: [data.x.sentimento_medio, data.x.risco_medio, (data.xPosts?.length || 0) / 10, data.x.polarização, 90],
+            value: [data.x.sentimento_medio, data.x.risco_medio, (data.x.posts?.length || 0) / 10, data.x.polarização, 90],
             name: 'X (Twitter)',
             itemStyle: { color: '#00FFFF' },
             areaStyle: { color: 'rgba(0, 255, 255, 0.1)' }
@@ -81,7 +80,7 @@ export default function OverviewChannels({ data }: Props) {
   };
 
   console.log("[UI FINAL]", {
-    x: data.xPosts?.length || 0
+    x: data.x.posts?.length || 0
   });
 
   return (

@@ -42,7 +42,24 @@ export async function fetchOverviewData(filters?: OverviewFilters) {
     })
   ]);
 
-  return { noticias, instagram, x };
+  const newsData = noticias.map(n => ({ ...n, source: "noticias" }));
+  const instagramData = instagram.posts.map(p => ({ ...p, source: "instagram" }));
+  const xData = x.posts.map(p => ({ ...p, source: "x" }));
+
+  const baseData = [
+    ...newsData,
+    ...instagramData,
+    ...xData
+  ];
+
+  console.log("[OVERVIEW X CHECK]", {
+    rawX: x.posts?.length,
+    mappedX: xData?.length,
+    finalBaseX: baseData.filter(i => i.source === "x").length,
+    period
+  });
+
+  return { noticias, instagram, x, baseData };
 }
 
 /**
@@ -149,7 +166,7 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
   const xRisk = x.posts.filter(p => p.risk === 'alto' || p.risk === 'critico').length / (x.posts.length || 1);
   const xPol = x.posts.filter(p => p.polarizationLevel?.toLowerCase() === 'alto').length / (x.posts.length || 1);
 
-  return {
+  const channelDistribution = {
     noticias: {
       sentimento_medio: nSent,
       risco_medio: nRisk,
@@ -165,10 +182,14 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
       sentimento_medio: xSent,
       risco_medio: xRisk,
       polarização: xPol,
-      volume: x.posts.length
-    },
-    xPosts: x.posts
+      volume: x.posts.length,
+      posts: x.posts
+    }
   };
+
+  console.log("[OVERVIEW CHANNELS CHECK]", channelDistribution);
+
+  return channelDistribution;
 }
 
 /**

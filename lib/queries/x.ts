@@ -44,7 +44,7 @@ export async function fetchXData(filters?: XFilters) {
   for (const t of targetsAll || []) targetsMap.set(t.id, t.candidate_name);
 
   // 2. Posts Fetch
-  let pQuery = client.from('social_posts').select('*').eq('platform', 'x');
+  let pQuery = client.from('social_posts').select('*').or('platform.ilike.x,platform.ilike.twitter');
 
   if (restricted && filters!.allowedTargetIds!.length > 0) {
     pQuery = pQuery.in('target_id', filters!.allowedTargetIds!);
@@ -173,6 +173,7 @@ export async function fetchXData(filters?: XFilters) {
     // Basic fields first
     const basePost = {
       id: p.id,
+      source: "x",
       target_id: p.target_id || null,
       candidate_name: targetsMap.get(p.target_id) || '—',
       text: p.caption || '',
@@ -185,14 +186,19 @@ export async function fetchXData(filters?: XFilters) {
       sentiment: ai?.sentiment || 'Sem análise',
       risk: ai?.risk_level || 'Sem análise',
       topic: ai?.ai_topic || (parseJsonField(ai?.ai_topics))[0] || 'Sem análise',
+      ai_topic: ai?.ai_topic || (parseJsonField(ai?.ai_topics))[0] || 'Sem análise',
       keywords: ai?.ai_keywords || (parseJsonField(ai?.ai_entities)).join(', ') || 'Sem análise',
       recommendedAction: ai?.recommended_action || 'Sem análise',
       authorTone: ai?.author_tone || 'Neutro',
       publicReaction: ai?.public_reaction || 'Neutro',
+      public_reaction: ai?.public_reaction || 'Neutro',
       crisisTemperature: ai?.crisis_temperature || 0,
+      crisis_temperature: ai?.crisis_temperature || 0,
       polarizationLevel: ai?.polarization_level || 'Baixo',
+      polarization_level: ai?.polarization_level || 'Baixo',
       strategicReading: ai?.strategic_reading || 'Sem análise',
-      totalEngagement
+      totalEngagement,
+      engagement: totalEngagement
     };
 
     // Add strategic insights
