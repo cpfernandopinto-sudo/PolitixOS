@@ -88,7 +88,7 @@ export async function loginAction(
   }
 
   // Redireciona APENAS após o sucesso completo
-  redirect('/dashboard/noticias');
+  redirect('/dashboard/overview');
 }
 
 // ─── Logout ──────────────────────────────────────────────────────────────────

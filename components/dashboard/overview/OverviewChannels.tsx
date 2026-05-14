@@ -14,13 +14,21 @@ interface Props {
 
 export default function OverviewChannels({ data }: Props) {
   console.log("[X MAP INPUT]", data.x.posts?.length || 0);
+  const volumeValues = [
+    data.noticias.volume / 10,
+    data.instagram.engajamento / 100,
+    (data.x.posts?.length || 0) / 10
+  ];
+  const volumeMax = Math.max(1000, ...volumeValues) * 1.15;
 
   const option = {
     radar: {
+      center: ['50%', '49%'],
+      radius: '58%',
       indicator: [
         { name: 'Sentimento', max: 1, min: -1 },
         { name: 'Risco', max: 1 },
-        { name: 'Volume/Engajamento', max: 1000 },
+        { name: 'Volume/Engajamento', max: volumeMax },
         { name: 'Polarização', max: 1 },
         { name: 'Alcance', max: 100 }
       ],
@@ -49,6 +57,8 @@ export default function OverviewChannels({ data }: Props) {
       {
         name: 'Distribuição por Canal',
         type: 'radar',
+        symbolSize: 3,
+        lineStyle: { width: 1.5 },
         data: [
           {
             value: [data.noticias.sentimento_medio, data.noticias.risco_medio, data.noticias.volume / 10, 0.2, 80],
@@ -73,9 +83,13 @@ export default function OverviewChannels({ data }: Props) {
     ],
     legend: {
       show: true,
-      bottom: 0,
-      textStyle: { color: '#999', fontSize: 10 },
-      icon: 'circle'
+      bottom: 2,
+      left: 'center',
+      itemGap: 16,
+      textStyle: { color: '#999', fontSize: 11 },
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8
     }
   };
 
@@ -84,9 +98,9 @@ export default function OverviewChannels({ data }: Props) {
   });
 
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 h-full flex flex-col">
-      <h3 className="text-white font-bold text-lg tracking-tight mb-6">Distribuição por Canal</h3>
-      <div className="flex-1 min-h-[300px]">
+    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl px-5 py-4 h-full flex flex-col overflow-hidden">
+      <h3 className="text-white font-bold text-lg tracking-tight mb-2">Distribuição por Canal</h3>
+      <div className="flex-1 min-h-[340px] lg:min-h-[360px] overflow-hidden">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
       </div>
     </div>

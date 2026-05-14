@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, ExternalLink, Newspaper, Hash, MessageSquare } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Newspaper } from 'lucide-react';
 
 interface Alert {
   canal: string;
@@ -15,11 +15,47 @@ interface Props {
   alerts: Alert[];
 }
 
+function XChannelIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded border border-current/35 font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.78), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      X
+    </span>
+  );
+}
+
+function InstagramChannelIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center rounded border-2 border-current ${className}`}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <span
+        className="rounded-full border-2 border-current"
+        style={{ width: Math.round(size * 0.42), height: Math.round(size * 0.42) }}
+      />
+      <span
+        className="absolute rounded-full bg-current"
+        style={{
+          width: Math.max(2, Math.round(size * 0.14)),
+          height: Math.max(2, Math.round(size * 0.14)),
+          right: Math.round(size * 0.18),
+          top: Math.round(size * 0.18)
+        }}
+      />
+    </span>
+  );
+}
+
 export default function OverviewAlerts({ alerts }: Props) {
   const getIcon = (canal: string) => {
     if (canal.includes('Notícias')) return <Newspaper size={16} className="text-blue-400" />;
-    if (canal.includes('Instagram')) return <Hash size={16} className="text-pink-400" />;
-    return <MessageSquare size={16} className="text-cyan-400" />;
+    if (canal.includes('Instagram')) return <InstagramChannelIcon size={16} className="text-pink-400" />;
+    return <XChannelIcon size={16} className="text-cyan-400" />;
   };
 
   return (

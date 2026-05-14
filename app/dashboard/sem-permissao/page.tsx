@@ -22,7 +22,7 @@ export default function SemPermissaoPage() {
       </div>
 
       <Link
-        href="/dashboard/noticias"
+        href="/dashboard/overview"
         className="px-6 py-3 rounded-lg bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-medium transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
       >
         Voltar ao Início

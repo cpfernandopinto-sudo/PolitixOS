@@ -9,14 +9,11 @@ import {
   AlertTriangle,
   Users,
   Settings,
-  Hash,
   ChevronLeft,
   ChevronRight,
   UserPlus,
   Zap,
   UserCog,
-  MessageSquare,
-  Radio,
 } from 'lucide-react';
 
 export interface SidebarPermissions {
@@ -33,6 +30,42 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
+function XChannelIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-md border border-current/35 font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.78), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      X
+    </span>
+  );
+}
+
+function InstagramChannelIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center rounded-md border-2 border-current ${className}`}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <span
+        className="rounded-full border-2 border-current"
+        style={{ width: Math.round(size * 0.42), height: Math.round(size * 0.42) }}
+      />
+      <span
+        className="absolute rounded-full bg-current"
+        style={{
+          width: Math.max(3, Math.round(size * 0.14)),
+          height: Math.max(3, Math.round(size * 0.14)),
+          right: Math.round(size * 0.18),
+          top: Math.round(size * 0.18)
+        }}
+      />
+    </span>
+  );
+}
+
 const NAV_ITEMS: NavItem[] = [
   {
     href: '/dashboard/noticias',
@@ -44,13 +77,13 @@ const NAV_ITEMS: NavItem[] = [
     href: '/dashboard/instagram',
     label: 'Radar Instagram',
     screenKey: 'instagram',
-    icon: <Hash size={20} className="shrink-0" />,
+    icon: <InstagramChannelIcon size={20} />,
   },
   {
     href: '/dashboard/x',
     label: 'Radar X',
     screenKey: 'x',
-    icon: <Radio size={20} className="shrink-0" />,
+    icon: <XChannelIcon size={20} />,
   },
   {
     href: '/dashboard/candidatos',
@@ -84,13 +117,13 @@ interface Props {
 
 export default function Sidebar({ permissions }: Props) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem('politixos_sidebar_collapsed');
-    if (stored) setCollapsed(stored === 'true');
+    setCollapsed(stored === null ? true : stored === 'true');
   }, []);
 
   const toggleSidebar = () => {

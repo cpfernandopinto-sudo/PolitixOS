@@ -9,6 +9,11 @@ interface BadgeStatusProps {
 export default function BadgeStatus({ type, value }: BadgeStatusProps) {
   let baseStyle = "px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center justify-center w-max";
   let colorStyle = "";
+  const normalizedValue = value
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
   if (type === 'sentimento') {
     switch (value) {
@@ -23,14 +28,15 @@ export default function BadgeStatus({ type, value }: BadgeStatusProps) {
         break;
     }
   } else if (type === 'risco') {
-    switch (value) {
+    switch (normalizedValue) {
       case 'baixo':
         colorStyle = "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30";
         break;
-      case 'médio':
+      case 'medio':
         colorStyle = "bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30";
         break;
       case 'alto':
+      case 'critico':
         colorStyle = "bg-[#FF3B3B]/10 text-[#FF3B3B] border-[#FF3B3B]/30 shadow-[0_0_8px_rgba(255,59,59,0.2)]";
         break;
     }

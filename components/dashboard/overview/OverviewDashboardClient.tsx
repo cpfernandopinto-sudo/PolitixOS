@@ -8,7 +8,7 @@ import OverviewAlerts from './OverviewAlerts';
 import OverviewChannels from './OverviewChannels';
 import OverviewStrategicMap from './OverviewStrategicMap';
 import ReactECharts from 'echarts-for-react';
-import { Newspaper, Hash, MessageSquare, Search } from 'lucide-react';
+import { Newspaper, Search } from 'lucide-react';
 
 interface Props {
   initialData: {
@@ -28,11 +28,119 @@ interface Props {
   currentPeriod?: string | null;
 }
 
+function XChannelIcon({ size = 14, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded border border-current/35 font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.78), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      X
+    </span>
+  );
+}
+
+function InstagramChannelIcon({ size = 14, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center rounded border-2 border-current ${className}`}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <span
+        className="rounded-full border-2 border-current"
+        style={{ width: Math.round(size * 0.42), height: Math.round(size * 0.42) }}
+      />
+      <span
+        className="absolute rounded-full bg-current"
+        style={{
+          width: Math.max(2, Math.round(size * 0.14)),
+          height: Math.max(2, Math.round(size * 0.14)),
+          right: Math.round(size * 0.18),
+          top: Math.round(size * 0.18)
+        }}
+      />
+    </span>
+  );
+}
+
 export default function OverviewDashboardClient({ initialData, candidates, currentCandidate, currentPeriod }: Props) {
   console.log("[FRONT DATA]", initialData);
   const router = useRouter();
   const [candidate, setCandidate] = useState(currentCandidate || 'todos');
   const [period, setPeriod] = useState(currentPeriod || 'all');
+  const sentimentItems = [
+    { value: initialData.sentiment.positivo, name: 'Positivo', color: '#22C55E' },
+    { value: initialData.sentiment.negativo, name: 'Negativo', color: '#EF4444' },
+    { value: initialData.sentiment.neutro, name: 'Neutro', color: '#2563EB' },
+    { value: initialData.sentiment.misto, name: 'Misto', color: '#EAB308' },
+  ];
+  const sentimentTotal = sentimentItems.reduce((acc, item) => acc + item.value, 0);
+
+  const getItemUrl = (row: any) => {
+    let rawJson = row.raw_json;
+    if (typeof rawJson === 'string') {
+      try {
+        rawJson = JSON.parse(rawJson);
+      } catch {
+        rawJson = null;
+      }
+    }
+
+    const candidateUrls = [
+      row.url,
+      row.source_url,
+      row.link,
+      row.post_url,
+      row.media_url,
+      row.permalink,
+      row.tweet_url,
+      rawJson?.url,
+      rawJson?.source_url,
+      rawJson?.link,
+      rawJson?.post_url,
+      rawJson?.media_url,
+      rawJson?.permalink,
+      rawJson?.tweet_url,
+    ];
+    const url = candidateUrls.find((value) => typeof value === 'string' && value.trim() && value !== '#');
+    if (!url) return null;
+
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getActionLabel = (row: any) => {
+    const canal = row.canal?.toLowerCase() || '';
+    if (canal.includes('notícia') || canal.includes('noticia')) return 'VER CLIPPING';
+    if (canal.includes('instagram')) return 'VER POST';
+    if (canal.includes('x') || canal.includes('twitter')) return 'VER ANÁLISE';
+    return row.ação || 'VER ITEM';
+  };
+
+  const getChannelIcon = (canal: string) => {
+    if (canal === 'Notícias') return <Newspaper size={14} className="text-blue-400" />;
+    if (canal === 'Instagram') return <InstagramChannelIcon size={14} className="text-pink-400" />;
+    return <XChannelIcon size={14} className="text-cyan-400" />;
+  };
+
+  const normalizeRiskLabel = (value: string | null | undefined) =>
+    (value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  const getRiskClass = (value: string | null | undefined) => {
+    const risk = normalizeRiskLabel(value);
+    if (risk === 'alto' || risk === 'critico') return 'text-red-500 font-bold';
+    if (risk === 'medio') return 'text-yellow-400 font-bold';
+    if (risk === 'baixo') return 'text-gray-400';
+    return 'text-gray-400';
+  };
 
   const applyFilters = (nextCandidate: string, nextPeriod: string) => {
     const params = new URLSearchParams();
@@ -55,10 +163,11 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
         emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
         labelLine: { show: false },
         data: [
-          { value: initialData.sentiment.positivo, name: 'Positivo', itemStyle: { color: '#22C55E' } },
-          { value: initialData.sentiment.negativo, name: 'Negativo', itemStyle: { color: '#EF4444' } },
-          { value: initialData.sentiment.neutro, name: 'Neutro', itemStyle: { color: '#2563EB' } },
-          { value: initialData.sentiment.misto, name: 'Misto', itemStyle: { color: '#EAB308' } },
+          ...sentimentItems.map(item => ({
+            value: item.value,
+            name: item.name,
+            itemStyle: { color: item.color }
+          })),
         ]
       }
     ]
@@ -66,7 +175,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
 
   const riskOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    grid: { left: 8, right: 8, top: 12, bottom: 18, containLabel: true },
     xAxis: { type: 'category', data: ['Crítico', 'Alto', 'Médio', 'Baixo'], axisLabel: { color: '#666' } },
     yAxis: { type: 'value', axisLabel: { color: '#666' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
     series: [
@@ -78,7 +187,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
           { value: initialData.risk.baixo, itemStyle: { color: '#22C55E' } },
         ],
         type: 'bar',
-        barWidth: '40%',
+        barWidth: '46%',
       }
     ]
   };
@@ -163,15 +272,34 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
 
       {/* Charts: Sentiment & Risk */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6">
-          <h3 className="text-white font-bold text-lg mb-6">Sentimento Consolidado</h3>
-          <div className="h-[250px]">
-            <ReactECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
+        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5">
+          <h3 className="text-white font-bold text-lg mb-3">Sentimento Consolidado</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.2fr)_minmax(180px,0.8fr)] gap-4 items-center">
+            <div className="h-[220px]">
+              <ReactECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
+              {sentimentItems.map(item => {
+                const pct = sentimentTotal > 0 ? Math.round((item.value / sentimentTotal) * 100) : 0;
+                return (
+                  <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-xs font-medium text-gray-300 truncate">{item.name}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-white">{item.value}</div>
+                      <div className="text-[10px] text-gray-500">{pct}%</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6">
-          <h3 className="text-white font-bold text-lg mb-6">Distribuição de Risco</h3>
-          <div className="h-[250px]">
+        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5">
+          <h3 className="text-white font-bold text-lg mb-3">Distribuição de Risco</h3>
+          <div className="h-[258px]">
             <ReactECharts option={riskOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
@@ -182,7 +310,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
 
       {/* Executive Table */}
       <div className="bg-[#1A1A1A] border border-white/5 rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+        <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-white font-bold text-lg">Tabela Executiva de Monitoramento</h3>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -197,47 +325,60 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
           <table className="w-full text-left">
             <thead className="bg-white/5">
               <tr>
-                <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Candidato</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Canal</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sentimento</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Risco</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Impacto</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ação</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Candidato</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Canal</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sentimento</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Risco</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Impacto</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {initialData.table.map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-white">{row.candidato}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      {row.canal === 'Notícias' ? <Newspaper size={14} className="text-blue-400" /> :
-                        row.canal === 'Instagram' ? <Hash size={14} className="text-pink-400" /> :
-                          <MessageSquare size={14} className="text-cyan-400" />}
-                      {row.canal}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${row.sentimento?.toLowerCase() === 'positivo' ? 'bg-green-500/10 text-green-500' :
-                        row.sentimento?.toLowerCase() === 'negativo' ? 'bg-red-500/10 text-red-500' :
-                          'bg-blue-500/10 text-blue-500'
-                      }`}>
-                      {row.sentimento}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs">
-                    <span className={row.risco?.toLowerCase() === 'alto' ? 'text-red-500 font-bold' : 'text-gray-400'}>
-                      {row.risco}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-gray-400">{row.impacto}</td>
-                  <td className="px-6 py-4">
-                    <button className="text-cyan-400 text-[10px] font-bold hover:text-cyan-300 transition-colors uppercase tracking-wider">
-                      {row.ação}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {initialData.table.map((row: any, i: number) => {
+                const actionUrl = getItemUrl(row);
+                const actionLabel = getActionLabel(row);
+                return (
+                  <tr key={i} className="hover:bg-white/5 transition-colors">
+                    <td className="px-5 py-3 text-sm font-medium text-white">{row.candidato}</td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        {getChannelIcon(row.canal)}
+                        {row.canal}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${row.sentimento?.toLowerCase() === 'positivo' ? 'bg-green-500/10 text-green-500' :
+                          row.sentimento?.toLowerCase() === 'negativo' ? 'bg-red-500/10 text-red-500' :
+                            'bg-blue-500/10 text-blue-500'
+                        }`}>
+                        {row.sentimento}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-xs">
+                      <span className={getRiskClass(row.risco)}>
+                        {row.risco}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-xs text-gray-400">{row.impacto}</td>
+                    <td className="px-5 py-3">
+                      {actionUrl ? (
+                        <a
+                          href={actionUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-400 text-[10px] font-bold hover:text-cyan-300 transition-colors uppercase tracking-wider"
+                        >
+                          {actionLabel}
+                        </a>
+                      ) : (
+                        <span className="text-gray-600 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed">
+                          SEM LINK
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
