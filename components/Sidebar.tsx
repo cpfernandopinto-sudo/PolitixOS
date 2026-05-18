@@ -14,6 +14,7 @@ import {
   UserPlus,
   Zap,
   UserCog,
+  FileSearch,
 } from 'lucide-react';
 
 export interface SidebarPermissions {
@@ -96,6 +97,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Automação',
     screenKey: 'automacoes',
     icon: <Zap size={20} className="shrink-0" />,
+  },
+  {
+    href: '/dashboard/investigacoes',
+    label: 'Investigações',
+    screenKey: 'investigacoes',
+    icon: <FileSearch size={20} className="shrink-0" />,
   },
   {
     href: '/dashboard/gestao-crise',

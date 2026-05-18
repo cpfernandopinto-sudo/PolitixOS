@@ -36,6 +36,7 @@ interface Props {
   initialRows: MencaoRow[];
 }
 
+
 export default function NoticiasDashboardClient({ initialRows }: Props) {
   // --- Local Filters State ---
   const [gaugeConfig, setGaugeConfig] = useState({ base: 'mix', window: '24h' });
@@ -546,7 +547,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
         <h3 className="text-xl font-bold text-white tracking-tight mb-4 flex items-center gap-2">
           <span className="w-1 h-6 bg-[#00FFFF] rounded-full shadow-[0_0_10px_#00FFFF]" /> Base Completa de Monitoramento
         </h3>
-        <DataTable data={fullTableData} />
+        <DataTable data={fullTableData} rawRows={initialRows} />
       </div>
     </div>
   );

@@ -1,46 +1,21 @@
 import 'server-only';
-import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import type { UserRole } from '@/lib/auth/types';
+import {
+  decryptSessionToken,
+  encryptSessionToken,
+  type SessionPayload,
+} from '@/lib/auth/token';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface SessionPayload {
-  userId: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  permissions: string[];      // screen_keys que o usuário pode acessar
-  allowedTargetIds: string[]; // target UUIDs permitidos ([] = sem restrição para admin)
-  expiresAt: string;          // ISO string
-}
-
-// ─── Secret key ──────────────────────────────────────────────────────────────
-
-const raw = process.env.SESSION_SECRET;
-if (!raw) {
-  throw new Error('[PolitixOS] SESSION_SECRET não configurado. Adicione ao .env.local');
-}
-const encodedKey = new TextEncoder().encode(raw);
+export type { SessionPayload } from '@/lib/auth/token';
 
 // ─── Encrypt / Decrypt ───────────────────────────────────────────────────────
 
 export async function encryptSession(payload: SessionPayload): Promise<string> {
-  return new SignJWT(payload as unknown as Record<string, unknown>)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(encodedKey);
+  return encryptSessionToken(payload);
 }
 
 export async function decryptSession(token: string | undefined): Promise<SessionPayload | null> {
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
-    return payload as unknown as SessionPayload;
-  } catch {
-    return null;
-  }
+  return decryptSessionToken(token);
 }
 
 // ─── Cookie helpers ──────────────────────────────────────────────────────────

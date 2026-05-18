@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decryptSession } from '@/lib/auth/session';
+import { decryptSessionToken } from '@/lib/auth/token';
 
 // Rotas públicas que não precisam de autenticação
 const PUBLIC_ROUTES = ['/login', '/'];
@@ -19,7 +19,7 @@ const SCREEN_MAP: Record<string, string> = {
 // dashboard raiz → screen 'dashboard'
 const DASHBOARD_OVERVIEW_KEY = 'dashboard';
 
-export default async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const isPublic = PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
@@ -28,7 +28,7 @@ export default async function middleware(req: NextRequest) {
   let session = null;
   if (token) {
     try {
-      session = await decryptSession(token);
+      session = await decryptSessionToken(token);
     } catch (err) {
       console.error('[Middleware] Erro ao descriptografar sessão:', err);
     }
