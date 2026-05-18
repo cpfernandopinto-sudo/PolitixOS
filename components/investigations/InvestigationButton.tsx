@@ -16,8 +16,14 @@ interface Props {
     id: string;
     candidate_name: string | null;
     candidate_id?: string | null;
+    original_title?: string | null;
+    original_summary?: string | null;
     title: string | null;
+    headline?: string | null;
     summary: string | null;
+    ai_summary?: string | null;
+    description?: string | null;
+    snippet?: string | null;
     url: string | null;
     source: string | null;
     published_at: string | null;
@@ -50,8 +56,15 @@ export default function InvestigationButton({ mention }: Props) {
       candidate_id: mention.candidate_id ?? mention.candidate_name ?? mention.id,
       candidate_name: mention.candidate_name ?? 'Desconhecido',
       source_url: mention.url?.trim() || '#',
-      original_title: mention.title ?? '',
-      original_summary: mention.summary ?? '',
+      original_title: mention.original_title || mention.title || mention.headline || 'Título não disponível',
+      original_summary:
+        mention.original_summary ||
+        mention.ai_summary ||
+        mention.summary ||
+        mention.description ||
+        mention.snippet ||
+        mention.title ||
+        'Resumo não disponível',
       published_at: mention.published_at ?? new Date().toISOString(),
       source: mention.source ?? 'Fonte não informada',
       city: mention.city ?? 'Não informada',
