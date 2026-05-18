@@ -48,6 +48,7 @@ const SCREEN_LABELS: Record<string, string> = {
   x: 'Radar X',
   candidatos: 'Candidatos',
   automacoes: 'Automações',
+  investigacoes: 'Investigações',
   gestao_crise: 'Gestão de Crise',
   apoiadores: 'Apoiadores',
   configuracoes: 'Configurações',

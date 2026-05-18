@@ -23,6 +23,7 @@ export const ALL_SCREENS: string[] = [
   'x',
   'candidatos',
   'automacoes',
+  'investigacoes',
   'gestao_crise',
   'apoiadores',
   'configuracoes',

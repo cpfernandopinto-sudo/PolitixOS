@@ -10,6 +10,7 @@ const SCREEN_MAP: Record<string, string> = {
   '/dashboard/instagram': 'instagram',
   '/dashboard/candidatos': 'candidatos',
   '/dashboard/automacoes': 'automacoes',
+  '/dashboard/investigacoes': 'investigacoes',
   '/dashboard/gestao-crise': 'gestao_crise',
   '/dashboard/apoiadores': 'apoiadores',
   '/dashboard/configuracoes': 'configuracoes',
