@@ -371,3 +371,85 @@ Ver `docs/AUDITORIA_UX_PERFORMANCE_POLITIXOS.md`, seção "Auditoria do Sprint 3
 2. Testes de componente/interação (drawer, timeline, filtros) com Testing Library.
 3. Comparação período-a-período por métrica individual de Instagram/X, caso aprovado o custo de uma consulta adicional por módulo.
 4. Avaliar arquitetura de fetch sob demanda para blocos complementares, se o volume de dados da Visão Geral crescer a ponto de justificar consulta verdadeiramente diferida.
+
+---
+
+# Sprint 4 — Inteligência Analítica Assistida e Validação Visual
+
+Ver `docs/VALIDACAO_VISUAL_SPRINT_4.md` (bloqueio de qualidade visual), `docs/AUDITORIA_IA_POLITIXOS.md` e `docs/METODOLOGIA_IA_ANALITICA.md` para os detalhes completos.
+
+## Diagnóstico (Parte 1–3 do pedido)
+
+As Fases 1–3 nunca foram vistas em produção porque a branch `claude/politixos-audit-enhancement-f4d793` **nunca foi mergeada em `main`**. Confirmado via `git rev-list --left-right --count main...HEAD` (0 à frente / 3 atrás) e via GitHub Deployments API: todo commit da branch gerou apenas **Preview Deployments** na Vercel; o último **Production Deployment** corresponde ao commit `9bc5f36`, que antecede todas as Fases 1–3. Detalhes completos, incluindo a tabela de hipóteses investigadas e descartadas, em `docs/VALIDACAO_VISUAL_SPRINT_4.md`.
+
+## Correções aplicadas após validação visual real (Parte 3/4)
+
+1. Subtítulo "Centro Executivo de Inteligência Política" ausente no cabeçalho visual — adicionado em `OverviewHeader.tsx`.
+2. "Mudança Relevante" rotulava qualquer variação como "pontos percentuais" mesmo quando a métrica era uma variação percentual de volume (unidade incorreta) — `composeExecutiveSynthesis` não fixa mais a unidade no texto do valor.
+3. Tabela Executiva sempre exibia "SEM LINK" — `getExecutiveTable` não repassava `url`; corrigido.
+4. `fetchInstagramData`/`fetchXData` disparando repetidamente para os mesmos filtros (confirmado via log do console durante a validação) — nova função `getAllPeriodOverviewData` (cache()-deduplicada) compartilhada entre `getTrendOverview` e `getExecutiveOverviewData`, eliminando uma consulta "período completo" redundante.
+
+Todas as 4 correções foram re-validadas visualmente (novos screenshots) antes de prosseguir.
+
+## Mecanismo de validação visual (dev-only)
+
+`app/api/dev-login/route.ts`: cria uma sessão sintética (não grava em `app_users`, não usa seed, não altera senha real) apenas para permitir abrir o dashboard autenticado localmente. Duplamente protegida: `NODE_ENV === 'production'` sempre retorna 404, e requer `ENABLE_DEV_LOGIN=true` explícito em `.env.local` (nunca commitado, nunca configurado na Vercel). Os DADOS exibidos continuam vindo do Supabase real — só a sessão é sintética.
+
+## Screenshots reais (Playwright, `docs/screenshots/sprint-4/`)
+
+9 capturas reais da aplicação renderizada (não simuladas, não montadas): `overview-desktop-top.png`, `overview-desktop-full.png`, `overview-notebook.png`, `overview-mobile.png`, `political-status-drawer.png`, `timeline-grouped.png`, `analyses-collapsed.png`, `analyses-expanded.png`, `assisted-insight-unavailable.png`. Playwright + Chromium foram instalados nesta sessão (`playwright`, `@playwright/test`) especificamente para viabilizar essa captura persistida em disco — a ferramenta de navegador interativa da sessão não expõe um jeito de salvar o screenshot como arquivo.
+
+## Arquivos criados — IA (Sprint 4)
+
+- `lib/ai/analytics-schema.ts` — schemas Zod (contexto + saída do modelo).
+- `lib/ai/analytics-context.ts` — `buildAnalyticsContext`, `hashAnalyticsContext`, `sanitizeMonitoredText`.
+- `lib/ai/analytics-prompt.ts` — `SYSTEM_PROMPT`, `buildUserPrompt`.
+- `lib/ai/analytics-service.ts` — `getOrGenerateInsight` (orquestrador), cache em memória, rate limit, validação de evidências.
+- `lib/actions/analytics-insight.ts` — Server Action `generateExecutiveInsight` (auth + allowedTargetIds via `getExecutiveOverviewData`).
+- `components/dashboard/overview/AssistedInsight.tsx` — bloco "Leitura Analítica Assistida".
+- `supabase_migration_executive_ai_insights.sql` — migration de persistência preparada, **não aplicada**.
+- Testes: `lib/ai/analytics-context.test.ts`, `lib/ai/analytics-service.test.ts` (com Anthropic SDK mockado), `components/dashboard/overview/{PoliticalStatusCard,OverviewTimeline,AssistedInsight,ExecutiveScenarioSummary}.test.tsx`.
+- Infra de teste: `lib/test/setup-jsdom.ts`, `lib/test/server-only-stub.ts`, `vitest.config.ts` atualizado para suportar `*.test.tsx` com jsdom.
+
+## Arquivos modificados — visual/correções (Sprint 4)
+
+- `components/dashboard/overview/OverviewHeader.tsx` (subtítulo).
+- `lib/analytics/executive-summary.ts` (wording da mudança relevante).
+- `lib/queries/overview.ts` (`getAllPeriodOverviewData`, `getExecutiveTable` com `url`).
+
+## Arquitetura de IA implementada
+
+Ver `docs/METODOLOGIA_IA_ANALITICA.md` para o fluxo completo. Resumo: `getExecutiveOverviewData` (já existente) → `buildAnalyticsContext` (sanitiza/trunca/estrutura) → `hashAnalyticsContext` (SHA-256) → cache em memória por hash → se ausente, chama Anthropic (`claude-sonnet-5`) server-side → valida saída com Zod → remove evidências inventadas → cacheia → retorna. Nunca chamado automaticamente; sempre sob demanda (clique do usuário).
+
+## Segurança e prompt injection
+
+Três camadas: (1) `sanitizeMonitoredText` remove HTML e padrões de instrução embutida do texto de origem monitorada antes de entrar no contexto; (2) o prompt de sistema instrui o modelo a tratar `<CONTEXTO>` como dado, nunca instrução; (3) `stripUnknownEvidenceIds` remove qualquer evidência citada pelo modelo que não exista na lista real fornecida. Chave de API nunca exposta ao cliente (`import 'server-only'` em `analytics-service.ts`).
+
+## Controle de custo
+
+Cache por hash (sem chamada repetida para o mesmo contexto), rate limit de 10 gerações/minuto por instância (MVP, documentado como limitação — não é por usuário), timeout de 20s, limite de 1400 tokens de saída, contexto limitado a 8 itens por categoria / 20 evidências totais. A Visão Geral determinística nunca é bloqueada esperando a IA (validado visualmente: com `ANTHROPIC_API_KEY` ausente, o restante da tela permanece 100% funcional).
+
+## Métricas antes/depois (Sprint 4)
+
+| Métrica | Antes | Depois |
+|---|---|---|
+| Chamadas de IA por carregamento da Visão Geral | 0 (não existia) | 0 (geração é sempre sob demanda — confirmado em teste) |
+| Consultas "período completo" duplicadas (Sprint 3) | 2 (getTrendOverview + getExecutiveOverviewData, referências diferentes) | 1 (compartilhada via `getAllPeriodOverviewData`) |
+| Links reais na Tabela Executiva | 0% (sempre "SEM LINK") | 100% das linhas com URL real, quando disponível na origem |
+| Tempo observado para gerar (ou negar) uma leitura assistida em dev | — | ~40s em modo dev com recompilação a frio (Turbopack); dominado pelo tempo de `getExecutiveOverviewData` sem cache entre requisições — ver pendências |
+
+## Testes (Sprint 4)
+
+41 novos testes, somando **133 no total** do projeto (92 da Fase 1–3 + 41 novos): 11 em `analytics-context.test.ts` (sanitização, contexto, hash), 16 em `analytics-service.test.ts` (extração de JSON, remoção de evidências inventadas, rate limit, geração/cache/erro com Anthropic SDK mockado), e 4 arquivos de componente (`PoliticalStatusCard`, `OverviewTimeline`, `AssistedInsight`, `ExecutiveScenarioSummary`) somando 14 testes com Testing Library + jsdom.
+
+**Não testado end-to-end**: chamada real ao modelo Anthropic (sem `ANTHROPIC_API_KEY` neste ambiente) — coberto por mock nos testes automatizados e pelo estado real "indisponível" na validação visual.
+
+## Limitações e pendências
+
+- Persistência do cache de IA é em memória (MVP) — migration para tabela real preparada, não aplicada.
+- Rate limit é global por instância, não por usuário/sessão.
+- Geração sob demanda em modo dev é lenta (~40s) por recompilação a frio + ausência de cache entre a Visão Geral e a Server Action da leitura assistida (cada um tem seu próprio escopo de `React.cache()`); não medido em produção (build otimizado deve ser mais rápido).
+- Perguntas guiadas aos dados (Parte 11) não implementadas nesta sessão.
+- Explicação "por card" individual (Parte 12) não implementada como chamada separada — a leitura assistida única já cobre riscos/oportunidades/hipóteses interpretados de forma agregada, conforme a diretriz de evitar uma chamada de IA por card.
+- Validação com papéis restritos (`gestor`/`visualizador`) não realizada nesta sessão.
+- Branch ainda não integrada a `main` — ver relatório final para status de PR/deploy.

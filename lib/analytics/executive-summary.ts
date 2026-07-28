@@ -534,7 +534,11 @@ export function composeExecutiveSynthesis(input: {
   const topChange = keyChanges[0] ?? null;
   const mudancaRelevante: ExecutiveSynthesisField = topChange
     ? {
-        valor: `${topChange.label} ${topChange.diferencaAbsoluta > 0 ? 'aumentou' : 'caiu'} ${Math.abs(topChange.diferencaAbsoluta)} pontos percentuais`,
+        // Não fixa a unidade (pp vs. %) no texto — cada KeyChange pode
+        // representar grandezas diferentes (ex.: variação de participação
+        // percentual vs. variação percentual de volume bruto). A unidade
+        // real fica na justificativa, junto com os valores comparados.
+        valor: `${topChange.label} ${topChange.diferencaAbsoluta > 0 ? 'aumentou' : 'caiu'}`,
         justificativa: `${topChange.metrica}: ${topChange.valorAnterior} → ${topChange.valorAtual} (${topChange.periodo}).`,
         evidenceRefs: [],
         semDados: false,

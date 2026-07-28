@@ -18,6 +18,7 @@ import PoliticalStatusCard from '@/components/dashboard/overview/PoliticalStatus
 import RiskOpportunityBoard from '@/components/dashboard/overview/RiskOpportunityBoard';
 import KeyChanges from '@/components/dashboard/overview/KeyChanges';
 import AttentionEntitiesThemes from '@/components/dashboard/overview/AttentionEntitiesThemes';
+import AssistedInsight from '@/components/dashboard/overview/AssistedInsight';
 import {
   getOverviewKPIs,
   getCrisisOverview,
@@ -172,6 +173,11 @@ export default async function OverviewPage(props: {
           </SectionBoundary>
         </div>
       </div>
+
+      {/* Leitura Analítica Assistida (Sprint 4) — sempre DEPOIS da síntese
+          determinística acima, nunca antes. Não busca dados no mount (só ao
+          clicar "Gerar leitura analítica") — não é um Server Component. */}
+      <AssistedInsight candidate={filters.candidate ?? null} period={filters.period ?? 'all'} />
 
       {/* 4. Riscos e oportunidades prioritários */}
       <SectionBoundary label="Riscos e oportunidades" fallback={<BlockSkeleton height={320} />} minHeight={320}>

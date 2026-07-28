@@ -600,6 +600,21 @@ export async function getRiskOverview(filters?: OverviewFilters) {
 }
 
 /**
+ * Busca o conjunto "período completo" (sem filtro de data), usado tanto por
+ * getTrendOverview quanto por getExecutiveOverviewData para comparação
+ * período-atual-vs-anterior. Memoizada com React.cache() e chamada com o
+ * `filters` ORIGINAL (não um spread novo) — é isso que permite as duas
+ * chamadas deduplicarem entre si. Antes desta função existir, cada uma
+ * construía seu próprio `{ ...filters, period: 'all' }` (referências
+ * diferentes) e disparava uma consulta "período completo" separada —
+ * confirmado via log em `fetchInstagramData` durante a validação visual do
+ * Sprint 4 (múltiplas chamadas repetidas com os mesmos filtros).
+ */
+const getAllPeriodOverviewData = cache(async (filters?: OverviewFilters) => {
+  return fetchOverviewData({ ...filters, period: 'all' });
+});
+
+/**
  * 9. TENDÊNCIA
  *
  * Memoizada com React.cache(): é chamada tanto diretamente pela página
@@ -607,7 +622,7 @@ export async function getRiskOverview(filters?: OverviewFilters) {
  * vindo da página — sem cache, isso executava a consulta 2x.
  */
 export const getTrendOverview = cache(async (filters?: OverviewFilters) => {
-  const allData = await fetchOverviewData({ ...filters, period: 'all' });
+  const allData = await getAllPeriodOverviewData(filters);
   return calculateTrend(allData, filters?.period || 'all');
 });
 
@@ -662,7 +677,8 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
       sentimento: n.ai_sentiment && n.ai_sentiment > 0 ? 'Positivo' : n.ai_sentiment && n.ai_sentiment < 0 ? 'Negativo' : 'Neutro',
       risco: n.local_relevance && n.local_relevance > 70 ? 'Alto' : 'Baixo',
       impacto: 'Médio',
-      ação: 'Ver Clipping'
+      ação: 'Ver Clipping',
+      url: n.url
     });
   });
 
@@ -673,7 +689,8 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
       sentimento: p.sentiment,
       risco: p.risk,
       impacto: p.like_count > 500 ? 'Alto' : 'Médio',
-      ação: 'Ver Post'
+      ação: 'Ver Post',
+      url: p.url
     });
   });
 
@@ -684,7 +701,8 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
       sentimento: p.sentiment,
       risco: p.risk,
       impacto: p.impactScore > 70 ? 'Alto' : 'Médio',
-      ação: 'Ver Análise'
+      ação: 'Ver Análise',
+      url: p.url
     });
   });
 
@@ -762,9 +780,10 @@ export const getExecutiveOverviewData = cache(async (filters?: OverviewFilters) 
     volumeTrend: volumeTotal > 0 ? { direcao: trend.direção, variacaoPercentual: trend.variação } : null,
   });
 
-  // Comparação período atual vs. anterior — reaproveita a mesma consulta de
-  // "período completo" que getTrendOverview já faz.
-  const allPeriodData = await fetchOverviewData({ ...filters, period: 'all' });
+  // Comparação período atual vs. anterior — reaproveita a MESMA consulta de
+  // "período completo" que getTrendOverview já faz (getAllPeriodOverviewData
+  // é cache()-deduplicada entre as duas chamadas, mesma referência `filters`).
+  const allPeriodData = await getAllPeriodOverviewData(filters);
   const period = filters?.period || 'all';
   const getNoticiaTimestamp = (n: { published_at: string | null }) => (n.published_at ? new Date(n.published_at).getTime() : null);
   const getPostTimestamp = (p: { created_at: string | null }) => (p.created_at ? new Date(p.created_at).getTime() : null);
