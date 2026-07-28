@@ -292,61 +292,6 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
   return channelDistribution;
 }
 
-/**
- * 5. ALERTAS PRIORITÁRIOS
- */
-export async function getPriorityAlerts(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
-
-  const alerts: any[] = [];
-
-  // Notícias
-  noticias.forEach(n => {
-    if ((n.local_relevance || 0) > 70) {
-      alerts.push({
-        canal: 'Notícias',
-        resumo: n.title,
-        risco: n.local_relevance || 50,
-        impacto: (n.local_relevance || 50) * 1.2,
-        data: n.published_at,
-        url: n.url
-      });
-    }
-  });
-
-  // Instagram
-  instagram.posts.forEach(p => {
-    if (isHighRisk(p.risk)) {
-      alerts.push({
-        canal: 'Instagram',
-        resumo: p.text.substring(0, 100),
-        risco: riskScore(p.risk),
-        impacto: (p.like_count + p.comment_count) / 10,
-        data: p.created_at,
-        url: p.url
-      });
-    }
-  });
-
-  // X
-  x.posts.forEach(p => {
-    if (isHighRisk(p.risk)) {
-      alerts.push({
-        canal: 'X (Twitter)',
-        resumo: p.text.substring(0, 100),
-        risco: isCriticalRisk(p.risk) ? 100 : 80,
-        impacto: p.impactScore || 50,
-        data: p.created_at,
-        url: p.url
-      });
-    }
-  });
-
-  return alerts
-    .sort((a, b) => b.risco - a.risco || b.impacto - a.impacto || new Date(b.data).getTime() - new Date(a.data).getTime())
-    .slice(0, 5);
-}
-
 export interface TimelineEvent {
   id: string;
   canal: 'Notícias' | 'Instagram' | 'X';

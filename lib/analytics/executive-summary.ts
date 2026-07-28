@@ -148,6 +148,8 @@ export interface RiskCard {
   severidade: AlertSeverity;
   /** Evidência principal (título original do item de origem + link), separada da descrição executiva. */
   evidencia: EvidenceRef | null;
+  /** Canal de origem do alerta — usado por blocos que precisam mostrar o ícone do canal (ex. Alertas Prioritários). */
+  origem: 'noticias' | 'instagram' | 'x';
 }
 
 /**
@@ -174,6 +176,7 @@ export function deriveRisksFromAlerts(alerts: UnifiedAlert[], limit = 3): RiskCa
         evidencia: formatted.evidenciaPrincipal?.url
           ? { tipo: 'alerta', id: a.id, url: formatted.evidenciaPrincipal.url, descricao: formatted.evidenciaPrincipal.titulo }
           : null,
+        origem: a.origem,
       };
     });
 }

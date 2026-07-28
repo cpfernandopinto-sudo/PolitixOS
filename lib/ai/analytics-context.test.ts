@@ -95,6 +95,7 @@ describe('buildAnalyticsContext', () => {
       periodo: 'p',
       severidade: 'alto',
       evidencia: null,
+      origem: 'noticias',
     }));
     const context = buildAnalyticsContext(baseArgs({ risks }));
     expect(context.evidenciasDisponiveis.length).toBeLessThanOrEqual(20);
@@ -112,6 +113,7 @@ describe('buildAnalyticsContext', () => {
         periodo: 'p',
         severidade: 'alto',
         evidencia: null,
+        origem: 'noticias',
       },
     ];
     const context = buildAnalyticsContext(baseArgs({ risks }));

@@ -116,6 +116,11 @@ describe('deriveRisksFromAlerts / selectPrimaryRisk', () => {
   it('selectPrimaryRisk retorna null quando não há riscos', () => {
     expect(selectPrimaryRisk([])).toBeNull();
   });
+
+  it('preserva o canal de origem (usado por Alertas Prioritários para reutilizar os mesmos dados, sem consulta nova)', () => {
+    const risks = deriveRisksFromAlerts([makeAlert({ origem: 'instagram' })]);
+    expect(risks[0].origem).toBe('instagram');
+  });
 });
 
 describe('evaluateOpportunities', () => {

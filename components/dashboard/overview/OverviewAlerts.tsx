@@ -1,19 +1,13 @@
-'use client';
-
 import { AlertTriangle, ExternalLink, Newspaper } from 'lucide-react';
-
-interface Alert {
-  canal: string;
-  resumo: string;
-  risco: number;
-  impacto: number;
-  data: string;
-  url: string;
-}
+import type { RiskCard } from '@/lib/analytics/executive-summary';
+import { SEVERITY_LABEL } from '@/lib/config/alert-thresholds';
 
 interface Props {
-  alerts: Alert[];
+  /** Já em linguagem executiva (`formatExecutiveRisk`) — mesma fonte do board de Riscos Prioritários, sem consulta nova. */
+  risks: RiskCard[];
 }
+
+const INITIAL_VISIBLE = 5;
 
 function XChannelIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
   return (
@@ -51,60 +45,80 @@ function InstagramChannelIcon({ size = 16, className = '' }: { size?: number; cl
   );
 }
 
-export default function OverviewAlerts({ alerts }: Props) {
-  const getIcon = (canal: string) => {
-    if (canal.includes('Notícias')) return <Newspaper size={16} className="text-blue-400" />;
-    if (canal.includes('Instagram')) return <InstagramChannelIcon size={16} className="text-pink-400" />;
-    return <XChannelIcon size={16} className="text-cyan-400" />;
-  };
+const CHANNEL_ICON: Record<RiskCard['origem'], React.ReactNode> = {
+  noticias: <Newspaper size={16} className="text-blue-400" />,
+  instagram: <InstagramChannelIcon size={16} className="text-pink-400" />,
+  x: <XChannelIcon size={16} className="text-cyan-400" />,
+};
+
+const CHANNEL_LABEL: Record<RiskCard['origem'], string> = {
+  noticias: 'Notícias',
+  instagram: 'Instagram',
+  x: 'X (Twitter)',
+};
+
+/**
+ * Resumo operacional de Alertas Prioritários — Camada 2 (sempre visível,
+ * reintegrado no Sprint 6). Reaproveita os mesmos `risks` já calculados por
+ * `getExecutiveOverviewData` (via `deriveRisksFromAlerts`/`formatExecutiveRisk`),
+ * a MESMA fonte usada por `RiskOpportunityBoard` — nenhuma consulta nova e
+ * nenhum critério de severidade paralelo.
+ *
+ * Corrige um bug real encontrado durante a reintegração: a versão anterior
+ * deste bloco (`getPriorityAlerts`) usava o título bruto da notícia/post como
+ * texto do alerta — o mesmo problema já corrigido no Sprint 5 para o board de
+ * Riscos Prioritários, mas presente aqui até agora.
+ */
+export default function OverviewAlerts({ risks }: Props) {
+  const visible = risks.slice(0, INITIAL_VISIBLE);
 
   return (
     <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="text-white font-bold text-lg tracking-tight">Alertas Prioritários</h3>
         <AlertTriangle className="text-red-500" size={20} />
       </div>
+      <p className="text-xs text-gray-500 mb-5">Resumo operacional dos riscos mais recentes — para a lista completa, ver Riscos Prioritários abaixo.</p>
 
       <div className="flex-1 space-y-4">
-        {alerts.length === 0 ? (
+        {visible.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-500 text-sm italic">
             Nenhum alerta crítico no momento.
           </div>
         ) : (
-          alerts.map((alert, i) => (
+          visible.map((risk) => (
             <div
-              key={i}
+              key={risk.id}
               className="group bg-white/5 border border-white/5 hover:border-red-500/30 rounded-lg p-4 transition-all"
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  {getIcon(alert.canal)}
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{alert.canal}</span>
+                  {CHANNEL_ICON[risk.origem]}
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{CHANNEL_LABEL[risk.origem]}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${alert.risco > 80 ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'
-                    }`}>
-                    RISCO: {alert.risco}
-                  </span>
-                </div>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${risk.severidade === 'critico' ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                  {SEVERITY_LABEL[risk.severidade].toUpperCase()}
+                </span>
               </div>
 
-              <p className="text-sm text-gray-200 line-clamp-2 mb-3 group-hover:text-white transition-colors">
-                {alert.resumo}
+              {/* Descrição executiva (formatExecutiveRisk) — nunca o título bruto do item de origem. */}
+              <p className="text-sm text-gray-200 line-clamp-2 mb-1 group-hover:text-white transition-colors">
+                {risk.descricao}
               </p>
+              <p className="text-[10px] text-gray-500 mb-3">{risk.metricaAtual}</p>
 
               <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                <span className="text-[10px] text-gray-500">
-                  {new Date(alert.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <a
-                  href={alert.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  ACESSAR ORIGEM <ExternalLink size={10} />
-                </a>
+                <span className="text-[10px] text-gray-500">{risk.entidade}</span>
+                {risk.evidencia?.url && (
+                  <a
+                    href={risk.evidencia.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+                  >
+                    VER EVIDÊNCIA <ExternalLink size={10} />
+                  </a>
+                )}
               </div>
             </div>
           ))

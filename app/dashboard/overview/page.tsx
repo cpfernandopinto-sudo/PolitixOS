@@ -1,3 +1,4 @@
+import { BarChart3 } from 'lucide-react';
 import { requireAuth } from '@/lib/auth/dal';
 import SectionBoundary from '@/components/ui/SectionBoundary';
 import { BlockSkeleton, KpiRowSkeleton } from '@/components/ui/BlockSkeleton';
@@ -25,7 +26,6 @@ import {
   getOverviewKPIs,
   getCrisisOverview,
   getChannelDistribution,
-  getPriorityAlerts,
   getDominantTopics,
   getSentimentOverview,
   getRiskOverview,
@@ -42,7 +42,7 @@ export const metadata = {
   description: 'Centro Executivo de Inteligência Política.',
 };
 
-// ─── Blocos do Centro Executivo (Sprint 3) ──────────────────────────────────
+// ─── Camada 1 — leitura executiva imediata ──────────────────────────────────
 // Todos chamam getExecutiveOverviewData(filters), memoizada com
 // React.cache() — mesma referência de `filters`, portanto uma única
 // execução real por requisição, mesmo com vários blocos independentes.
@@ -60,6 +60,11 @@ async function NarrativeSection({ filters }: { filters: OverviewFilters }) {
   return <ExecutiveNarrative narrative={narrative} />;
 }
 
+async function KPISection({ filters }: { filters: OverviewFilters }) {
+  const kpis = await getOverviewKPIs(filters);
+  return <OverviewKPI {...kpis} />;
+}
+
 async function SynthesisSection({ filters }: { filters: OverviewFilters }) {
   const { synthesis } = await getExecutiveOverviewData(filters);
   return (
@@ -75,27 +80,7 @@ async function PoliticalStatusSection({ filters }: { filters: OverviewFilters })
   return <PoliticalStatusCard status={politicalStatus} />;
 }
 
-async function RiskOpportunitySection({ filters }: { filters: OverviewFilters }) {
-  const { risks, opportunities, opportunityAbsenceReasons } = await getExecutiveOverviewData(filters);
-  return <RiskOpportunityBoard risks={risks} opportunities={opportunities} opportunityAbsenceReasons={opportunityAbsenceReasons} />;
-}
-
-async function KeyChangesSection({ filters }: { filters: OverviewFilters }) {
-  const { keyChanges } = await getExecutiveOverviewData(filters);
-  return <KeyChanges changes={keyChanges} />;
-}
-
-async function AttentionSection({ filters }: { filters: OverviewFilters }) {
-  const { entities, themes } = await getExecutiveOverviewData(filters);
-  return <AttentionEntitiesThemes entities={entities} themes={themes} />;
-}
-
-// ─── Blocos já existentes (Fases 1-2) — preservados ─────────────────────────
-
-async function KPISection({ filters }: { filters: OverviewFilters }) {
-  const kpis = await getOverviewKPIs(filters);
-  return <OverviewKPI {...kpis} />;
-}
+// ─── Camada 2 — análise e contexto estratégico (sempre visível) ────────────
 
 async function CrisisSection({ filters }: { filters: OverviewFilters }) {
   const crisis = await getCrisisOverview(filters);
@@ -103,8 +88,13 @@ async function CrisisSection({ filters }: { filters: OverviewFilters }) {
 }
 
 async function AlertsSection({ filters }: { filters: OverviewFilters }) {
-  const alerts = await getPriorityAlerts(filters);
-  return <OverviewAlerts alerts={alerts} />;
+  // Reaproveita os MESMOS `risks` (já em linguagem executiva via
+  // formatExecutiveRisk) usados pelo board de Riscos Prioritários — nenhuma
+  // consulta nova, nenhum critério de severidade paralelo. Substitui a
+  // antiga getPriorityAlerts (removida), que usava título bruto como texto
+  // do alerta.
+  const { risks } = await getExecutiveOverviewData(filters);
+  return <OverviewAlerts risks={risks} />;
 }
 
 async function TopicsSection({ filters }: { filters: OverviewFilters }) {
@@ -127,6 +117,28 @@ async function RiskSection({ filters }: { filters: OverviewFilters }) {
   return <OverviewRisk risk={risk} />;
 }
 
+// ─── Camada 3 — investigação e aprofundamento ───────────────────────────────
+
+async function RiskOpportunitySection({ filters }: { filters: OverviewFilters }) {
+  const { risks, opportunities, opportunityAbsenceReasons } = await getExecutiveOverviewData(filters);
+  return <RiskOpportunityBoard risks={risks} opportunities={opportunities} opportunityAbsenceReasons={opportunityAbsenceReasons} />;
+}
+
+async function KeyChangesSection({ filters }: { filters: OverviewFilters }) {
+  const { keyChanges } = await getExecutiveOverviewData(filters);
+  return <KeyChanges changes={keyChanges} />;
+}
+
+async function AttentionSection({ filters }: { filters: OverviewFilters }) {
+  const { entities, themes } = await getExecutiveOverviewData(filters);
+  return <AttentionEntitiesThemes entities={entities} themes={themes} />;
+}
+
+async function TimelineSection({ filters }: { filters: OverviewFilters }) {
+  const events = await getTimelineEvents(filters);
+  return <OverviewTimeline events={events} />;
+}
+
 async function StrategicSection({ filters }: { filters: OverviewFilters }) {
   const actions = await getStrategicActions(filters);
   return <OverviewStrategicMap actions={actions} />;
@@ -137,9 +149,23 @@ async function TableSection({ filters }: { filters: OverviewFilters }) {
   return <OverviewExecutiveTable rows={table} />;
 }
 
-async function TimelineSection({ filters }: { filters: OverviewFilters }) {
-  const events = await getTimelineEvents(filters);
-  return <OverviewTimeline events={events} />;
+/**
+ * Divisor visual que introduz os quatro gráficos estratégicos (Camada 2).
+ * Nome deliberadamente distinto de "Leitura Analítica Assistida" (bloco de
+ * IA, mais abaixo) para não gerar ambiguidade — ver
+ * docs/AUDITORIA_VISUAL_SPRINT_5.md, seção de reintegração.
+ */
+function PanoramaAnaliticoHeader() {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <BarChart3 size={18} className="text-cyan-400 shrink-0" />
+      <div>
+        <h2 className="text-white font-bold text-base tracking-tight">Panorama Analítico</h2>
+        <p className="text-xs text-gray-500">Temas, canais, percepção e risco consolidados.</p>
+      </div>
+      <div className="flex-1 h-px bg-white/5 ml-2" />
+    </div>
+  );
 }
 
 export default async function OverviewPage(props: {
@@ -172,7 +198,7 @@ export default async function OverviewPage(props: {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* 1. Cabeçalho executivo */}
+      {/* 1. Cabeçalho e filtros */}
       <OverviewHeader
         candidates={candidates}
         currentCandidate={filters.candidate}
@@ -180,14 +206,22 @@ export default async function OverviewPage(props: {
         generatedAt={generatedAt}
       />
 
-      {/* 1.5. Narrativa executiva — determinística, sem IA (Sprint 5). Sempre
-          antes da síntese, resume o que aconteceu, por que merece atenção e
-          onde clicar a seguir. */}
+      {/* 2. Narrativa executiva — determinística, sem IA. Sempre antes da
+          síntese, resume o que aconteceu, por que merece atenção e onde
+          clicar a seguir. */}
       <SectionBoundary label="Narrativa executiva" fallback={<BlockSkeleton height={120} />} minHeight={120}>
         <NarrativeSection filters={filters} />
       </SectionBoundary>
 
-      {/* 2-3. Síntese do cenário + Estado político (lado a lado em desktop) */}
+      {/* 3. Cards executivos — Score de Saúde, Temperatura, Tendência,
+          Alertas Ativos, Volume Total. Sempre visíveis (Camada 1), nunca
+          escondidos em seção recolhida. */}
+      <SectionBoundary label="Indicadores executivos" fallback={<KpiRowSkeleton />} minHeight={112}>
+        <KPISection filters={filters} />
+      </SectionBoundary>
+
+      {/* 4-5. Síntese do cenário + Estado político (lado a lado em desktop) —
+          já inclui risco/oportunidade/mudança principais como tiles. */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         <div className="lg:col-span-2">
           <SectionBoundary label="Síntese do cenário" fallback={<BlockSkeleton height={280} />} minHeight={280}>
@@ -201,71 +235,35 @@ export default async function OverviewPage(props: {
         </div>
       </div>
 
-      {/* Leitura Analítica Assistida (Sprint 4) — sempre DEPOIS da síntese
-          determinística acima, nunca antes. Não busca dados no mount (só ao
-          clicar "Gerar leitura analítica") — não é um Server Component. */}
-      <AssistedInsight candidate={filters.candidate ?? null} period={filters.period ?? 'all'} isAdmin={session.role === 'admin'} />
-
-      {/* 4. Riscos e oportunidades prioritários */}
-      <SectionBoundary label="Riscos e oportunidades" fallback={<BlockSkeleton height={320} />} minHeight={320}>
-        <RiskOpportunitySection filters={filters} />
-      </SectionBoundary>
-
-      {/* 5. Mudanças mais relevantes */}
-      <div id="mudancas-relevantes" className="scroll-mt-20">
-        <SectionBoundary label="Mudanças relevantes" fallback={<BlockSkeleton height={180} />} minHeight={180}>
-          <KeyChangesSection filters={filters} />
-        </SectionBoundary>
-      </div>
-
-      {/* 6. Entidades e temas em atenção */}
-      <SectionBoundary label="Entidades e temas em atenção" fallback={<BlockSkeleton height={320} />} minHeight={320}>
-        <AttentionSection filters={filters} />
-      </SectionBoundary>
-
-      {/* 7. Timeline consolidada */}
-      <div id="timeline" className="scroll-mt-20">
-        <SectionBoundary label="Timeline consolidada" fallback={<BlockSkeleton height={320} />} minHeight={320}>
-          <TimelineSection filters={filters} />
-        </SectionBoundary>
-      </div>
-
-      {/* 8. Evidências e análises complementares — recolhível por padrão.
-          Reaproveita os mesmos dados já buscados (fetchOverviewData
-          cacheado); "carregamento diferido" aqui é de EXIBIÇÃO, não de
-          consulta — os dados já seriam buscados de qualquer forma pelos
-          blocos acima que compartilham o mesmo cache. */}
-      <CollapsibleSection
-        title="Análises Complementares"
-        subtitle="Detalhamento por canal, sentimento, risco, temas e ações recomendadas"
-      >
-        <SectionBoundary label="Indicadores executivos" fallback={<KpiRowSkeleton />} minHeight={112}>
-          <KPISection filters={filters} />
-        </SectionBoundary>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <SectionBoundary label="Termômetro de crise" fallback={<BlockSkeleton height={340} />} minHeight={340}>
-              <CrisisSection filters={filters} />
-            </SectionBoundary>
-          </div>
-          <div className="lg:col-span-2">
-            <SectionBoundary label="Alertas prioritários (por risco/impacto)" fallback={<BlockSkeleton height={340} />} minHeight={340}>
-              <AlertsSection filters={filters} />
-            </SectionBoundary>
-          </div>
+      {/* 6. Termômetro de Crise Master + Alertas Prioritários — Camada 2,
+          sempre visível. Termômetro menor à esquerda, Alertas ocupando maior
+          largura em desktop; empilhados em mobile. */}
+      <div id="crisis-alerts" className="grid grid-cols-1 lg:grid-cols-3 gap-6 scroll-mt-20">
+        <div className="lg:col-span-1">
+          <SectionBoundary label="Termômetro de crise" fallback={<BlockSkeleton height={340} />} minHeight={340}>
+            <CrisisSection filters={filters} />
+          </SectionBoundary>
         </div>
+        <div className="lg:col-span-2">
+          <SectionBoundary label="Alertas prioritários" fallback={<BlockSkeleton height={340} />} minHeight={340}>
+            <AlertsSection filters={filters} />
+          </SectionBoundary>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 7. Faixa "Panorama Analítico" — introduz os 4 gráficos estratégicos. */}
+      <PanoramaAnaliticoHeader />
+
+      {/* 8-11. Grid de 4 gráficos, ordem de prioridade: Temas Dominantes,
+          Sentimento Consolidado, Distribuição de Risco (3 colunas em telas
+          largas) — Distribuição por Canal (radar) em linha própria, largura
+          total, para não perder legibilidade em telas menores. Sempre
+          visíveis, nunca recolhidos por padrão. */}
+      <div id="analytics-grid" className="space-y-6 scroll-mt-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           <SectionBoundary label="Temas dominantes" fallback={<BlockSkeleton height={280} />} minHeight={280}>
             <TopicsSection filters={filters} />
           </SectionBoundary>
-          <SectionBoundary label="Distribuição por canal" fallback={<BlockSkeleton height={280} />} minHeight={280}>
-            <ChannelsSection filters={filters} />
-          </SectionBoundary>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <SectionBoundary label="Sentimento consolidado" fallback={<BlockSkeleton height={280} />} minHeight={280}>
             <SentimentSection filters={filters} />
           </SectionBoundary>
@@ -273,13 +271,55 @@ export default async function OverviewPage(props: {
             <RiskSection filters={filters} />
           </SectionBoundary>
         </div>
+        <SectionBoundary label="Distribuição por canal" fallback={<BlockSkeleton height={340} />} minHeight={340}>
+          <ChannelsSection filters={filters} />
+        </SectionBoundary>
+      </div>
 
+      {/* 12. Riscos e oportunidades completos — Camada 3. */}
+      <SectionBoundary label="Riscos e oportunidades" fallback={<BlockSkeleton height={320} />} minHeight={320}>
+        <RiskOpportunitySection filters={filters} />
+      </SectionBoundary>
+
+      {/* Mudanças mais relevantes — complementa Riscos/Oportunidades. */}
+      <div id="mudancas-relevantes" className="scroll-mt-20">
+        <SectionBoundary label="Mudanças relevantes" fallback={<BlockSkeleton height={180} />} minHeight={180}>
+          <KeyChangesSection filters={filters} />
+        </SectionBoundary>
+      </div>
+
+      {/* 13. Entidades e temas em atenção. */}
+      <SectionBoundary label="Entidades e temas em atenção" fallback={<BlockSkeleton height={320} />} minHeight={320}>
+        <AttentionSection filters={filters} />
+      </SectionBoundary>
+
+      {/* 14. Timeline consolidada. */}
+      <div id="timeline" className="scroll-mt-20">
+        <SectionBoundary label="Timeline consolidada" fallback={<BlockSkeleton height={320} />} minHeight={320}>
+          <TimelineSection filters={filters} />
+        </SectionBoundary>
+      </div>
+
+      {/* 15. Leitura Analítica Assistida por IA — claramente identificada
+          como IA, sempre depois da síntese/timeline determinísticas, nunca
+          antes. Não busca dados no mount (só ao clicar "Gerar leitura
+          analítica") — não é um Server Component. */}
+      <AssistedInsight candidate={filters.candidate ?? null} period={filters.period ?? 'all'} isAdmin={session.role === 'admin'} />
+
+      {/* 16. Análises complementares — só itens realmente secundários
+          (ações recomendadas). Os gráficos estratégicos (KPIs, Termômetro,
+          Alertas, Temas, Canais, Sentimento, Risco) NÃO ficam mais aqui —
+          foram promovidos para a Camada 2, sempre visível (ver auditoria). */}
+      <CollapsibleSection
+        title="Análises Complementares"
+        subtitle="Ações recomendadas com base nos itens de maior risco monitorados"
+      >
         <SectionBoundary label="Mapa de ação estratégica" fallback={<BlockSkeleton height={220} />} minHeight={220}>
           <StrategicSection filters={filters} />
         </SectionBoundary>
       </CollapsibleSection>
 
-      {/* 9. Tabela executiva — posição secundária, ao final */}
+      {/* 17. Tabela executiva — posição secundária, ao final. */}
       <SectionBoundary label="Tabela executiva" fallback={<BlockSkeleton height={360} />} minHeight={360}>
         <TableSection filters={filters} />
       </SectionBoundary>

@@ -42,6 +42,7 @@ function makeContext(overrides: { candidate?: string | null; period?: string } =
       periodo: 'p',
       severidade: 'alto' as const,
       evidencia: { tipo: 'alerta' as const, id: 'risk-1', url: 'https://example.com', descricao: 'Notícia de teste' },
+      origem: 'noticias' as const,
     },
   ];
   const synthesis = composeExecutiveSynthesis({ politicalStatus, risks, opportunities: [], themes: [], entities: [], keyChanges: [] });

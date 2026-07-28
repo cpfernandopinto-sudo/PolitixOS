@@ -33,6 +33,7 @@ const risk: RiskCard = {
   periodo: 'Período selecionado',
   severidade: 'critico',
   evidencia: { tipo: 'alerta', id: 'r1', url: 'https://example.com', descricao: 'Título original da notícia' },
+  origem: 'noticias',
 };
 
 const opportunity: OpportunityCard = {

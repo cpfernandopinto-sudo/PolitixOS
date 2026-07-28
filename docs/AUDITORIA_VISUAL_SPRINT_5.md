@@ -91,6 +91,44 @@ O estado "indisponível" (sem `ANTHROPIC_API_KEY`) usa a mesma linguagem para to
 - Mudanças em `RiskCard`/`ExecutiveSynthesis` são aditivas ou de conteúdo de campo (não de forma), sem impacto em outros consumidores fora da Visão Geral.
 - Sidebar: a versão desktop (`lg:` e acima) mantém o comportamento atual (recolhida/expandida, `localStorage`); só o comportamento abaixo de `lg` muda.
 
+## Revisão da densidade analítica — reintegração dos gráficos
+
+Data: 2026-07-28 (mesma sessão, após feedback do responsável pelo produto de que a hierarquia executiva escondeu gráficos estratégicos importantes dentro de "Análises Complementares", recolhida por padrão).
+
+### Mapeamento — onde cada componente está hoje
+
+| Componente | Posição atual | Query/fonte real | Consulta nova? | Achado |
+|---|---|---|---|---|
+| `OverviewKPI` (5 cards) | Dentro de "Análises Complementares" (recolhida) | `getOverviewKPIs(filters)` → `fetchOverviewData` (cache) + `getTrendOverview` (cache) | Não | Nenhum problema de dado — só de posição. Volta para a Camada 1, logo após a narrativa. |
+| `OverviewGauge` (Termômetro de Crise Master) | Dentro de "Análises Complementares" | `getCrisisOverview(filters)` → `fetchOverviewData` (cache) | Não | Mesmo `score` consumido por `classifyPoliticalStatus` (Estado Político). Precisa de texto explícito diferenciando as duas leituras (executiva vs. decomposição por canal). |
+| `OverviewAlerts` (Alertas Prioritários) | Dentro de "Análises Complementares" | **Bug real encontrado**: `getPriorityAlerts(filters)` — função separada, com critério de severidade/ordenação diferente da Central de Alertas, e `resumo: n.title` / `p.text.substring(0,100)` (título/texto bruto do item de origem usado como texto do alerta) — o **mesmo bug** já corrigido no Sprint 5 para `RiskOpportunityBoard`, presente aqui sem correção. | Não (mas era computação paralela redundante) | Corrigido: fonte trocada para `getExecutiveOverviewData(filters).risks` (já `RiskCard[]`, já passado por `formatExecutiveRisk`, já calculado — zero consulta nova). `getPriorityAlerts` removida por ficar sem nenhum consumidor. |
+| `OverviewTopics` (Temas Dominantes) | Dentro de "Análises Complementares" | `getDominantTopics(filters)` → `fetchOverviewData` (cache) | Não | Sem problema. Volta para a Camada 2. Distinto de "Entidades/Temas em Atenção" (Camada 3): aqui é o ranking bruto (top 10, "o que pauta a conversa"); lá é o recorte executivo (top 5, "quem/o que precisa de atenção"). Contextos diferentes — não fundir. |
+| `OverviewChannels` (radar "Distribuição por Canal") | Dentro de "Análises Complementares" | `getChannelDistribution(filters)` → `fetchOverviewData` (cache) | Não | **Bug real encontrado**: a dimensão "Alcance" do radar usava constantes fixas (`80`, `60`, `90`) sem nenhuma origem em dado real — não há contagem de seguidores/alcance em nenhuma tabela do projeto (mesma limitação já documentada em `docs/AUDITORIA_UX_PERFORMANCE_POLITIXOS.md`). A dimensão "Polarização" também usava constantes fixas (`0.2`, `0.4`) para Notícias/Instagram — só X tem `polarização` real calculada. Ambas violam "não inventar métricas". **Corrigido**: as duas dimensões fabricadas foram removidas do radar; ficaram apenas as 3 dimensões com dado real para os três canais (Sentimento, Risco, Volume/Engajamento). |
+| `OverviewSentiment` (Sentimento Consolidado) | Dentro de "Análises Complementares" | `getSentimentOverview(filters)` → `fetchOverviewData` (cache) | Não | Sem problema. Volta para a Camada 2. |
+| `OverviewRisk` (Distribuição de Risco) | Dentro de "Análises Complementares" | `getRiskOverview(filters)` → `fetchOverviewData` (cache) | Não | Sem problema. Volta para a Camada 2. |
+| `OverviewStrategicMap` (Mapa de Ação Estratégica) | Dentro de "Análises Complementares" | `getStrategicActions(filters)` → `fetchOverviewData` (cache) | Não | Não está na lista de reintegração do pedido — continua em "Análises Complementares" (é uma recomendação operacional, item secundário por natureza). |
+
+### Por que devem voltar
+
+Todos os 7 primeiros itens da tabela usam dados já buscados por `fetchOverviewData(filters)` (cacheado via `React.cache()`) — nenhum é uma consulta nova, e nenhum duplica o Centro Executivo: KPIs/Termômetro/Alertas/Temas/Canais/Sentimento/Risco respondem perguntas analíticas específicas ("como cada canal contribui", "qual a percepção predominante", "qual a gravidade") que a síntese executiva (Sprint 3-5) resume, mas não substitui — a síntese é uma LEITURA do mesmo dado, não uma segunda fonte.
+
+### Como serão posicionados (Camada 2 — sempre visível)
+
+1. Cards executivos (5) — logo após a Narrativa Executiva.
+2. Termômetro de Crise Master + Alertas Prioritários lado a lado (desktop) / empilhados (mobile).
+3. Faixa "Panorama Analítico" (nome escolhido para não ser confundido com "Leitura Analítica Assistida", que é o bloco de IA).
+4. Grid com Temas Dominantes, Distribuição por Canal, Sentimento Consolidado, Distribuição de Risco.
+
+### Quais dados serão reutilizados
+
+100% dos dados já existentes: `getOverviewKPIs`, `getCrisisOverview`, `getDominantTopics`, `getChannelDistribution`, `getSentimentOverview`, `getRiskOverview` (todas já cacheadas via `fetchOverviewData`), mais `getExecutiveOverviewData(filters).risks` (substituindo `getPriorityAlerts`, que é removida).
+
+### Quais redundâncias serão evitadas
+
+- `getPriorityAlerts` removida (função inteira) — sem consumidores após a mudança, e sua lógica duplicava (com critério diferente) o que `deriveRisksFromAlerts`/Central de Alertas já calculam.
+- Nenhum componente é duplicado em duas posições — cada um sai de "Análises Complementares" e entra na Camada 2 correspondente, sem cópia.
+- "Análises Complementares" passa a conter apenas `OverviewStrategicMap` (ação recomendada, item secundário por natureza).
+
 ## Critérios de aceite desta auditoria
 
 - Cada problema acima tem componente(s) afetado(s) identificado(s) e proposta correspondente.

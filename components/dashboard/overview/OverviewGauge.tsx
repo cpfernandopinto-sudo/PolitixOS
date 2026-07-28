@@ -74,7 +74,7 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
 
   return (
     <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 h-full flex flex-col">
-      <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="flex items-center justify-between gap-3 mb-1">
         <h3 className="text-white font-bold text-lg tracking-tight">Termômetro de Crise Master</h3>
         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${status === 'crítico' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
             status === 'quente' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
@@ -83,6 +83,9 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
           {status}
         </span>
       </div>
+      <p className="text-[11px] text-gray-500 mb-2">
+        Decomposição analítica do risco por canal — o Estado Político (acima) já resume esta mesma leitura em uma classificação executiva.
+      </p>
 
       <div className="flex flex-col items-center">
         <div className="w-full h-[178px] md:h-[190px] -my-2">
