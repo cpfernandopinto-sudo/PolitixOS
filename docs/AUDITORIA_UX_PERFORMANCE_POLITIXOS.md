@@ -165,6 +165,73 @@ Ver `docs/IMPLEMENTACAO_UX_PERFORMANCE_POLITIXOS.md`, seção "Fase 2".
 - `npm run test:run` (Vitest) passando para as regras de alerta, sanitização de filtros, timeline e preferência de view.
 - Verificação manual do fluxo não autenticado (redirecionamento correto para `/login`, sem loop, sem erros de console) — mesma limitação da fase anterior quanto ao fluxo autenticado (sem credenciais de teste disponíveis).
 
+## Auditoria do Sprint 3 — Centro Executivo
+
+Data: 2026-07-28 (continuação da mesma sessão).
+
+### Estrutura atual da Visão Geral (antes do Sprint 3)
+
+`app/dashboard/overview/page.tsx` já streamava 9 blocos independentes via `SectionBoundary`/`Suspense`, todos alimentados por `fetchOverviewData(filters)` cacheado com `React.cache()`: KPIs (`OverviewKPI`), Termômetro de Crise (`OverviewGauge`), Alertas Prioritários (`OverviewAlerts`), Temas Dominantes (`OverviewTopics`), Distribuição por Canal (`OverviewChannels`), Sentimento (`OverviewSentiment`), Risco (`OverviewRisk`), Mapa de Ação (`OverviewStrategicMap`), Timeline (`OverviewTimeline`, adicionada na Fase 2) e Tabela Executiva (`OverviewExecutiveTable`), nessa ordem.
+
+### Problemas de hierarquia encontrados
+
+- Todos os 10 blocos tinham peso visual semelhante (mesmo tamanho de card, mesma ausência de destaque) — não havia uma "primeira dobra decisória" clara; a leitura executiva em 5 segundos não era possível sem rolar a página inteira.
+- Não havia nenhuma síntese textual do período — o usuário precisava interpretar 10 blocos separados manualmente para responder "qual é o estado do cenário".
+- O Termômetro de Crise (`OverviewGauge`) já calculava um score executivo, mas não explicava a metodologia nem listava fatores — apenas o número e o breakdown por canal.
+
+### Redundâncias encontradas
+
+- **KPIs (`OverviewKPI`) vs. Termômetro de Crise**: `score_geral` e `temperatura_geral` (KPIs) são derivados do mesmo score que `getCrisisOverview` calcula — dois blocos mostrando a mesma informação com rótulos diferentes.
+- **Alertas Prioritários (`OverviewAlerts`) vs. o que a Central de Alertas já calcula**: `getPriorityAlerts` (específico da Visão Geral) usa um critério de ordenação diferente (risco+impacto) da Central de Alertas (severidade+recência, `lib/queries/alerts.ts`), mas ambos derivam da mesma noção de "item de risco alto" — mostrar os dois na primeira dobra seria o mesmo alerta em formatos diferentes.
+- **Temas Dominantes (`OverviewTopics`)**: mostra os mesmos temas que qualquer novo painel de "temas em atenção" mostraria — sem dado de crescimento, é literalmente o mesmo cálculo (`getDominantTopics`) reapresentado.
+- **Distribuição por Canal**: útil, mas é informação de "como os dados se distribuem", não uma decisão executiva — nível 3 (complementar), não nível 1/2.
+
+### Métricas executivas disponíveis (sem consulta nova)
+
+Score de crise consolidado, contagem de alertas por severidade (via as mesmas regras da Central de Alertas aplicadas como função pura), sentimento/risco predominantes, tendência de volume real (`getTrendOverview`), temas por frequência+sentimento médio, ranking de entidades por volume (novo, cruzando notícias+Instagram+X+alertas), comparação sentimento atual vs. período anterior real (nova, reaproveitando a mesma técnica de divisão de `calculateTrend`).
+
+### Métricas indisponíveis (documentadas, não fabricadas)
+
+- Crescimento de tema ao longo do tempo (só há frequência do período atual).
+- Taxa de aprovação/popularidade real (fora de escopo — o projeto não faz pesquisa de opinião).
+- Contagem de seguidores/alcance real por perfil (não existe nos dados).
+- Comparação período-a-período por métrica individual de Instagram/X (só há comparação agregada de sentimento).
+
+### Regras reutilizadas
+
+Todas as regras de alerta (`lib/config/alert-thresholds.ts`) e os thresholds de estado político (75/50/25, já usados em `getCrisisOverview`) foram reaproveitados sem alteração de valor — apenas centralizados/testados em `lib/analytics/`.
+
+### Consultas reutilizadas / consultas novas
+
+- **Reutilizadas**: `fetchOverviewData(filters)`, `getCrisisOverview`, `getSentimentOverview`, `getRiskOverview`, `getTrendOverview`, `getDominantTopics` — todas já existentes e cacheadas.
+- **Nova de fato**: nenhuma consulta de tipo novo. O único custo adicional é reaproveitar a MESMA consulta de "período completo" que `getTrendOverview` já fazia, agora também para calcular a comparação período-atual-vs-anterior usada em Oportunidades/Mudanças Relevantes. Essa reutilização foi encapsulada em `getExecutiveOverviewData` (`lib/queries/overview.ts`), agora também memoizada com `React.cache()` para que os múltiplos blocos da nova UI (síntese, estado político, riscos/oportunidades, mudanças, entidades/temas) compartilhem uma única execução real por requisição.
+
+### Plano de reorganização (executado)
+
+1. Cabeçalho executivo (mantido, já adequado).
+2. Síntese do cenário (`ExecutiveScenarioSummary`, novo) + Estado político (`PoliticalStatusCard`, evolução do `OverviewGauge`) lado a lado em desktop.
+3. Riscos e oportunidades prioritários (`RiskOpportunityBoard`, novo).
+4. Mudanças mais relevantes (`KeyChanges`, novo).
+5. Entidades e temas em atenção (`AttentionEntitiesThemes`, novo).
+6. Timeline consolidada (existente da Fase 2, evoluída com modo agrupado).
+7. Análises complementares (`CollapsibleSection`, recolhível): KPIs, Termômetro de Crise original, Alertas Prioritários original, Temas Dominantes original, Distribuição por Canal, Sentimento, Risco, Mapa de Ação — todos preservados, apenas reposicionados.
+8. Tabela executiva — movida para o final, posição secundária.
+
+### Arquivos previstos (efetivamente alterados/criados)
+
+Ver `docs/IMPLEMENTACAO_UX_PERFORMANCE_POLITIXOS.md`, seção "Sprint 3".
+
+### Riscos de regressão
+
+- `TimelineEvent` ganhou 3 campos novos (`tema`, `entidade`, `sentimento`) — risco baixo, são adições, nenhum campo existente foi removido ou teve o tipo alterado.
+- `EntityRankItem` ganhou o campo `targetId` — mudança de assinatura de uma interface nova (criada nesta mesma sessão), sem consumidores externos a atualizar.
+- Blocos movidos para "Análises Complementares" continuam montados como Server Components na árvore da página (streaming via Suspense continua funcionando); a mudança é apenas de posição/visibilidade inicial (recolhido por padrão), não de lógica.
+- Nenhuma alteração em autenticação, RLS, schema do banco ou nos módulos de Notícias/Instagram/X fora da Visão Geral.
+
+### Critérios de aceite
+
+Ver checklist completo na seção "Sprint 3" de `docs/IMPLEMENTACAO_UX_PERFORMANCE_POLITIXOS.md`.
+
 ### Índices sugeridos (não aplicados — apenas recomendação)
 
 - `mentions (published_at desc)` — já é o campo de ordenação padrão em `fetchMencoes`; se ainda não existir índice, é o candidato mais óbvio dado o volume de leitura por período.

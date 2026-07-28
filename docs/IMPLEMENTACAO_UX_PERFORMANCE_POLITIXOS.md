@@ -255,3 +255,119 @@ Mesma limitação da Fase 1: o projeto usa um único Supabase real (não há amb
 7. Rankings do Instagram/X exibem itens reais do período filtrado; tooltip do ícone "i" mostra a fórmula.
 8. Visão Geral — bloco "Timeline Consolidada" aparece após o Mapa de Ação; filtro por canal funciona; "Ver mais" revela mais itens sem tela de carregamento nova.
 9. Nenhum erro no console do navegador em nenhuma das telas acima.
+
+---
+
+# Sprint 3 — Centro Executivo de Inteligência Política
+
+Ver `docs/AUDITORIA_UX_PERFORMANCE_POLITIXOS.md` (seção "Auditoria do Sprint 3"), `docs/REGRAS_OPORTUNIDADES_POLITIXOS.md` e `docs/METODOLOGIA_CENTRO_EXECUTIVO.md` para o diagnóstico e a metodologia completos.
+
+## Diagnóstico (resumo)
+
+A Visão Geral já tinha 9 blocos independentes em streaming (Fases 1-2), mas sem hierarquia executiva: nenhum bloco sintetizava o cenário, o Termômetro de Crise não explicava sua metodologia, e havia redundância real entre KPIs/Termômetro (mesmo score, rótulos diferentes) e entre os Alertas Prioritários da Visão Geral e a Central de Alertas (mesma noção de risco, critérios de ordenação diferentes).
+
+## Arquivos criados
+
+**Lógica pura (`lib/analytics/`, `lib/config/`)**
+- `lib/config/opportunity-thresholds.ts` — 3 regras de oportunidade documentadas.
+- `lib/analytics/political-status.ts` — `classifyPoliticalStatus` (reaproveita os thresholds 75/50/25 já usados em `getCrisisOverview`).
+- `lib/analytics/executive-summary.ts` — `splitByPeriod`, `computeSentimentShares`, `deriveRisksFromAlerts`, `selectPrimaryRisk`, `evaluateOpportunities`, `selectPrimaryOpportunity`, `selectKeyChanges`, `rankEntities`, `rankThemes`, `composeExecutiveSynthesis`.
+- `lib/analytics/timeline-grouping.ts` — `groupTimelineEvents` (agrupamento determinístico por tema, sem IA).
+- Testes: `lib/analytics/political-status.test.ts`, `lib/analytics/executive-summary.test.ts`, `lib/analytics/timeline-grouping.test.ts`.
+
+**Componentes**
+- `components/ui/CollapsibleSection.tsx` — seção recolhível genérica (usada para "Análises Complementares").
+- `components/dashboard/overview/ExecutiveScenarioSummary.tsx` — síntese de 6 campos.
+- `components/dashboard/overview/PoliticalStatusCard.tsx` — evolução executiva do Termômetro de Crise, com drawer "Entenda o cálculo".
+- `components/dashboard/overview/RiskOpportunityBoard.tsx` — riscos e oportunidades lado a lado.
+- `components/dashboard/overview/KeyChanges.tsx` — mudanças mais relevantes.
+- `components/dashboard/overview/AttentionEntitiesThemes.tsx` — entidades e temas em atenção.
+
+**Documentação**
+- `docs/REGRAS_OPORTUNIDADES_POLITIXOS.md`.
+- `docs/METODOLOGIA_CENTRO_EXECUTIVO.md`.
+
+## Arquivos modificados
+
+- `lib/queries/overview.ts`: novo orquestrador `getExecutiveOverviewData` (memoizado com `React.cache()`), extensão de `TimelineEvent`/`buildTimelineEvents` com `tema`/`entidade`/`sentimento`, tipagem explícita de `calculateTrend`/`compareTrend` (necessária para o TypeScript aceitar o novo consumo em `political-status.ts`).
+- `components/dashboard/overview/OverviewTimeline.tsx`: adicionado modo agrupado (alternância Cronológica/Agrupada, preferência persistida em `localStorage`), modo cronológico original preservado sem alteração de comportamento.
+- `app/dashboard/overview/page.tsx`: reescrito com a nova hierarquia (ver abaixo). Nenhum bloco existente foi removido — todos foram reposicionados.
+
+## Nova hierarquia da Visão Geral
+
+1. Cabeçalho executivo (inalterado).
+2. Síntese do Cenário + Estado Político (lado a lado em desktop, empilhados em mobile).
+3. Riscos e Oportunidades Prioritários (lado a lado em desktop).
+4. Mudanças Mais Relevantes.
+5. Entidades e Temas em Atenção (lado a lado em desktop).
+6. Timeline Consolidada (modo cronológico ou agrupado).
+7. **Análises Complementares** (recolhível, fechada por padrão): Indicadores executivos (KPIs originais), Termômetro de Crise original + Alertas Prioritários originais (critério de ordenação diferente do board de riscos — risco+impacto em vez de severidade+recência —, mantido como visão alternativa), Temas Dominantes, Distribuição por Canal, Sentimento Consolidado, Distribuição de Risco, Mapa de Ação Estratégica.
+8. Tabela Executiva — movida para o final, posição secundária.
+
+## Regras do estado político
+
+Ver `docs/METODOLOGIA_CENTRO_EXECUTIVO.md`. Resumo: reaproveita o score de `getCrisisOverview` e os thresholds 75/50/25 já existentes, apenas com rótulos executivos (Crítico/Tensão elevada/Atenção/Estável). Fatores exibidos: contagem de alertas críticos/altos, sentimento e risco predominantes. Variação (quando exibida) vem de `getTrendOverview`, já real e cacheado — nunca fabricada quando ausente.
+
+## Regras de riscos
+
+Reaproveita 100% as regras já documentadas em `docs/REGRAS_ALERTAS_POLITIXOS.md`, aplicadas como funções puras diretamente sobre os dados já buscados pela Visão Geral (sem chamar a Central de Alertas via rede/nova consulta).
+
+## Regras de oportunidades
+
+3 regras novas, documentadas em `docs/REGRAS_OPORTUNIDADES_POLITIXOS.md`: queda de negatividade, crescimento de sentimento positivo (ambas com comparação temporal real) e alta exposição com risco baixo (estado atual, exige volume top-3 **e** ausência de risco — nunca risco baixo isolado).
+
+## Método de síntese
+
+`composeExecutiveSynthesis` (função pura, determinística) recebe os resultados já calculados (estado político, riscos, oportunidades, temas, entidades, mudanças) e produz 6 campos, cada um com `valor | null`, `justificativa`, `evidenceRefs`, `limitacoes?` e `semDados: boolean`. Nenhuma frase é gerada por IA — todo texto é template determinístico a partir de valores reais. Quando não há dado confiável, o campo retorna `semDados: true` e a UI mostra "Dados insuficientes para síntese".
+
+## Método de ranking
+
+- **Entidades**: `rankEntities` agrega notícias + Instagram + X por `candidate_name`, contando volume, moda de sentimento/risco, alertas associados e tema principal; preserva `target_id` (quando disponível via posts sociais) para permitir a ação "Filtrar".
+- **Temas**: `rankThemes` reordena/limita o resultado já existente de `getDominantTopics` — não recalcula frequência.
+
+## Método de agrupamento da timeline
+
+`groupTimelineEvents` agrupa por igualdade de string do tema (normalizado para minúsculas), sem IA generativa. Eventos sem tema tornam-se grupos de um único evento. Nenhum evento é duplicado entre grupos (verificado em teste). Persistência da preferência de modo (cronológica/agrupada) via `localStorage`, sem nova consulta ao alternar.
+
+## Evidências utilizadas
+
+Cada risco carrega `evidencia: EvidenceRef | null` — aponta para a URL original da notícia/post quando o alerta é de item individual; alertas agregados (ex.: pico de volume) não têm uma única URL de evidência e isso é indicado explicitamente na UI ("alerta agregado... sem um único item de evidência"), não escondido.
+
+## Métricas disponíveis / indisponíveis
+
+Ver `docs/AUDITORIA_UX_PERFORMANCE_POLITIXOS.md`, seção "Auditoria do Sprint 3".
+
+## Performance — antes e depois
+
+| Métrica | Antes do Sprint 3 | Depois |
+|---|---|---|
+| Consultas reais por carregamento da Visão Geral | ~6 (Fase 1/2: 2× `fetchOverviewData` real + 1 leve para opções de candidato) | Mesmas ~6 — `getExecutiveOverviewData` reaproveita a MESMA consulta de "período completo" que `getTrendOverview` já fazia; não adiciona um tipo de consulta novo |
+| Blocos na primeira dobra | 0 sintéticos (10 blocos "soltos") | 5 blocos executivos (síntese, estado político, riscos/oportunidades, mudanças, entidades/temas) + timeline, todos com Suspense/skeleton próprio |
+| Blocos complementares | Sempre visíveis, ocupando a rolagem inicial | Recolhidos por padrão (renderização diferida — os dados já eram buscados de qualquer forma, ver nota abaixo) |
+| Cálculo de "estado político" | Inexistente como conceito | 1 função pura testada, reaproveitando dado já calculado |
+
+**Nota sobre lazy loading dos blocos complementares**: os blocos dentro de "Análises Complementares" continuam sendo Server Components streamados via Suspense na mesma resposta RSC — colapsá-los por padrão é uma decisão de **renderização** (não exibir até o usuário expandir), não de **consulta**. Como todos reaproveitam o mesmo `fetchOverviewData` cacheado que os blocos da primeira dobra já usam, não há consulta redundante a evitar — buscar os dados sob demanda exigiria uma Server Action client-driven, uma mudança de arquitetura maior, não incluída nesta sessão (ver seção 13, Limitações).
+
+## Testes
+
+50 novos testes (Vitest), somando 92 no total do projeto:
+- `lib/analytics/political-status.test.ts` (9): classificação por threshold, `semDados`, fatores reais, variação nula quando ausente, determinismo.
+- `lib/analytics/executive-summary.test.ts` (32): `splitByPeriod` (all/numérico/sem dados), `computeSentimentShares`, riscos (filtro, limite, evidência), oportunidades (geração real e **rejeição de falsa oportunidade** — 3 casos), mudanças relevantes (com/sem comparação real), ranking de entidades (agregação, ordenação, entidade não identificada, alertas), ranking de temas, síntese executiva (sem dados, parcial, falha de canal simulada, determinismo).
+- `lib/analytics/timeline-grouping.test.ts` (9): agrupamento por tema, fallback sem tema, não duplicação de eventos, severidade máxima, entidades sem duplicar, sentimento predominante, ordenação, cenário vazio, determinismo.
+
+**Não implementado nesta fase**: testes de componente com Testing Library (abertura do drawer "Entenda o cálculo", alternância da timeline, filtros executivos, estado vazio da síntese) — exigiriam configurar `jsdom`/Testing Library, infraestrutura ainda não presente no projeto (mesma limitação já registrada na Fase 2). A lógica que esses componentes renderizam está coberta pelos testes de função pura acima.
+
+## Limitações
+
+- Comparação período-a-período é agregada (sentimento geral), não por métrica individual de cada rede social.
+- "Tema em Destaque" não representa crescimento — apenas volume atual (documentado explicitamente na UI via campo `limitacoes`).
+- Ranking de entidades só oferece ação de filtro quando há `target_id` disponível (via posts sociais) — entidades conhecidas apenas por notícias não têm essa ação (para não fabricar link quebrado).
+- Blocos complementares não têm fetch verdadeiramente diferido (ver nota de performance acima) — apenas exibição diferida.
+- Validação autenticada em navegador não realizada — mesma limitação das Fases 1-2 (sem credenciais de teste).
+
+## Pendências para o Sprint 4
+
+1. Validação autenticada completa (login real ou credenciais de teste).
+2. Testes de componente/interação (drawer, timeline, filtros) com Testing Library.
+3. Comparação período-a-período por métrica individual de Instagram/X, caso aprovado o custo de uma consulta adicional por módulo.
+4. Avaliar arquitetura de fetch sob demanda para blocos complementares, se o volume de dados da Visão Geral crescer a ponto de justificar consulta verdadeiramente diferida.
