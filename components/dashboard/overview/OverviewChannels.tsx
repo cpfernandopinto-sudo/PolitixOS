@@ -13,7 +13,6 @@ interface Props {
 }
 
 export default function OverviewChannels({ data }: Props) {
-  console.log("[X MAP INPUT]", data.x.posts?.length || 0);
   const volumeValues = [
     data.noticias.volume / 10,
     data.instagram.engajamento / 100,
@@ -92,10 +91,6 @@ export default function OverviewChannels({ data }: Props) {
       itemHeight: 8
     }
   };
-
-  console.log("[UI FINAL]", {
-    x: data.x.posts?.length || 0
-  });
 
   return (
     <div className="bg-[#1A1A1A] border border-white/5 rounded-xl px-5 py-4 h-full flex flex-col overflow-hidden">

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { fetchMencoes, getGaugeScore as getNoticiasGauge } from './noticias';
 import { fetchInstagramData } from './instagram';
 import { fetchXData } from './x';
@@ -100,15 +101,21 @@ function calculateTrend(
 }
 
 /**
- * Busca dados consolidados de todos os radares
+ * Busca dados consolidados de todos os radares.
+ *
+ * Memoizada com React.cache(): todas as funções abaixo (getOverviewKPIs,
+ * getCrisisOverview, getChannelDistribution, etc.) recebem o MESMO objeto
+ * `filters` vindo da página e chamam esta função — o cache por referência do
+ * React garante que as ~9 chamadas por carregamento resultem em 1 única
+ * execução real (3 subconsultas: notícias, Instagram, X), não 9.
+ *
+ * Importante: nunca passar um objeto `filters` diferente (ou mutado) para
+ * esta função a partir de um contexto que deveria reaproveitar o cache —
+ * isso já causou um bug de segurança em `fetchInstagramData` (ver nota em
+ * lib/queries/instagram.ts) quando uma chamada sem `allowedTargetIds` foi
+ * cacheada e reaproveitada por engano para uma chamada restrita.
  */
-export async function fetchOverviewData(filters?: OverviewFilters) {
-  const allowedTargetIds = filters?.allowedTargetIds ?? null;
-  console.log("[overview filter]", {
-    allowedTargetIds,
-    mode: allowedTargetIds === null ? "admin_all_data" : "restricted"
-  });
-
+export const fetchOverviewData = cache(async (filters?: OverviewFilters) => {
   // Padronizar filtros para as funções específicas
   // period='all' = sem filtro de data (todo período)
   const period = filters?.period || 'all';
@@ -143,15 +150,8 @@ export async function fetchOverviewData(filters?: OverviewFilters) {
     ...xData
   ];
 
-  console.log("[OVERVIEW X CHECK]", {
-    rawX: x.posts?.length,
-    mappedX: xData?.length,
-    finalBaseX: baseData.filter(i => i.source === "x").length,
-    period
-  });
-
   return { noticias, instagram, x, baseData };
-}
+});
 
 /**
  * 2. KPIs EXECUTIVOS
@@ -269,8 +269,6 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
       posts: x.posts
     }
   };
-
-  console.log("[OVERVIEW CHANNELS CHECK]", channelDistribution);
 
   return channelDistribution;
 }
@@ -431,11 +429,15 @@ export async function getRiskOverview(filters?: OverviewFilters) {
 
 /**
  * 9. TENDÊNCIA
+ *
+ * Memoizada com React.cache(): é chamada tanto diretamente pela página
+ * quanto internamente por getOverviewKPIs(), ambas com o mesmo `filters`
+ * vindo da página — sem cache, isso executava a consulta 2x.
  */
-export async function getTrendOverview(filters?: OverviewFilters) {
+export const getTrendOverview = cache(async (filters?: OverviewFilters) => {
   const allData = await fetchOverviewData({ ...filters, period: 'all' });
   return calculateTrend(allData, filters?.period || 'all');
-}
+});
 
 /**
  * 10. MAPA DE AÇÃO (IA)

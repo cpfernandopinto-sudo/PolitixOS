@@ -40,14 +40,12 @@ export async function proxy(req: NextRequest) {
     if (isPublic) {
       return NextResponse.next();
     }
-    console.log(`[Middleware] Acesso negado a ${pathname}. Redirecionando para /login`);
     return NextResponse.redirect(new URL('/login', req.nextUrl));
   }
 
-  // ── Autenticado em rota pública (ex: /login) → redirecionar para dashboard
+  // ── Autenticado em rota pública (ex: /login) → redirecionar para a Visão Geral
   if (isPublic) {
-    console.log(`[Middleware] Usuário autenticado acessando rota pública ${pathname}. Redirecionando para dashboard.`);
-    return NextResponse.redirect(new URL('/dashboard/noticias', req.nextUrl));
+    return NextResponse.redirect(new URL('/dashboard/overview', req.nextUrl));
   }
 
   // ── Admin ignora todas as restrições ──────────────────────────────────────

@@ -6,8 +6,6 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Newspaper,
-  AlertTriangle,
-  Users,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -67,54 +65,60 @@ function InstagramChannelIcon({ size = 20, className = '' }: { size?: number; cl
   );
 }
 
-const NAV_ITEMS: NavItem[] = [
+// Agrupamento por seção. Apenas módulos com página real implementada entram
+// aqui — "Gestão de Crise" e "Apoiadores" foram removidos por não possuírem
+// rota funcional (levavam a 404).
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    href: '/dashboard/noticias',
-    label: 'Radar de Notícias',
-    screenKey: 'noticias',
-    icon: <Newspaper size={20} className="shrink-0" />,
+    label: 'Inteligência',
+    items: [
+      {
+        href: '/dashboard/noticias',
+        label: 'Radar de Notícias',
+        screenKey: 'noticias',
+        icon: <Newspaper size={20} className="shrink-0" />,
+      },
+      {
+        href: '/dashboard/instagram',
+        label: 'Radar Instagram',
+        screenKey: 'instagram',
+        icon: <InstagramChannelIcon size={20} />,
+      },
+      {
+        href: '/dashboard/x',
+        label: 'Radar X',
+        screenKey: 'x',
+        icon: <XChannelIcon size={20} />,
+      },
+      {
+        href: '/dashboard/investigacoes',
+        label: 'Investigações',
+        screenKey: 'investigacoes',
+        icon: <FileSearch size={20} className="shrink-0" />,
+      },
+      {
+        href: '/dashboard/candidatos',
+        label: 'Candidatos',
+        screenKey: 'candidatos',
+        icon: <UserPlus size={20} className="shrink-0" />,
+      },
+    ],
   },
   {
-    href: '/dashboard/instagram',
-    label: 'Radar Instagram',
-    screenKey: 'instagram',
-    icon: <InstagramChannelIcon size={20} />,
-  },
-  {
-    href: '/dashboard/x',
-    label: 'Radar X',
-    screenKey: 'x',
-    icon: <XChannelIcon size={20} />,
-  },
-  {
-    href: '/dashboard/candidatos',
-    label: 'Candidatos',
-    screenKey: 'candidatos',
-    icon: <UserPlus size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/automacoes',
-    label: 'Automação',
-    screenKey: 'automacoes',
-    icon: <Zap size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/investigacoes',
-    label: 'Investigações',
-    screenKey: 'investigacoes',
-    icon: <FileSearch size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/gestao-crise',
-    label: 'Gestão de Crise',
-    screenKey: 'gestao_crise',
-    icon: <AlertTriangle size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/apoiadores',
-    label: 'Apoiadores',
-    screenKey: 'apoiadores',
-    icon: <Users size={20} className="shrink-0" />,
+    label: 'Administração',
+    items: [
+      {
+        href: '/dashboard/automacoes',
+        label: 'Automação',
+        screenKey: 'automacoes',
+        icon: <Zap size={20} className="shrink-0" />,
+      },
+    ],
   },
 ];
 
@@ -183,40 +187,58 @@ export default function Sidebar({ permissions }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 px-4 space-y-2 mt-4 overflow-x-hidden overflow-y-auto">
-        {/* Visão Geral — só admin ou quem tem permissão dashboard */}
+        {/* PAINEL — Visão Geral, só admin ou quem tem permissão dashboard */}
         {(isAdmin || permissions.permissions.includes('dashboard')) && (
-          <Link
-            href="/dashboard/overview"
-            className={linkClass(pathname === '/dashboard' || pathname === '/dashboard/overview')}
-            title="Visão Geral"
-          >
-            <LayoutDashboard size={20} className="shrink-0" />
-            {!collapsed && <span className="font-medium whitespace-nowrap">Visão Geral</span>}
-          </Link>
+          <div className="space-y-2">
+            {!collapsed && (
+              <p className="px-3 text-[10px] font-bold text-gray-600 uppercase tracking-widest">Painel</p>
+            )}
+            <Link
+              href="/dashboard/overview"
+              className={linkClass(pathname === '/dashboard' || pathname === '/dashboard/overview')}
+              title="Visão Geral"
+            >
+              <LayoutDashboard size={20} className="shrink-0" />
+              {!collapsed && <span className="font-medium whitespace-nowrap">Visão Geral</span>}
+            </Link>
+          </div>
         )}
 
-        {NAV_ITEMS.filter(canSee).map((item) => (
-          <Link
-            key={item.screenKey}
-            href={item.href}
-            className={linkClass(isActive(item.href))}
-            title={item.label}
-          >
-            {item.icon}
-            {!collapsed && <span className="font-medium whitespace-nowrap">{item.label}</span>}
-          </Link>
-        ))}
+        {NAV_GROUPS.map((group) => {
+          const visibleItems = group.items.filter(canSee);
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={group.label} className="space-y-2 pt-3">
+              {!collapsed && (
+                <p className="px-3 text-[10px] font-bold text-gray-600 uppercase tracking-widest">{group.label}</p>
+              )}
+              {visibleItems.map((item) => (
+                <Link
+                  key={item.screenKey}
+                  href={item.href}
+                  className={linkClass(isActive(item.href))}
+                  title={item.label}
+                >
+                  {item.icon}
+                  {!collapsed && <span className="font-medium whitespace-nowrap">{item.label}</span>}
+                </Link>
+              ))}
+            </div>
+          );
+        })}
 
         {/* Usuários — apenas admin */}
         {isAdmin && (
-          <Link
-            href="/dashboard/usuarios"
-            className={linkClass(pathname.startsWith('/dashboard/usuarios'))}
-            title="Usuários"
-          >
-            <UserCog size={20} className="shrink-0" />
-            {!collapsed && <span className="font-medium whitespace-nowrap">Usuários</span>}
-          </Link>
+          <div className="space-y-2 pt-3">
+            <Link
+              href="/dashboard/usuarios"
+              className={linkClass(pathname.startsWith('/dashboard/usuarios'))}
+              title="Usuários"
+            >
+              <UserCog size={20} className="shrink-0" />
+              {!collapsed && <span className="font-medium whitespace-nowrap">Usuários</span>}
+            </Link>
+          </div>
         )}
       </nav>
 
