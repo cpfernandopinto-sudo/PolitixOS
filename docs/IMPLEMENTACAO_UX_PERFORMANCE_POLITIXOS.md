@@ -453,3 +453,47 @@ Cache por hash (sem chamada repetida para o mesmo contexto), rate limit de 10 ge
 - Explicação "por card" individual (Parte 12) não implementada como chamada separada — a leitura assistida única já cobre riscos/oportunidades/hipóteses interpretados de forma agregada, conforme a diretriz de evitar uma chamada de IA por card.
 - Validação com papéis restritos (`gestor`/`visualizador`) não realizada nesta sessão.
 - Branch ainda não integrada a `main` — ver relatório final para status de PR/deploy.
+
+# Sprint 5 — Executive Experience
+
+Ver `docs/AUDITORIA_VISUAL_SPRINT_5.md` (auditoria completa, 8 achados), `docs/DESIGN_SYSTEM_POLITIXOS.md` (tokens/hierarquia) e `docs/VALIDACAO_VISUAL_SPRINT_5.md` (comparação antes/depois com screenshots reais).
+
+## Diagnóstico
+
+Auditoria visual real (screenshots Playwright em 1600/1280/768/390px antes de qualquer alteração) confirmou 8 problemas, dos quais 3 críticos: (1) o card "Principal Risco" usava literalmente o título da notícia de origem como se fosse o nome do risco; (2) não existia nenhuma camada narrativa — a tela abria direto em 6 cards de peso visual idêntico; (3) a sidebar fixa consumia ~20% da largura útil em 390px, sem variante mobile.
+
+## Correções e novas capacidades
+
+1. **Risco separado de evidência** — `lib/analytics/risk-language.ts#formatExecutiveRisk` (nova, pura, testada) deriva a descrição executiva do risco a partir da REGRA disparada (`ALERT_RULES`), nunca do título da notícia/post. O título original passa a aparecer só como "Evidência principal", com link "Ver evidências". `deriveRisksFromAlerts` e `composeExecutiveSynthesis` (campo `principalRisco`) foram atualizados para usar essa função.
+2. **Narrativa executiva determinística** — `lib/analytics/executive-narrative.ts#buildExecutiveNarrative` (nova, pura, sem IA) monta 3 frases (estado geral, contexto/maior mudança, atenção prioritária) + ações reais de navegação (`Ver riscos`, `Ver mudanças`, `Filtrar <entidade>` quando há `targetId` real, `Ver evidências`). Renderizada por `components/dashboard/overview/ExecutiveNarrative.tsx`, sempre antes da síntese.
+3. **Hierarquia da primeira dobra** — `ExecutiveScenarioSummary` reorganizada em tiles primários (Estado Geral, Principal Risco — maiores, `text-lg font-bold`) e secundários (Oportunidade, Tema, Exposição, Mudança — menores); todo o bloco envolvido em `.surface-hero` (Nível 1) com o `PoliticalStatusCard` ao lado, mesma grade de antes.
+4. **Board de riscos menos "vermelho"** — `RiskOpportunityBoard` ganhou `SeverityCountStrip` (resumo "3 críticos · 1 alto" acima da lista) e badges com borda + texto em vez de preenchimento sólido, para não empilhar 3 badges vermelhos idênticos como única leitura possível.
+5. **Motivo de ausência de oportunidade** — `lib/analytics/executive-summary.ts#explainOpportunityAbsence` (nova, pura) avalia as 3 regras reais de `evaluateOpportunities` e retorna só os motivos que realmente falharam (nunca um motivo fabricado). Exibido no estado vazio de "Oportunidades Prioritárias".
+6. **Identidade visual de entidades** — `lib/ui/avatar.ts` (`getInitials`, `getAvatarColorClass`, determinísticos, sem busca externa). `AttentionEntitiesThemes` ganhou avatar + acento de borda vermelha para entidades com risco alto/crítico.
+7. **Timeline como feed** — `OverviewTimeline`: cada evento agora mostra severidade em texto (não só cor), entidade e tema; grupos (modo agrupado) mostram canais presentes, entidades associadas e acento de borda por severidade máxima (nunca todos os grupos visualmente idênticos).
+8. **Leitura Analítica Assistida — estados amigáveis** — estado "indisponível" reformulado (explica o benefício, confirma que o resto da tela funciona, nunca mostra `ANTHROPIC_API_KEY ausente` para usuário comum); detalhe técnico só para admin (`isAdmin` prop, nova), em área secundária. Estado "gerando" ganhou skeleton + "Organizando evidências e síntese". Novo estado "desatualizado" (client-side: compara os filtros usados na última geração com os atuais) com aviso e botão "Atualizar".
+9. **Mobile: sidebar deixa de ocupar largura fixa** — `Sidebar.tsx` agora renderiza a `<aside>` fixa só em `lg:` e acima (`hidden lg:flex`); abaixo disso, um overlay acessível (Esc, backdrop, fecha ao navegar) é aberto pelo novo `HeaderMenuButton`, coordenado via `MobileSidebarContext` (novo, necessário porque `Header`/`Sidebar` são componentes irmãos renderizados por um Server Component). `app/dashboard/layout.tsx` reduz o padding do `<main>` em mobile (`p-4` → `p-8` progressivo).
+10. **Design tokens** — cores semânticas (`--color-severity-*`, `--color-opportunity`, etc.) e utilitários de superfície (`surface-hero`/`surface-primary`/`surface-muted`) em `app/globals.css`, documentados em `docs/DESIGN_SYSTEM_POLITIXOS.md`.
+
+## Arquivos criados
+
+- `lib/analytics/risk-language.ts`, `lib/analytics/risk-language.test.ts`
+- `lib/analytics/executive-narrative.ts`, `lib/analytics/executive-narrative.test.ts`
+- `lib/ui/avatar.ts`, `lib/ui/avatar.test.ts`
+- `components/dashboard/overview/ExecutiveNarrative.tsx`
+- `components/dashboard/overview/AttentionEntitiesThemes.test.tsx`
+- `components/MobileSidebarContext.tsx`, `components/HeaderMenuButton.tsx`
+- `components/Sidebar.test.tsx`
+- `docs/AUDITORIA_VISUAL_SPRINT_5.md`, `docs/DESIGN_SYSTEM_POLITIXOS.md`, `docs/VALIDACAO_VISUAL_SPRINT_5.md`
+
+## Arquivos modificados
+
+`lib/analytics/executive-summary.ts` (`deriveRisksFromAlerts`, `principalRisco`, `explainOpportunityAbsence`), `lib/queries/overview.ts` (`opportunityAbsenceReasons` no retorno de `getExecutiveOverviewData`), `components/dashboard/overview/{ExecutiveScenarioSummary,RiskOpportunityBoard,AttentionEntitiesThemes,OverviewTimeline,AssistedInsight}.tsx`, `components/{Sidebar,Header}.tsx`, `app/dashboard/layout.tsx`, `app/dashboard/overview/page.tsx`, `app/globals.css`.
+
+## Performance
+
+Nenhuma consulta nova — todos os dados novos (narrativa, motivo de ausência de oportunidade) são derivados de campos já retornados por `getExecutiveOverviewData` (cacheada). Nenhuma biblioteca de animação adicionada. `AssistedInsight` ganhou um `useEffect`-free comparador de estado local (client-side) para o aviso de "desatualizado" — sem chamada de rede adicional.
+
+## Testes (Sprint 5)
+
+Ver contagem final e resultado no relatório final da sessão — testes novos cobrem: `formatExecutiveRisk` (nunca usa título como headline), `buildExecutiveNarrative` (determinístico, nunca fabrica ação), `explainOpportunityAbsence` (só os 3 motivos reais), `getInitials`/`getAvatarColorClass` (determinísticos), `AttentionEntitiesThemes` (avatar, ação "Filtrar" só com `targetId` real), `Sidebar`/overlay mobile (abre, fecha com Esc, fecha ao navegar, aside desktop oculta em mobile via classe), `AssistedInsight` (estado "gerando", detalhe técnico só para admin, estado "desatualizado").

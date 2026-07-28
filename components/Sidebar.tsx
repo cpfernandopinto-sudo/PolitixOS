@@ -14,7 +14,9 @@ import {
   UserCog,
   FileSearch,
   AlertTriangle,
+  X,
 } from 'lucide-react';
+import { useMobileSidebar } from '@/components/MobileSidebarContext';
 
 export interface SidebarPermissions {
   role: string;
@@ -133,23 +135,19 @@ interface Props {
   permissions: SidebarPermissions;
 }
 
-export default function Sidebar({ permissions }: Props) {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(true);
-  const [mounted, setMounted] = useState(false);
+interface NavListProps {
+  permissions: SidebarPermissions;
+  pathname: string;
+  collapsed: boolean;
+  onNavigate?: () => void;
+}
 
-  useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem('politixos_sidebar_collapsed');
-    setCollapsed(stored === null ? true : stored === 'true');
-  }, []);
-
-  const toggleSidebar = () => {
-    const newVal = !collapsed;
-    setCollapsed(newVal);
-    localStorage.setItem('politixos_sidebar_collapsed', String(newVal));
-  };
-
+/**
+ * Lista de navegação compartilhada entre a sidebar fixa (desktop, `lg:` e
+ * acima) e o overlay mobile — evita duplicar a árvore de itens/permissões
+ * em dois lugares.
+ */
+function SidebarNavList({ permissions, pathname, collapsed, onNavigate }: NavListProps) {
   const isAdmin = permissions.role === 'admin';
 
   const canSee = (item: NavItem) => {
@@ -166,35 +164,9 @@ export default function Sidebar({ permissions }: Props) {
       : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
     } ${collapsed ? 'justify-center' : ''}`;
 
-  if (!mounted) return null;
-
   return (
-    <aside
-      className={`${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#0D0D0D] border-r border-white/5 flex flex-col z-50 transition-all duration-300`}
-    >
-      {/* Logo */}
-      <div className={`p-6 flex items-center min-h-[80px] ${collapsed ? 'justify-center' : 'justify-start'}`}>
-        <img
-          src="/brand/PolitixOS.png"
-          alt="PolitixOS"
-          className={`${collapsed ? 'w-10' : 'w-full max-w-[160px]'} h-auto object-contain`}
-        />
-      </div>
-
-      {/* Toggle */}
-      <div className={`px-4 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
-        <button
-          onClick={toggleSidebar}
-          className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-      </div>
-
-      {/* Nav */}
+    <>
       <nav className="flex-1 px-4 space-y-2 mt-4 overflow-x-hidden overflow-y-auto">
-        {/* PAINEL — Visão Geral, só admin ou quem tem permissão dashboard */}
         {(isAdmin || permissions.permissions.includes('dashboard')) && (
           <div className="space-y-2">
             {!collapsed && (
@@ -204,6 +176,7 @@ export default function Sidebar({ permissions }: Props) {
               href="/dashboard/overview"
               className={linkClass(pathname === '/dashboard' || pathname === '/dashboard/overview')}
               title="Visão Geral"
+              onClick={onNavigate}
             >
               <LayoutDashboard size={20} className="shrink-0" />
               {!collapsed && <span className="font-medium whitespace-nowrap">Visão Geral</span>}
@@ -225,6 +198,7 @@ export default function Sidebar({ permissions }: Props) {
                   href={item.href}
                   className={linkClass(isActive(item.href))}
                   title={item.label}
+                  onClick={onNavigate}
                 >
                   {item.icon}
                   {!collapsed && <span className="font-medium whitespace-nowrap">{item.label}</span>}
@@ -234,13 +208,13 @@ export default function Sidebar({ permissions }: Props) {
           );
         })}
 
-        {/* Usuários — apenas admin */}
         {isAdmin && (
           <div className="space-y-2 pt-3">
             <Link
               href="/dashboard/usuarios"
               className={linkClass(pathname.startsWith('/dashboard/usuarios'))}
               title="Usuários"
+              onClick={onNavigate}
             >
               <UserCog size={20} className="shrink-0" />
               {!collapsed && <span className="font-medium whitespace-nowrap">Usuários</span>}
@@ -249,7 +223,6 @@ export default function Sidebar({ permissions }: Props) {
         )}
       </nav>
 
-      {/* Footer */}
       <div className="p-4 border-t border-white/5 space-y-2">
         {(isAdmin || permissions.permissions.includes('configuracoes')) && (
           <button
@@ -261,6 +234,105 @@ export default function Sidebar({ permissions }: Props) {
           </button>
         )}
       </div>
-    </aside>
+    </>
+  );
+}
+
+export default function Sidebar({ permissions }: Props) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const { open: mobileOpen, setOpen: setMobileOpen } = useMobileSidebar();
+
+  useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem('politixos_sidebar_collapsed');
+    setCollapsed(stored === null ? true : stored === 'true');
+  }, []);
+
+  // Fecha o overlay mobile com Esc e ao trocar de rota.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMobileOpen(false);
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen, setMobileOpen]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const toggleSidebar = () => {
+    const newVal = !collapsed;
+    setCollapsed(newVal);
+    localStorage.setItem('politixos_sidebar_collapsed', String(newVal));
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <>
+      {/* Desktop (lg e acima): sidebar fixa, recolhível, mesmo comportamento
+          de sempre. Abaixo de lg ela NUNCA ocupa espaço fixo — ver overlay
+          mobile abaixo (docs/AUDITORIA_VISUAL_SPRINT_5.md, achado #7). */}
+      <aside
+        className={`hidden lg:flex ${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#0D0D0D] border-r border-white/5 flex-col z-50 transition-all duration-300`}
+      >
+        <div className={`p-6 flex items-center min-h-[80px] ${collapsed ? 'justify-center' : 'justify-start'}`}>
+          <img
+            src="/brand/PolitixOS.png"
+            alt="PolitixOS"
+            className={`${collapsed ? 'w-10' : 'w-full max-w-[160px]'} h-auto object-contain`}
+          />
+        </div>
+
+        <div className={`px-4 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
+          <button
+            onClick={toggleSidebar}
+            className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
+        </div>
+
+        <SidebarNavList permissions={permissions} pathname={pathname} collapsed={collapsed} />
+      </aside>
+
+      {/* Mobile (< lg): overlay acionado pelo botão de menu no cabeçalho
+          (components/HeaderMenuButton.tsx via MobileSidebarContext). Nunca
+          reduz a largura do conteúdo principal quando fechado. */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-[200] flex" role="presentation">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu de navegação"
+            className="relative h-full w-[280px] max-w-[80vw] bg-[#0D0D0D] border-r border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200"
+          >
+            <div className="p-6 flex items-center justify-between min-h-[80px]">
+              <img src="/brand/PolitixOS.png" alt="PolitixOS" className="w-full max-w-[140px] h-auto object-contain" />
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Fechar menu"
+                className="shrink-0 p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <SidebarNavList permissions={permissions} pathname={pathname} collapsed={false} onNavigate={() => setMobileOpen(false)} />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

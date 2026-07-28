@@ -3,46 +3,71 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Users, Flame, Filter } from 'lucide-react';
 import type { EntityRankItem, ThemeRankItem } from '@/lib/analytics/executive-summary';
+import { getInitials, getAvatarColorClass } from '@/lib/ui/avatar';
 
 interface Props {
   entities: EntityRankItem[];
   themes: ThemeRankItem[];
 }
 
+const HIGH_RISK = new Set(['alto', 'critico']);
+
 function EntityCard({ entity, onFilter }: { entity: EntityRankItem; onFilter: (targetId: string) => void }) {
+  const highRisk = entity.riscoPredominante ? HIGH_RISK.has(entity.riscoPredominante.toLowerCase()) : false;
+
   return (
-    <div className="bg-white/[0.03] border border-white/5 rounded-lg p-4 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-white truncate">{entity.nome}</span>
-        {entity.targetId && (
-          <button
-            type="button"
-            onClick={() => onFilter(entity.targetId!)}
-            className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider"
-          >
-            <Filter size={10} /> Filtrar
-          </button>
-        )}
+    <div
+      className={`bg-white/[0.03] border rounded-lg p-4 flex items-start gap-3 ${
+        highRisk ? 'border-red-500/30 border-l-2 border-l-red-500' : 'border-white/5'
+      }`}
+    >
+      <div
+        className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${getAvatarColorClass(entity.nome)}`}
+        aria-hidden="true"
+      >
+        {getInitials(entity.nome)}
       </div>
-      <div className="flex items-center gap-3 text-[10px] text-gray-500 flex-wrap">
-        <span>{entity.volume} menções</span>
-        {entity.sentimentoPredominante && <span>Sentimento: {entity.sentimentoPredominante}</span>}
-        {entity.riscoPredominante && <span>Risco: {entity.riscoPredominante}</span>}
-        {entity.alertas > 0 && <span className="text-red-400 font-bold">{entity.alertas} alerta(s)</span>}
+
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-white truncate">{entity.nome}</span>
+          {entity.targetId && (
+            <button
+              type="button"
+              onClick={() => onFilter(entity.targetId!)}
+              className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider"
+            >
+              <Filter size={10} /> Filtrar
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-[10px] text-gray-500 flex-wrap">
+          <span>{entity.volume} menções</span>
+          {entity.sentimentoPredominante && <span>Sentimento: {entity.sentimentoPredominante}</span>}
+          {entity.riscoPredominante && (
+            <span className={highRisk ? 'text-red-400 font-bold' : ''}>Risco: {entity.riscoPredominante}</span>
+          )}
+          {entity.alertas > 0 && <span className="text-red-400 font-bold">{entity.alertas} alerta(s)</span>}
+        </div>
+        {entity.temaPrincipal && <p className="text-[10px] text-gray-600">Tema principal: {entity.temaPrincipal}</p>}
       </div>
-      {entity.temaPrincipal && <p className="text-[10px] text-gray-600">Tema principal: {entity.temaPrincipal}</p>}
     </div>
   );
 }
 
 function ThemeCard({ theme }: { theme: ThemeRankItem }) {
   const sentimentLabel = theme.sentimento > 0.2 ? 'positivo' : theme.sentimento < -0.2 ? 'negativo' : 'neutro';
+  const sentimentColor =
+    sentimentLabel === 'positivo' ? 'text-teal-400' : sentimentLabel === 'negativo' ? 'text-red-400' : 'text-gray-400';
+
   return (
     <div className="bg-white/[0.03] border border-white/5 rounded-lg p-4 space-y-2">
-      <span className="text-sm font-semibold text-white truncate block">{theme.tema}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-white truncate">{theme.tema}</span>
+        <span className={`text-[10px] font-bold uppercase tracking-wider ${sentimentColor}`}>{sentimentLabel}</span>
+      </div>
       <div className="flex items-center gap-3 text-[10px] text-gray-500">
         <span>{theme.frequencia} menções</span>
-        <span>Sentimento: {sentimentLabel}</span>
       </div>
     </div>
   );
@@ -52,6 +77,11 @@ function ThemeCard({ theme }: { theme: ThemeRankItem }) {
  * Entidades e temas em atenção — dois painéis lado a lado (empilhados em
  * mobile), calculados sem consulta nova (ver rankEntities/rankThemes em
  * lib/analytics/executive-summary.ts).
+ *
+ * Sprint 5: identidade visual por entidade (avatar de iniciais,
+ * determinístico — nunca busca foto externa) e acento visual para entidades
+ * com risco alto/crítico, para não parecer uma tabela HTML comum
+ * (ver docs/AUDITORIA_VISUAL_SPRINT_5.md, achado #4).
  */
 export default function AttentionEntitiesThemes({ entities, themes }: Props) {
   const router = useRouter();

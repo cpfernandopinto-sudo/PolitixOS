@@ -15,6 +15,7 @@ import {
   computeSentimentShares,
   deriveRisksFromAlerts,
   evaluateOpportunities,
+  explainOpportunityAbsence,
   selectKeyChanges,
   rankEntities,
   rankThemes,
@@ -802,11 +803,22 @@ export const getExecutiveOverviewData = cache(async (filters?: OverviewFilters) 
   const themes = rankThemes(topics);
   const risks = deriveRisksFromAlerts(alerts, 10);
   const opportunities = evaluateOpportunities(currentShares, previousShares, entities, 10);
+  const opportunityAbsenceReasons = opportunities.length === 0 ? explainOpportunityAbsence(currentShares, previousShares, entities) : [];
   const keyChanges = selectKeyChanges(currentShares, previousShares, volumeTotal > 0 ? { direcao: trend.direção, variacaoPercentual: trend.variação } : null);
 
   const synthesis = composeExecutiveSynthesis({ politicalStatus, risks, opportunities, themes, entities, keyChanges });
 
-  return { politicalStatus, risks, opportunities, keyChanges, entities, themes, synthesis, alertCounts: { critico: criticalAlertCount, alto: highAlertCount } };
+  return {
+    politicalStatus,
+    risks,
+    opportunities,
+    opportunityAbsenceReasons,
+    keyChanges,
+    entities,
+    themes,
+    synthesis,
+    alertCounts: { critico: criticalAlertCount, alto: highAlertCount },
+  };
 });
 
 /**

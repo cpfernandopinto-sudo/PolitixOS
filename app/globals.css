@@ -10,6 +10,20 @@
   --color-success: #22C55E;
   --color-warning: #FACC15;
 
+  /* Cores semânticas (Sprint 5) — ver docs/DESIGN_SYSTEM_POLITIXOS.md.
+     Cor nunca é o único indicador: sempre combinada com ícone, rótulo e
+     estrutura (ex.: badge com texto + borda, nunca apenas uma área pintada). */
+  --color-severity-critical: #F87171;
+  --color-severity-high: #FB923C;
+  --color-severity-attention: #FACC15;
+  --color-severity-stable: #22C55E;
+  /* Oportunidade usa um matiz distinto (teal) de "estável" (verde), para não
+     confundir "ausência de risco" com "sinal ativo de oportunidade". */
+  --color-opportunity: #2DD4BF;
+  --color-info: #38BDF8;
+  --color-neutral: #9CA3AF;
+  --color-unavailable: #6B7280;
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
@@ -40,6 +54,47 @@ body {
 
 @utility glow-danger {
   box-shadow: 0 0 15px rgba(255, 59, 59, 0.2);
+}
+
+/* Hierarquia de superfícies (Sprint 5, Nível 1/2/3) — ver
+   docs/DESIGN_SYSTEM_POLITIXOS.md. Reutilizar em vez de repetir os mesmos
+   valores de bg/border/radius em cada componente novo. */
+
+/* Nível 1 — Hero executivo: narrativa, estado político, risco crítico. */
+@utility surface-hero {
+  background-color: #161B22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.875rem;
+}
+
+/* Nível 2 — Informação principal: mudanças, oportunidades, entidades, temas. */
+@utility surface-primary {
+  background-color: #1A1A1A;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+}
+
+/* Nível 3 — Análise complementar: menor contraste, leitura sob demanda. */
+@utility surface-muted {
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+/* Rótulos curtos em uppercase (nunca parágrafos longos em uppercase). */
+@utility text-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6B7280;
+}
+
+/* Frase de narrativa executiva — maior respiro que texto de corpo comum. */
+@utility text-narrative {
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 68ch;
 }
 
 /* Custom Scrollbar for dark theme */

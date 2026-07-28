@@ -5,6 +5,7 @@ import {
   deriveRisksFromAlerts,
   selectPrimaryRisk,
   evaluateOpportunities,
+  explainOpportunityAbsence,
   selectPrimaryOpportunity,
   selectKeyChanges,
   rankEntities,
@@ -170,6 +171,32 @@ describe('evaluateOpportunities', () => {
 
   it('selectPrimaryOpportunity retorna null quando não há oportunidades', () => {
     expect(selectPrimaryOpportunity([])).toBeNull();
+  });
+});
+
+describe('explainOpportunityAbsence', () => {
+  it('explica falta de período anterior comparável', () => {
+    const reasons = explainOpportunityAbsence({ total: 10, positivoCount: 5, negativoCount: 5, positivoShare: 0.5, negativoShare: 0.5 }, null, []);
+    expect(reasons.some((r) => r.includes('período anterior comparável'))).toBe(true);
+  });
+
+  it('explica ausência de melhora de sentimento quando há período anterior mas sem variação relevante', () => {
+    const current = { total: 10, positivoCount: 5, negativoCount: 5, positivoShare: 0.5, negativoShare: 0.5 };
+    const previous = { total: 10, positivoCount: 5, negativoCount: 5, positivoShare: 0.5, negativoShare: 0.5 };
+    const reasons = explainOpportunityAbsence(current, previous, []);
+    expect(reasons.some((r) => r.includes('melhora relevante de sentimento'))).toBe(true);
+    expect(reasons.some((r) => r.includes('crescimento relevante de sentimento positivo'))).toBe(true);
+  });
+
+  it('explica que nenhuma entidade top-3 está livre de risco/alertas', () => {
+    const withRisk: EntityRankItem[] = [{ nome: 'A', volume: 10, sentimentoPredominante: null, riscoPredominante: 'alto', alertas: 1, temaPrincipal: null, targetId: null }];
+    const reasons = explainOpportunityAbsence({ total: 0, positivoCount: 0, negativoCount: 0, positivoShare: 0, negativoShare: 0 }, null, withRisk);
+    expect(reasons.some((r) => r.includes('livre de alertas ou risco'))).toBe(true);
+  });
+
+  it('nunca inventa um motivo fora das 3 regras conhecidas (no máx. 3 motivos)', () => {
+    const reasons = explainOpportunityAbsence({ total: 0, positivoCount: 0, negativoCount: 0, positivoShare: 0, negativoShare: 0 }, null, []);
+    expect(reasons.length).toBeLessThanOrEqual(2);
   });
 });
 

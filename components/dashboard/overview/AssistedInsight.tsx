@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import {
   Sparkles, Loader2, RefreshCw, Copy, Check, AlertTriangle, ShieldQuestion,
-  TrendingUp, HelpCircle, Info,
+  TrendingUp, HelpCircle, Info, Clock,
 } from 'lucide-react';
 import { generateExecutiveInsight } from '@/lib/actions/analytics-insight';
 import type { AssistedInsightResult } from '@/lib/ai/analytics-schema';
@@ -11,6 +11,8 @@ import type { AssistedInsightResult } from '@/lib/ai/analytics-schema';
 interface Props {
   candidate: string | null;
   period: string | null;
+  /** Detalhe técnico (ex.: variável de ambiente ausente) só aparece para admin, em área secundária — nunca para usuários comuns. */
+  isAdmin?: boolean;
 }
 
 const CONFIDENCE_LABEL: Record<'baixa' | 'media' | 'alta', string> = {
@@ -37,26 +39,44 @@ function EvidenceChips({ ids }: { ids: string[] }) {
   );
 }
 
+function SkeletonLines() {
+  return (
+    <div className="space-y-2.5 w-full max-w-md" aria-hidden="true">
+      <div className="h-3 rounded bg-white/5 animate-pulse w-full" />
+      <div className="h-3 rounded bg-white/5 animate-pulse w-11/12" />
+      <div className="h-3 rounded bg-white/5 animate-pulse w-4/5" />
+    </div>
+  );
+}
+
 /**
- * Leitura Analítica Assistida (Sprint 4) — bloco de IA sob demanda,
+ * Leitura Analítica Assistida (Sprint 4/5) — bloco de IA sob demanda,
  * posicionado DEPOIS da síntese determinística (nunca antes). Nunca chama
  * o modelo automaticamente: só ao clicar em "Gerar leitura analítica".
  * A metodologia determinística continua sendo a fonte primária — este
  * bloco apenas explica, nunca substitui, os cálculos de
  * lib/analytics/executive-summary.ts.
+ *
+ * Sprint 5: estados mais amigáveis — "indisponível" explica o benefício em
+ * vez de parecer um erro técnico (detalhe técnico só para admin), "gerando"
+ * usa skeleton + mensagem de progresso, e um aviso de "desatualizado"
+ * aparece quando os filtros mudam depois de uma geração já concluída.
  */
-export default function AssistedInsight({ candidate, period }: Props) {
+export default function AssistedInsight({ candidate, period, isAdmin = false }: Props) {
   const [result, setResult] = useState<AssistedInsightResult | null>(null);
+  const [generatedFor, setGeneratedFor] = useState<{ candidate: string | null; period: string | null } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showLimitationsInfo, setShowLimitationsInfo] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const status = isPending ? 'gerando' : result?.status ?? 'nao_gerado';
+  const isStale = status === 'disponivel' && generatedFor !== null && (generatedFor.candidate !== candidate || generatedFor.period !== period);
 
   const handleGenerate = (forceRefresh = false) => {
     startTransition(async () => {
       const res = await generateExecutiveInsight({ candidate, period, forceRefresh });
       setResult(res);
+      setGeneratedFor({ candidate, period });
     });
   };
 
@@ -105,6 +125,21 @@ export default function AssistedInsight({ candidate, period }: Props) {
         </div>
       )}
 
+      {isStale && status === 'disponivel' && (
+        <div className="mb-4 flex items-center justify-between gap-3 flex-wrap bg-amber-500/5 border border-amber-500/20 rounded-lg px-4 py-2.5">
+          <span className="flex items-center gap-2 text-xs text-amber-300">
+            <Clock size={13} /> Os filtros mudaram desde a última geração — esta leitura pode estar desatualizada.
+          </span>
+          <button
+            type="button"
+            onClick={() => handleGenerate(true)}
+            className="flex items-center gap-1.5 text-[10px] font-bold text-amber-300 hover:text-amber-200 uppercase tracking-wider"
+          >
+            <RefreshCw size={11} /> Atualizar
+          </button>
+        </div>
+      )}
+
       {status === 'nao_gerado' && (
         <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
           <p className="text-sm text-gray-500">Nenhuma leitura gerada para este período e filtros ainda.</p>
@@ -119,9 +154,12 @@ export default function AssistedInsight({ candidate, period }: Props) {
       )}
 
       {status === 'gerando' && (
-        <div className="flex flex-col items-center justify-center py-10 gap-3 text-gray-400">
-          <Loader2 size={22} className="animate-spin text-cyan-400" />
-          <p className="text-sm">Gerando leitura analítica…</p>
+        <div className="flex flex-col items-center justify-center py-10 gap-4 text-gray-400">
+          <div className="flex items-center gap-2">
+            <Loader2 size={18} className="animate-spin text-cyan-400" />
+            <p className="text-sm">Organizando evidências e síntese…</p>
+          </div>
+          <SkeletonLines />
         </div>
       )}
 
@@ -133,18 +171,26 @@ export default function AssistedInsight({ candidate, period }: Props) {
       )}
 
       {status === 'indisponivel' && (
-        <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-gray-500">
-          <AlertTriangle size={22} className="text-yellow-500" />
-          <p className="text-sm">Leitura analítica assistida indisponível neste ambiente.</p>
-          {result?.error && <p className="text-xs text-gray-600">{result.error}</p>}
-          <p className="text-xs text-gray-600">A Visão Geral determinística acima continua completa e funcional.</p>
+        <div className="flex flex-col items-center justify-center py-10 gap-2 text-center max-w-md mx-auto">
+          <Sparkles size={22} className="text-gray-600" />
+          <p className="text-sm text-gray-300 font-medium">Leitura analítica assistida ainda não está configurada neste ambiente.</p>
+          <p className="text-xs text-gray-500">
+            Quando ativada, esta função organiza os riscos, oportunidades e mudanças já calculados acima em um resumo executivo com hipóteses e limitações claras — sem substituir a metodologia determinística.
+          </p>
+          <p className="text-xs text-gray-600 mt-1">O restante da Visão Geral continua funcionando normalmente.</p>
+          {isAdmin && result?.error && (
+            <div className="mt-3 w-full text-left bg-white/5 border border-white/10 rounded-lg p-3">
+              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Detalhe técnico (visível só para admin)</p>
+              <p className="text-[11px] font-mono text-gray-400 break-words">{result.error}</p>
+            </div>
+          )}
         </div>
       )}
 
       {status === 'erro' && (
-        <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+        <div className="flex flex-col items-center justify-center py-10 gap-3 text-center max-w-md mx-auto">
           <AlertTriangle size={22} className="text-red-500" />
-          <p className="text-sm text-gray-400">{result?.error || 'Não foi possível gerar a leitura analítica.'}</p>
+          <p className="text-sm text-gray-400">Não foi possível gerar a leitura analítica agora.</p>
           <button
             type="button"
             onClick={() => handleGenerate(true)}
@@ -152,6 +198,12 @@ export default function AssistedInsight({ candidate, period }: Props) {
           >
             <RefreshCw size={12} /> Tentar novamente
           </button>
+          {isAdmin && result?.error && (
+            <div className="mt-2 w-full text-left bg-white/5 border border-white/10 rounded-lg p-3">
+              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Detalhe técnico (visível só para admin)</p>
+              <p className="text-[11px] font-mono text-gray-400 break-words">{result.error}</p>
+            </div>
+          )}
         </div>
       )}
 

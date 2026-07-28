@@ -62,7 +62,19 @@ describe('AssistedInsight', () => {
     expect(screen.getByText('Gerado por IA com base em dados monitorados')).toBeInTheDocument();
   });
 
-  it('estado de erro: mostra mensagem e botão de tentar novamente', async () => {
+  it('estado "gerando": mostra progresso discreto em vez de travar a tela', async () => {
+    let resolvePromise: (value: AssistedInsightResult) => void = () => {};
+    mockGenerate.mockReturnValueOnce(new Promise((resolve) => { resolvePromise = resolve; }));
+    render(<AssistedInsight candidate={null} period="all" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    expect(await screen.findByText(/Organizando evidências e síntese/)).toBeInTheDocument();
+
+    resolvePromise(availableResult());
+    await waitFor(() => expect(screen.getByText('Resumo do período monitorado.')).toBeInTheDocument());
+  });
+
+  it('estado de erro: mensagem amigável e botão de tentar novamente, sem detalhe técnico para usuário comum', async () => {
     mockGenerate.mockResolvedValueOnce({
       status: 'erro',
       output: null,
@@ -71,17 +83,18 @@ describe('AssistedInsight', () => {
       model: null,
       promptVersion: 'v1',
       methodologyVersion: 'v1',
-      error: 'Falha ao gerar a leitura analítica.',
+      error: 'timeout: ETIMEDOUT ao chamar o provedor',
     } satisfies AssistedInsightResult);
 
     render(<AssistedInsight candidate={null} period="all" />);
     fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
 
-    await waitFor(() => expect(screen.getByText('Falha ao gerar a leitura analítica.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Não foi possível gerar a leitura analítica agora.')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /Tentar novamente/ })).toBeInTheDocument();
+    expect(screen.queryByText(/ETIMEDOUT/)).not.toBeInTheDocument();
   });
 
-  it('estado indisponível: mostra mensagem clara sem quebrar a tela', async () => {
+  it('estado indisponível: explica o benefício, confirma que o resto funciona, e não expõe detalhe técnico para usuário comum', async () => {
     mockGenerate.mockResolvedValueOnce({
       status: 'indisponivel',
       output: null,
@@ -96,7 +109,39 @@ describe('AssistedInsight', () => {
     render(<AssistedInsight candidate={null} period="all" />);
     fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
 
-    await waitFor(() => expect(screen.getByText(/indisponível neste ambiente/)).toBeInTheDocument());
-    expect(screen.getByText(/A Visão Geral determinística acima continua completa/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/ainda não está configurada neste ambiente/)).toBeInTheDocument());
+    expect(screen.getByText(/O restante da Visão Geral continua funcionando normalmente/)).toBeInTheDocument();
+    expect(screen.queryByText(/ANTHROPIC_API_KEY/)).not.toBeInTheDocument();
+  });
+
+  it('estado indisponível para admin: mostra o detalhe técnico em área secundária', async () => {
+    mockGenerate.mockResolvedValueOnce({
+      status: 'indisponivel',
+      output: null,
+      contextHash: 'h',
+      generatedAt: null,
+      model: null,
+      promptVersion: 'v1',
+      methodologyVersion: 'v1',
+      error: 'Provedor de IA não configurado neste ambiente (ANTHROPIC_API_KEY ausente).',
+    } satisfies AssistedInsightResult);
+
+    render(<AssistedInsight candidate={null} period="all" isAdmin />);
+    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+
+    await waitFor(() => expect(screen.getByText(/ANTHROPIC_API_KEY/)).toBeInTheDocument());
+    expect(screen.getByText(/visível só para admin/)).toBeInTheDocument();
+  });
+
+  it('estado "desatualizado": avisa e permite atualizar quando os filtros mudam após uma geração', async () => {
+    mockGenerate.mockResolvedValueOnce(availableResult());
+    const { rerender } = render(<AssistedInsight candidate={null} period="all" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    await waitFor(() => expect(screen.getByText('Resumo do período monitorado.')).toBeInTheDocument());
+
+    rerender(<AssistedInsight candidate="target-1" period="all" />);
+    expect(screen.getByText(/pode estar desatualizada/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Atualizar$/ })).toBeInTheDocument();
   });
 });

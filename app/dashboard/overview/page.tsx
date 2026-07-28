@@ -19,6 +19,8 @@ import RiskOpportunityBoard from '@/components/dashboard/overview/RiskOpportunit
 import KeyChanges from '@/components/dashboard/overview/KeyChanges';
 import AttentionEntitiesThemes from '@/components/dashboard/overview/AttentionEntitiesThemes';
 import AssistedInsight from '@/components/dashboard/overview/AssistedInsight';
+import ExecutiveNarrative from '@/components/dashboard/overview/ExecutiveNarrative';
+import { buildExecutiveNarrative } from '@/lib/analytics/executive-narrative';
 import {
   getOverviewKPIs,
   getCrisisOverview,
@@ -45,9 +47,27 @@ export const metadata = {
 // React.cache() — mesma referência de `filters`, portanto uma única
 // execução real por requisição, mesmo com vários blocos independentes.
 
+async function NarrativeSection({ filters }: { filters: OverviewFilters }) {
+  const { politicalStatus, risks, opportunities, keyChanges, entities, themes } = await getExecutiveOverviewData(filters);
+  const narrative = buildExecutiveNarrative({
+    politicalStatus,
+    primaryRisk: risks[0] ?? null,
+    primaryOpportunity: opportunities[0] ?? null,
+    keyChanges,
+    topEntity: entities[0] ?? null,
+    topTheme: themes[0] ?? null,
+  });
+  return <ExecutiveNarrative narrative={narrative} />;
+}
+
 async function SynthesisSection({ filters }: { filters: OverviewFilters }) {
   const { synthesis } = await getExecutiveOverviewData(filters);
-  return <ExecutiveScenarioSummary synthesis={synthesis} />;
+  return (
+    <div className="surface-hero p-6 h-full">
+      <h2 className="text-white font-bold text-lg tracking-tight mb-4">Síntese do Cenário</h2>
+      <ExecutiveScenarioSummary synthesis={synthesis} />
+    </div>
+  );
 }
 
 async function PoliticalStatusSection({ filters }: { filters: OverviewFilters }) {
@@ -56,8 +76,8 @@ async function PoliticalStatusSection({ filters }: { filters: OverviewFilters })
 }
 
 async function RiskOpportunitySection({ filters }: { filters: OverviewFilters }) {
-  const { risks, opportunities } = await getExecutiveOverviewData(filters);
-  return <RiskOpportunityBoard risks={risks} opportunities={opportunities} />;
+  const { risks, opportunities, opportunityAbsenceReasons } = await getExecutiveOverviewData(filters);
+  return <RiskOpportunityBoard risks={risks} opportunities={opportunities} opportunityAbsenceReasons={opportunityAbsenceReasons} />;
 }
 
 async function KeyChangesSection({ filters }: { filters: OverviewFilters }) {
@@ -160,6 +180,13 @@ export default async function OverviewPage(props: {
         generatedAt={generatedAt}
       />
 
+      {/* 1.5. Narrativa executiva — determinística, sem IA (Sprint 5). Sempre
+          antes da síntese, resume o que aconteceu, por que merece atenção e
+          onde clicar a seguir. */}
+      <SectionBoundary label="Narrativa executiva" fallback={<BlockSkeleton height={120} />} minHeight={120}>
+        <NarrativeSection filters={filters} />
+      </SectionBoundary>
+
       {/* 2-3. Síntese do cenário + Estado político (lado a lado em desktop) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         <div className="lg:col-span-2">
@@ -177,7 +204,7 @@ export default async function OverviewPage(props: {
       {/* Leitura Analítica Assistida (Sprint 4) — sempre DEPOIS da síntese
           determinística acima, nunca antes. Não busca dados no mount (só ao
           clicar "Gerar leitura analítica") — não é um Server Component. */}
-      <AssistedInsight candidate={filters.candidate ?? null} period={filters.period ?? 'all'} />
+      <AssistedInsight candidate={filters.candidate ?? null} period={filters.period ?? 'all'} isAdmin={session.role === 'admin'} />
 
       {/* 4. Riscos e oportunidades prioritários */}
       <SectionBoundary label="Riscos e oportunidades" fallback={<BlockSkeleton height={320} />} minHeight={320}>
@@ -185,9 +212,11 @@ export default async function OverviewPage(props: {
       </SectionBoundary>
 
       {/* 5. Mudanças mais relevantes */}
-      <SectionBoundary label="Mudanças relevantes" fallback={<BlockSkeleton height={180} />} minHeight={180}>
-        <KeyChangesSection filters={filters} />
-      </SectionBoundary>
+      <div id="mudancas-relevantes" className="scroll-mt-20">
+        <SectionBoundary label="Mudanças relevantes" fallback={<BlockSkeleton height={180} />} minHeight={180}>
+          <KeyChangesSection filters={filters} />
+        </SectionBoundary>
+      </div>
 
       {/* 6. Entidades e temas em atenção */}
       <SectionBoundary label="Entidades e temas em atenção" fallback={<BlockSkeleton height={320} />} minHeight={320}>
@@ -195,9 +224,11 @@ export default async function OverviewPage(props: {
       </SectionBoundary>
 
       {/* 7. Timeline consolidada */}
-      <SectionBoundary label="Timeline consolidada" fallback={<BlockSkeleton height={320} />} minHeight={320}>
-        <TimelineSection filters={filters} />
-      </SectionBoundary>
+      <div id="timeline" className="scroll-mt-20">
+        <SectionBoundary label="Timeline consolidada" fallback={<BlockSkeleton height={320} />} minHeight={320}>
+          <TimelineSection filters={filters} />
+        </SectionBoundary>
+      </div>
 
       {/* 8. Evidências e análises complementares — recolhível por padrão.
           Reaproveita os mesmos dados já buscados (fetchOverviewData

@@ -14,6 +14,7 @@ import { OPPORTUNITY_RULES } from '@/lib/config/opportunity-thresholds';
 import type { UnifiedAlert } from '@/lib/queries/alerts';
 import type { AlertSeverity } from '@/lib/config/alert-thresholds';
 import type { PoliticalStatusResult } from './political-status';
+import { formatExecutiveRisk } from './risk-language';
 
 // ─── Evidências ───────────────────────────────────────────────────────────
 
@@ -139,30 +140,42 @@ export interface RiskCard {
   id: string;
   tipo: string;
   entidade: string;
+  /** Descrição EXECUTIVA do risco (linguagem da regra + entidade) — nunca o título de uma notícia/post. Ver `formatExecutiveRisk`. */
   descricao: string;
   metricaAtual: string;
   referencia: string;
   periodo: string;
   severidade: AlertSeverity;
+  /** Evidência principal (título original do item de origem + link), separada da descrição executiva. */
   evidencia: EvidenceRef | null;
 }
 
-/** Deriva os cards de risco a partir dos alertas unificados já ordenados. */
+/**
+ * Deriva os cards de risco a partir dos alertas unificados já ordenados.
+ * Usa `formatExecutiveRisk` para garantir que `descricao` seja sempre
+ * linguagem executiva (regra + entidade) — o título bruto do item de origem
+ * só aparece dentro de `evidencia.descricao`, nunca como nome do risco.
+ */
 export function deriveRisksFromAlerts(alerts: UnifiedAlert[], limit = 3): RiskCard[] {
   return alerts
     .filter((a) => a.severidade === 'critico' || a.severidade === 'alto')
     .slice(0, limit)
-    .map((a) => ({
-      id: a.id,
-      tipo: a.nome,
-      entidade: a.entidade,
-      descricao: a.titulo,
-      metricaAtual: a.metricaAtual,
-      referencia: a.referencia,
-      periodo: 'Período selecionado',
-      severidade: a.severidade,
-      evidencia: a.url ? { tipo: 'alerta', id: a.id, url: a.url, descricao: a.titulo } : null,
-    }));
+    .map((a) => {
+      const formatted = formatExecutiveRisk(a);
+      return {
+        id: a.id,
+        tipo: a.nome,
+        entidade: a.entidade,
+        descricao: formatted.headline,
+        metricaAtual: a.metricaAtual,
+        referencia: a.referencia,
+        periodo: 'Período selecionado',
+        severidade: a.severidade,
+        evidencia: formatted.evidenciaPrincipal?.url
+          ? { tipo: 'alerta', id: a.id, url: formatted.evidenciaPrincipal.url, descricao: formatted.evidenciaPrincipal.titulo }
+          : null,
+      };
+    });
 }
 
 export function selectPrimaryRisk(risks: RiskCard[]): RiskCard | null {
@@ -251,6 +264,47 @@ export function evaluateOpportunities(
 
 export function selectPrimaryOpportunity(opportunities: OpportunityCard[]): OpportunityCard | null {
   return opportunities[0] ?? null;
+}
+
+/**
+ * Explica de forma determinística por que NENHUMA oportunidade foi
+ * identificada, avaliando as mesmas três condições de `evaluateOpportunities`
+ * (nunca inventa um motivo fora dessas regras). Só deve ser chamada quando
+ * `evaluateOpportunities` retornou lista vazia — não recalcula se há
+ * oportunidade, só explica a ausência.
+ */
+export function explainOpportunityAbsence(
+  current: SentimentWindowStats,
+  previous: SentimentWindowStats | null,
+  topEntities: EntityRankItem[]
+): string[] {
+  const reasons: string[] = [];
+
+  if (!previous || previous.total === 0 || current.total === 0) {
+    reasons.push('Não há período anterior comparável no filtro atual para avaliar variação de sentimento.');
+  } else {
+    const negDelta = current.negativoShare - previous.negativoShare;
+    if (negDelta > -OPPORTUNITY_SHARE_DELTA_THRESHOLD) {
+      reasons.push('Não houve melhora relevante de sentimento (queda de negatividade abaixo do limite considerado significativo).');
+    }
+    const posDelta = current.positivoShare - previous.positivoShare;
+    if (posDelta < OPPORTUNITY_SHARE_DELTA_THRESHOLD) {
+      reasons.push('Não houve crescimento relevante de sentimento positivo no período.');
+    }
+  }
+
+  if (topEntities.length === 0) {
+    reasons.push('Nenhuma entidade com volume suficiente foi identificada no período para avaliar exposição.');
+  } else {
+    const topWithoutRisk = topEntities
+      .slice(0, OPPORTUNITY_TOP_N_EXPOSURE)
+      .filter((e) => e.alertas === 0 && (e.riscoPredominante === null || e.riscoPredominante === 'baixo'));
+    if (topWithoutRisk.length === 0) {
+      reasons.push('Nenhuma das entidades com maior exposição no período está livre de alertas ou risco alto/crítico.');
+    }
+  }
+
+  return reasons;
 }
 
 // ─── Mudanças relevantes (Key Changes) ─────────────────────────────────────
@@ -493,7 +547,9 @@ export function composeExecutiveSynthesis(input: {
   const topRisk = selectPrimaryRisk(risks);
   const principalRisco: ExecutiveSynthesisField = topRisk
     ? {
-        valor: `${topRisk.entidade}: ${topRisk.descricao}`,
+        // topRisk.descricao já é linguagem executiva (regra + entidade,
+        // ver formatExecutiveRisk) — não prefixar a entidade de novo aqui.
+        valor: topRisk.descricao,
         justificativa: `${topRisk.metricaAtual} (referência: ${topRisk.referencia}).`,
         evidenceRefs: topRisk.evidencia ? [topRisk.evidencia] : [],
         semDados: false,

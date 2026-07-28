@@ -49,16 +49,25 @@ const CHANNEL_ICON: Record<TimelineEvent['canal'], React.ReactNode> = {
   X: <XChannelIcon size={14} />,
 };
 
+const SEVERITY_LABEL: Record<TimelineEvent['severidade'], string> = { alta: 'Alta', media: 'Média' };
+
 function EventRow({ event }: { event: TimelineEvent }) {
   return (
-    <li className="flex items-start gap-3 border-l-2 border-white/5 pl-4 relative">
-      <span className={`absolute -left-[5px] top-1.5 w-2 h-2 rounded-full ${event.severidade === 'alta' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+    <li className="flex items-start gap-3 border-l-2 border-white/5 pl-4 py-1.5 relative hover:bg-white/[0.02] rounded-r-md transition-colors">
+      <span className={`absolute -left-[5px] top-3 w-2 h-2 rounded-full ${event.severidade === 'alta' ? 'bg-red-500' : 'bg-yellow-500'}`} />
       <div className="flex items-center gap-2 shrink-0 pt-0.5">{CHANNEL_ICON[event.canal]}</div>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-200 truncate">{event.titulo}</p>
-        <span className="text-[10px] text-gray-500">
-          {new Date(event.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap mt-0.5">
+          <span className="text-[10px] text-gray-500">
+            {new Date(event.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <span className={`text-[9px] font-bold uppercase tracking-wider ${event.severidade === 'alta' ? 'text-red-400' : 'text-yellow-500'}`}>
+            {SEVERITY_LABEL[event.severidade]}
+          </span>
+          {event.entidade && <span className="text-[10px] text-gray-600">· {event.entidade}</span>}
+          {event.tema && <span className="text-[10px] text-gray-600">· {event.tema}</span>}
+        </div>
       </div>
       {event.url && (
         <a href={event.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-gray-500 hover:text-cyan-400 transition-colors" aria-label="Abrir evidência original">
@@ -177,8 +186,14 @@ export default function OverviewTimeline({ events }: Props) {
         <div className="space-y-2">
           {groups.slice(0, visible).map((group) => {
             const isExpanded = expandedGroups.has(group.chave);
+            const canais = Array.from(new Set(group.eventos.map((e) => e.canal)));
             return (
-              <div key={group.chave} className="border border-white/5 rounded-lg overflow-hidden">
+              <div
+                key={group.chave}
+                className={`border border-white/5 border-l-2 rounded-lg overflow-hidden ${
+                  group.severidadeMax === 'alta' ? 'border-l-red-500' : 'border-l-yellow-500'
+                }`}
+              >
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.chave)}
@@ -187,10 +202,19 @@ export default function OverviewTimeline({ events }: Props) {
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <ChevronRight size={14} className={`text-gray-500 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${group.severidadeMax === 'alta' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                    <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${group.severidadeMax === 'alta' ? 'text-red-400' : 'text-yellow-500'}`}>
+                      {SEVERITY_LABEL[group.severidadeMax]}
+                    </span>
                     <span className="text-sm text-white font-medium truncate">{group.tema}</span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 text-[10px] text-gray-500">
+                    <div className="hidden sm:flex items-center gap-1">{canais.map((c) => <span key={c}>{CHANNEL_ICON[c]}</span>)}</div>
+                    {group.entidadesAssociadas.length > 0 && (
+                      <span className="hidden md:inline truncate max-w-[160px]">
+                        {group.entidadesAssociadas.slice(0, 2).join(', ')}
+                        {group.entidadesAssociadas.length > 2 ? ` +${group.entidadesAssociadas.length - 2}` : ''}
+                      </span>
+                    )}
                     {group.sentimentoPredominante && <span>Sentimento: {group.sentimentoPredominante}</span>}
                     <span className="bg-white/5 px-1.5 py-0.5 rounded font-bold text-gray-300">{group.quantidade} evento{group.quantidade > 1 ? 's' : ''}</span>
                   </div>
