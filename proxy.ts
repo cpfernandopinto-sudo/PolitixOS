@@ -11,6 +11,7 @@ const SCREEN_MAP: Record<string, string> = {
   '/dashboard/candidatos': 'candidatos',
   '/dashboard/automacoes': 'automacoes',
   '/dashboard/investigacoes': 'investigacoes',
+  '/dashboard/alertas': 'alertas',
   '/dashboard/gestao-crise': 'gestao_crise',
   '/dashboard/apoiadores': 'apoiadores',
   '/dashboard/configuracoes': 'configuracoes',

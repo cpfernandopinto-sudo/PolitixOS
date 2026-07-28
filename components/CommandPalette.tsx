@@ -25,6 +25,7 @@ const NAV_COMMANDS: NavCommand[] = [
   { href: '/dashboard/instagram', label: 'Radar Instagram', screenKey: 'instagram', icon: <Newspaper size={16} /> },
   { href: '/dashboard/x', label: 'Radar X', screenKey: 'x', icon: <Newspaper size={16} /> },
   { href: '/dashboard/investigacoes', label: 'Investigações', screenKey: 'investigacoes', icon: <FileSearch size={16} /> },
+  { href: '/dashboard/alertas', label: 'Central de Alertas', screenKey: 'alertas', icon: <FileSearch size={16} /> },
   { href: '/dashboard/candidatos', label: 'Candidatos', screenKey: 'candidatos', icon: <UserPlus size={16} /> },
   { href: '/dashboard/automacoes', label: 'Automação', screenKey: 'automacoes', icon: <Zap size={16} /> },
   { href: '/dashboard/usuarios', label: 'Usuários', screenKey: 'usuarios', icon: <UserCog size={16} /> },

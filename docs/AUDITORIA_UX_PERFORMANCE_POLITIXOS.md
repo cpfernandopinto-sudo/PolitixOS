@@ -113,6 +113,58 @@ Ver `docs/IMPLEMENTACAO_UX_PERFORMANCE_POLITIXOS.md` para a lista final após a 
 - **Depois**: cabeçalho, filtros e skeletons aparecem imediatamente (primeiro paint não depende de nenhuma consulta de dado pesado); cada bloco resolve e troca de skeleton→conteúdo de forma independente.
 - **Verificação manual**: login → deve cair em Visão Geral; refresh em `/` autenticado → Visão Geral (não mais Notícias); Network tab do navegador → contagem de requisições/consultas reduzida; console do navegador e do servidor sem logs de senha/role/env em produção.
 
+## Auditoria da Fase 2 — Módulos Analíticos
+
+Data: 2026-07-28 (continuação da sessão anterior).
+
+### Dados reais disponíveis
+
+- **Notícias** (`mentions`, via `MencaoRow`): `title`, `summary`, `ai_takeaways`, `ai_sentiment` (número, `null` = sem análise), `ai_topics`/`ai_entities`/`ai_risk_flags` (JSON), `local_relevance` (0–100), `city`, `candidate_name`, `published_at`, `url`, `source`. **Não há campo de status de análise explícito** ("pendente"/"erro") — a única distinção possível nos dados reais é `ai_sentiment/ai_topics/ai_entities/ai_takeaways` nulos/vazios (= "sem análise") vs. preenchidos (= "concluída"). Por isso os componentes novos desta fase usam apenas esses dois estados, nunca "pendente" ou "erro" (que não existem no schema).
+- **Instagram** (`social_posts` + `ai_analysis`, via `fetchInstagramData`): `like_count`, `comment_count`, `sentiment`, `risk`, `topic(s)`, `riskReason`, `summary`, `recommendedAction`, `image_url`/`video_url`/`thumbnail_url`, `candidate_name`. Comentários (`instagram_comments`) ligados por `post_id`.
+- **X** (`social_posts` platform x/twitter + `ai_analysis`, via `fetchXData`): mesmos campos de Instagram, mais `impactScore`, `crisisScore`, `divergenceFlag/Type`, `authorTone`, `publicReaction`, `polarizationLevel`, `strategicReading` — já calculados em `getStrategicInsights` dentro de `fetchXData`. Replies (`tweet_replies`) ligadas por `post_id`.
+- Nenhuma tabela expõe **seguidores/alcance real** de perfil — por isso os rankings desta fase mostram apenas volume absoluto (curtidas, comentários, reposts, contagem de posts), nunca uma "taxa de engajamento sobre a base de seguidores", que seria uma métrica fabricada.
+- Nenhuma tabela expõe **estado "lido/não lido"** para alertas — a Central de Alertas não implementa essa funcionalidade (ver `docs/REGRAS_ALERTAS_POLITIXOS.md`).
+
+### Achado adicional: métrica fabricada em produção
+
+`components/dashboard/InstagramDashboard.tsx` e `components/dashboard/XDashboard.tsx` calculavam uma variação percentual (`mockVar = i % 2 === 0 ? 12 : -5`) e exibiam como se fosse a variação real do KPI em relação ao período anterior — havia inclusive o comentário `// Mocking variations for visual effect as requested`. Isso violava diretamente a diretriz de não inventar métricas. Corrigido nesta fase (ver `docs/IMPLEMENTACAO_UX_PERFORMANCE_POLITIXOS.md`).
+
+### Limitações encontradas
+
+- Notícias, Instagram e X já têm filtros próprios funcionais e escrevendo na URL (`NewsGlobalFilters`, `InstagramFilterBar`, `XFilterBar`) — não foi necessário reconstruí-los, apenas adicionar chips de filtro ativo e botão "Limpar" onde faltavam (Instagram e X).
+- `fetchMencoes` (notícias) não tem `.limit()` — busca todas as linhas que casam com o filtro. A tela já usava apenas as primeiras 100 para exibição (`getFeedNoticias(rows, 100)`), mas os cálculos agregados (KPIs, temas, evolução de risco etc.) dependem do conjunto completo. Paginar a consulta no servidor quebraria esses agregados. Solução adotada: manter a busca completa (necessária para os agregados) e implementar paginação real na apresentação da lista/feed/tabela (client-side sobre o array já carregado), documentando essa limitação em vez de reivindicar "paginação no servidor" que não seria segura implementar sem separar consulta de listagem da consulta de agregados — separação maior, fora do escopo desta sessão.
+- Instagram/X já fazem `.limit(200)`/`.limit(300)` nas consultas de posts — um teto razoável já existente, não alterado.
+
+### Métricas que podem ser calculadas com segurança
+
+- Rankings por volume absoluto (engajamento, comentários, reposts, contagem de posts por perfil) — dados já buscados pela página, sem consulta nova.
+- Timeline consolidada da Visão Geral — reaproveita os mesmos dados já buscados por `fetchOverviewData` (cache por requisição), sem consulta nova.
+- Central de Alertas — 3 consultas por carregamento (uma por canal), via `Promise.allSettled`, cada uma reaproveitando os fetchers já existentes e já filtrados por `allowedTargetIds`.
+
+### Funcionalidades que não podem ser implementadas sem mudança de schema
+
+- Taxa de engajamento normalizada por seguidores (não há contagem de seguidores nos dados).
+- Estado lido/não lido de alertas (não há tabela de alertas persistidos).
+- Comparação de crescimento período-a-período nos KPIs de Instagram/X sem uma segunda consulta dedicada (viável, mas não implementada nesta sessão para não aumentar o número de consultas por carregamento desses módulos — ver seção "Próximos passos").
+
+### Arquivos previstos para alteração/criação
+
+Ver `docs/IMPLEMENTACAO_UX_PERFORMANCE_POLITIXOS.md`, seção "Fase 2".
+
+### Riscos de regressão
+
+- Conversão dos modais de detalhe (Instagram/X) para o novo `Drawer` genérico: risco baixo — todo o conteúdo/JSX interno foi preservado, apenas o container mudou (modal centralizado → painel lateral) e o `useEffect` de Esc duplicado foi removido (o `Drawer` já trata Esc).
+- Nova paginação client-side em Notícias: risco baixo — os cálculos agregados continuam operando sobre `initialRows`/`filteredRows` completos, inalterados; apenas a seção "Base Completa de Monitoramento" mudou de tabela única para Feed/Tabela paginados.
+- Central de Alertas é uma rota nova, sem dependências de outras telas — risco de regressão em módulos existentes é próximo de zero.
+
+### Critérios de validação
+
+- `tsc --noEmit` limpo.
+- `npm run lint` sem novos erros/warnings nos arquivos alterados desta fase.
+- `npm run build` de produção concluído com sucesso, incluindo a rota `/dashboard/alertas`.
+- `npm run test:run` (Vitest) passando para as regras de alerta, sanitização de filtros, timeline e preferência de view.
+- Verificação manual do fluxo não autenticado (redirecionamento correto para `/login`, sem loop, sem erros de console) — mesma limitação da fase anterior quanto ao fluxo autenticado (sem credenciais de teste disponíveis).
+
 ### Índices sugeridos (não aplicados — apenas recomendação)
 
 - `mentions (published_at desc)` — já é o campo de ordenação padrão em `fetchMencoes`; se ainda não existir índice, é o candidato mais óbvio dado o volume de leitura por período.

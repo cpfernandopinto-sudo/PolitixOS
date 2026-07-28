@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import {
   AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp,
-  TrendingDown, Info, ArrowUpRight, ArrowDownRight, Zap, SearchX,
-  MessageSquare, Share2, Heart, ExternalLink, BarChart2, ShieldCheck, Thermometer
+  Info, Zap, SearchX,
+  MessageSquare, Share2, Heart, ExternalLink, Thermometer
 } from 'lucide-react';
 import ChartCard from '@/components/ui/ChartCard';
 import GaugeChart from '@/components/charts/GaugeChart';
 import DonutChart from '@/components/charts/DonutChart';
+import Drawer from '@/components/ui/Drawer';
+import SocialRankings, { type RankingBlock } from '@/components/dashboard/SocialRankings';
 
 export default function XDashboard({ kpis, charts, posts, replies, alert }: any) {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
@@ -48,6 +50,35 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
 
   // Divergences
   const divergences = posts.filter((p: any) => p.divergenceFlag);
+
+  const rankingBlocks: RankingBlock[] = useMemo(() => {
+    const byEngagement = [...posts]
+      .sort((a: any, b: any) => (b.totalEngagement || 0) - (a.totalEngagement || 0))
+      .slice(0, 5)
+      .map((p: any) => ({ id: p.id, label: p.text || 'Post sem texto', sublabel: p.candidate_name, value: p.totalEngagement || 0 }));
+
+    const byReposts = [...posts]
+      .sort((a: any, b: any) => (b.retweet_count || 0) - (a.retweet_count || 0))
+      .slice(0, 5)
+      .map((p: any) => ({ id: p.id, label: p.text || 'Post sem texto', sublabel: p.candidate_name, value: p.retweet_count || 0 }));
+
+    const profileCounts = new Map<string, number>();
+    posts.forEach((p: any) => {
+      const name = p.candidate_name || '—';
+      if (name === '—') return;
+      profileCounts.set(name, (profileCounts.get(name) || 0) + 1);
+    });
+    const byActivity = Array.from(profileCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ id: name, label: name, value: count }));
+
+    return [
+      { title: 'Maior Volume de Interações', formula: 'Curtidas + respostas + reposts por post.', items: byEngagement, valueLabel: 'interações' },
+      { title: 'Mais Repostado', formula: 'Contagem de reposts (retweets) por post.', items: byReposts, valueLabel: 'reposts' },
+      { title: 'Perfis Mais Ativos', formula: 'Quantidade de posts publicados no período por candidato.', items: byActivity, valueLabel: 'posts' },
+    ];
+  }, [posts]);
 
   return (
     <div className="space-y-6">
@@ -187,23 +218,27 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
         </div>
       )}
 
+      {/* RANKINGS EXECUTIVOS */}
+      <SocialRankings blocks={rankingBlocks} />
+
       {/* 3️⃣ CARDS EXECUTIVOS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpis.map((kpi: any, i: number) => {
           const isNegative = kpi.title.includes('Negativo') || kpi.title.includes('Risco');
-          const mockVar = i % 2 === 0 ? 12 : -5;
+          const status = isNegative && kpi.value > 0 ? 'danger' : kpi.title.includes('Positivo') ? 'success' : 'neutral';
+          const StatusIcon = status === 'danger' ? AlertTriangle : status === 'success' ? TrendingUp : Info;
           return (
             <div key={i} className="glass rounded-xl p-5 border-white/5 transition-all hover:scale-[1.02]">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-tight">{kpi.title}</h3>
-                {mockVar > 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
+                <StatusIcon
+                  size={14}
+                  className={status === 'danger' ? 'text-red-400' : status === 'success' ? 'text-green-400' : 'text-gray-500'}
+                />
               </div>
               <div className="flex items-end justify-between">
                 <span className="text-2xl md:text-3xl font-black text-white tracking-tighter">
                   {kpi.value.toLocaleString()}
-                </span>
-                <span className={clsx("text-[10px] font-bold px-1.5 py-0.5 rounded", mockVar > 0 ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400")}>
-                  {mockVar > 0 ? '+' : ''}{mockVar}%
                 </span>
               </div>
             </div>
@@ -423,78 +458,75 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
         </div>
       </div>
 
-      {/* Modal de Análise Detalhada */}
-      {selectedPost && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" onClick={() => setSelectedPost(null)}>
-          <div className="bg-[#12192A] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-[#12192A]/90 backdrop-blur-md z-10">
-              <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                <ShieldAlert className="text-[#00FFFF]" size={24} />
-                Inteligência Estratégica (X)
-              </h2>
-              <button onClick={() => setSelectedPost(null)} className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">✕</button>
+      {/* Drawer de Análise Detalhada */}
+      <Drawer
+        open={selectedPost !== null}
+        onClose={() => setSelectedPost(null)}
+        title="Inteligência Estratégica (X)"
+        subtitle={selectedPost?.candidate_name}
+        footer={
+          selectedPost && (
+            <a href={selectedPost.url} target="_blank" rel="noreferrer" className="px-8 py-3 bg-[#00FFFF] text-black font-black rounded-xl hover:bg-[#00FFFF]/80 transition-all uppercase text-[10px] tracking-[0.2em] shadow-[0_0_20px_rgba(0,255,255,0.2)]">
+              Ver no X
+            </a>
+          )
+        }
+      >
+        {selectedPost && (
+          <>
+            <div className="flex flex-wrap gap-4 items-center">
+              {getSentimentBadge(selectedPost.sentiment)}
+              {getRiskBadge(selectedPost.risk)}
+              <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase"><Activity size={14} /> <span className="text-white">{selectedPost.totalEngagement}</span> interações</div>
+              <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase"><Clock size={14} /> <span className="text-white">{new Date(selectedPost.created_at).toLocaleDateString('pt-BR')}</span></div>
             </div>
 
-            <div className="p-6 space-y-8">
-              <div className="flex flex-wrap gap-4 items-center">
-                {getSentimentBadge(selectedPost.sentiment)}
-                {getRiskBadge(selectedPost.risk)}
-                <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-[#00FFFF]/10 text-[#00FFFF] border border-[#00FFFF]/20 uppercase tracking-widest">{selectedPost.candidate_name}</span>
-                <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase"><Activity size={14} /> <span className="text-white">{selectedPost.totalEngagement}</span> interações</div>
-                <div className="flex items-center gap-2 text-gray-400 text-xs font-bold uppercase"><Clock size={14} /> <span className="text-white">{new Date(selectedPost.created_at).toLocaleDateString('pt-BR')}</span></div>
-              </div>
+            <div>
+              <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Conteúdo do Tweet</h3>
+              <div className="text-gray-200 bg-white/5 p-4 rounded-xl border border-white/5 whitespace-pre-wrap leading-relaxed">{selectedPost.text}</div>
+            </div>
 
-              <div>
-                <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Conteúdo do Tweet</h3>
-                <div className="text-gray-200 bg-white/5 p-4 rounded-xl border border-white/5 whitespace-pre-wrap leading-relaxed">{selectedPost.text}</div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-                  <h3 className="text-[10px] font-black text-gray-500 mb-3 uppercase tracking-[0.2em]">Discurso vs Reação</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="text-[9px] text-[#00FFFF] uppercase font-black mb-1">Tom do Político</div>
-                      <div className="text-sm font-bold text-white">{selectedPost.authorTone}</div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] text-yellow-400 uppercase font-black mb-1">Reação do Público</div>
-                      <div className="text-sm font-bold text-white">{selectedPost.publicReaction}</div>
-                    </div>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+                <h3 className="text-[10px] font-black text-gray-500 mb-3 uppercase tracking-[0.2em]">Discurso vs Reação</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-[9px] text-[#00FFFF] uppercase font-black mb-1">Tom do Político</div>
+                    <div className="text-sm font-bold text-white">{selectedPost.authorTone}</div>
                   </div>
-                </div>
-                <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-                  <h3 className="text-[10px] font-black text-gray-500 mb-3 uppercase tracking-[0.2em]">Status de Monitoramento</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="text-[9px] text-red-500 uppercase font-black mb-1">Temperatura de Crise</div>
-                      <div className="text-sm font-bold text-white">{selectedPost.crisisTemperature}°C</div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] text-blue-500 uppercase font-black mb-1">Nível de Polarização</div>
-                      <div className="text-sm font-bold text-white">{selectedPost.polarizationLevel}</div>
-                    </div>
+                  <div>
+                    <div className="text-[9px] text-yellow-400 uppercase font-black mb-1">Reação do Público</div>
+                    <div className="text-sm font-bold text-white">{selectedPost.publicReaction}</div>
                   </div>
                 </div>
               </div>
-
-              <div>
-                <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Leitura Estratégica (IA)</h3>
-                <div className="text-gray-200 bg-white/5 p-5 rounded-xl border border-white/5 leading-relaxed">{selectedPost.strategicReading}</div>
-              </div>
-
-              <div className="bg-[#00FFFF]/10 border border-[#00FFFF]/20 p-6 rounded-2xl">
-                <h3 className="text-[10px] font-black text-[#00FFFF] mb-3 uppercase tracking-[0.2em]">Protocolo Recomendado</h3>
-                <p className="text-[#00FFFF] font-bold text-lg leading-tight">{selectedPost.recommendedAction}</p>
+              <div className="p-4 bg-white/5 rounded-xl border border-white/5">
+                <h3 className="text-[10px] font-black text-gray-500 mb-3 uppercase tracking-[0.2em]">Status de Monitoramento</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-[9px] text-red-500 uppercase font-black mb-1">Temperatura de Crise</div>
+                    <div className="text-sm font-bold text-white">{selectedPost.crisisTemperature}°C</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-blue-500 uppercase font-black mb-1">Nível de Polarização</div>
+                    <div className="text-sm font-bold text-white">{selectedPost.polarizationLevel}</div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/5 flex justify-end gap-3 sticky bottom-0 bg-[#12192A]/90 backdrop-blur-md">
-              <a href={selectedPost.url} target="_blank" rel="noreferrer" className="px-8 py-3 bg-[#00FFFF] text-black font-black rounded-xl hover:bg-[#00FFFF]/80 transition-all uppercase text-[10px] tracking-[0.2em] shadow-[0_0_20px_rgba(0,255,255,0.2)]">Ver no X</a>
+            <div>
+              <h3 className="text-[10px] font-black text-gray-500 mb-2 uppercase tracking-[0.2em]">Leitura Estratégica (IA)</h3>
+              <div className="text-gray-200 bg-white/5 p-5 rounded-xl border border-white/5 leading-relaxed">{selectedPost.strategicReading}</div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="bg-[#00FFFF]/10 border border-[#00FFFF]/20 p-6 rounded-2xl">
+              <h3 className="text-[10px] font-black text-[#00FFFF] mb-3 uppercase tracking-[0.2em]">Protocolo Recomendado</h3>
+              <p className="text-[#00FFFF] font-bold text-lg leading-tight">{selectedPost.recommendedAction}</p>
+            </div>
+          </>
+        )}
+      </Drawer>
     </div>
   );
 }

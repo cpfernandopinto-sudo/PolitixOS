@@ -13,6 +13,7 @@ import {
   Zap,
   UserCog,
   FileSearch,
+  AlertTriangle,
 } from 'lucide-react';
 
 export interface SidebarPermissions {
@@ -100,6 +101,12 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Investigações',
         screenKey: 'investigacoes',
         icon: <FileSearch size={20} className="shrink-0" />,
+      },
+      {
+        href: '/dashboard/alertas',
+        label: 'Central de Alertas',
+        screenKey: 'alertas',
+        icon: <AlertTriangle size={20} className="shrink-0" />,
       },
       {
         href: '/dashboard/candidatos',

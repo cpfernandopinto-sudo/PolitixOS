@@ -13,6 +13,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   candidatos: 'Candidatos',
   automacoes: 'Automação',
   investigacoes: 'Investigações',
+  alertas: 'Central de Alertas',
   usuarios: 'Usuários',
   'sem-permissao': 'Sem permissão',
 };

@@ -129,10 +129,129 @@ Ver seção 8 de `docs/AUDITORIA_UX_PERFORMANCE_POLITIXOS.md`.
 - **Não foi possível validar o fluxo autenticado (login → Visão Geral → navegação) em navegador nesta sessão**: o projeto está conectado a um projeto Supabase real (não há ambiente de staging/mock configurado em `.env.local`), e não há credenciais de teste disponíveis. Criar ou alterar uma conta para testar exigiria rodar `scripts/seed-admin.mjs`, que grava um usuário admin real no banco de produção — uma ação que decidi não tomar sem autorização explícita, por ser difícil de reverter em um sistema compartilhado. Recomenda-se validação manual do login real antes do deploy ir ao ar para os usuários finais, ou fornecer credenciais de teste em um próximo turno.
 - Os itens da seção 10 seguem pendentes.
 
-## 14. Próximos passos sugeridos
+## 14. Próximos passos sugeridos (registrados na Fase 1)
 
-1. Validar o fluxo autenticado completo em navegador (login real ou credenciais de teste).
-2. Auditoria de schema Supabase dedicada (colunas de geolocalização, índices existentes) antes de iniciar mapa e comparador de candidatos.
-3. Definir com o time de produto as regras objetivas da central de alertas (thresholds) antes de implementar.
-4. Avaliar unificação de filtros globais entre notícias/Instagram/X como uma iniciativa própria, com testes de regressão dedicados.
-5. Configurar uma suíte de testes (Vitest/Playwright) — atualmente inexistente no projeto.
+1. ~~Validar o fluxo autenticado completo em navegador~~ — ainda pendente, ver Fase 2 seção 13.
+2. Auditoria de schema Supabase dedicada (colunas de geolocalização, índices existentes) antes de iniciar mapa e comparador de candidatos — ainda pendente.
+3. ~~Definir as regras objetivas da central de alertas~~ — feito na Fase 2 (`lib/config/alert-thresholds.ts`, `docs/REGRAS_ALERTAS_POLITIXOS.md`).
+4. Avaliar unificação de filtros globais entre notícias/Instagram/X como uma iniciativa própria — ainda não unificados (cada módulo mantém seus filtros independentes), mas todos agora têm chips + "Limpar" consistentes.
+5. ~~Configurar uma suíte de testes~~ — feito na Fase 2 (Vitest).
+
+---
+
+# Fase 2 — Inteligência Executiva e Módulos Analíticos
+
+Ver `docs/AUDITORIA_UX_PERFORMANCE_POLITIXOS.md`, seção "Auditoria da Fase 2", para o diagnóstico específico desta fase.
+
+## Fase 2.1 Central de Alertas
+
+- Novo `lib/config/alert-thresholds.ts`: 9 regras documentadas (id, nome, descrição, métrica, threshold, janela, severidade, justificativa, fonte) — todas centralizando thresholds que já existiam de forma implícita e duplicada em `getCrisisAlerts` (noticias.ts), `getInstagramAlerts` (instagram.ts) e `getXAlert` (x.ts). Nenhum threshold novo foi inventado.
+- Novo `lib/queries/alerts.ts`: funções puras de avaliação de regra (`evaluateNoticiaItemAlerts`, `evaluateNoticiaAggregateAlerts`, `evaluateInstagramItemAlerts`, `evaluateXItemAlerts`, `sortAlerts`) separadas do orquestrador com I/O (`getUnifiedAlerts`), que busca os 3 canais em paralelo via `Promise.allSettled` — uma falha em um canal não derruba os demais, e a tela informa quais canais falharam sem esconder o erro.
+- Nova rota `/dashboard/alertas` (`app/dashboard/alertas/page.tsx` + `AlertasFilterBar.tsx` + `AlertsList.tsx`): resumo por severidade, filtros (período/severidade/canal/candidato) persistidos na URL com chips e "Limpar filtros", lista paginada (client-side, 10 por página, com "Mostrando X–Y de Z"), drawer de detalhe (regra que disparou, métrica atual, referência/threshold, link para evidência quando existe), skeleton e estado vazio.
+- Adicionada ao menu lateral (grupo "Inteligência") e ao `screen_key` do middleware (`/dashboard/alertas` → `alertas`) — segue o mesmo modelo de permissão dos demais módulos (admin vê tudo; outros perfis precisam da permissão `alertas` em `app_user_permissions`).
+- **Não implementado**: estado lido/não lido (não há infraestrutura de persistência para isso — ver seção 13).
+
+## Fase 2.2 Correção de métrica fabricada
+
+`InstagramDashboard.tsx` e `XDashboard.tsx` exibiam uma variação percentual (`mockVar`) **hardcoded e alternada por índice** (`i % 2 === 0 ? 12 : -5`), rotulada como se fosse a variação real dos KPIs. Removida; os cards de KPI agora mostram apenas o valor real, com um ícone de status (perigo/sucesso/neutro) derivado da própria natureza da métrica — sem inventar tendência.
+
+## Fase 2.3 Drawers de detalhe (substituindo modais centrais)
+
+- Novo `components/ui/Drawer.tsx`: painel lateral genérico e acessível (Esc, focus trap, retorno de foco ao elemento que abriu, preserva scroll da tela de fundo, ocupa quase a tela inteira em mobile).
+- `InstagramDashboard.tsx` e `XDashboard.tsx`: os modais centrais de "Análise de Inteligência Estratégica" foram convertidos para usar `Drawer`, preservando 100% do conteúdo já existente (mídia, texto, tema, justificativa de risco, resumo, ação recomendada). O `useEffect` de Esc que cada um mantinha manualmente foi removido (redundante com o `Drawer`).
+- `app/dashboard/noticias/NewsFeedTableSection.tsx`: novo drawer de detalhe de notícia (resumo, relevância, localidade, temas, entidades), com distinção honesta entre "análise concluída" e "análise de IA ainda não disponível" — nunca apresenta ausência de análise como resultado neutro.
+
+## Fase 2.4 Radar de Notícias — Feed/Tabela
+
+- Novo `components/ui/ViewToggle.tsx` (genérico) + `app/dashboard/noticias/NewsFeedTableSection.tsx`: alterna entre Feed (cards) e Tabela (componente `DataTable` já existente, reaproveitado sem alterações), com preferência persistida em `localStorage` (`politixos_news_view`).
+- A seção "Base Completa de Monitoramento" (antes uma única tabela sem paginação, exibindo até 100 de N registros silenciosamente) agora tem paginação real na apresentação (12 itens/página no Feed, mesma paginação alimentando a Tabela), contador "Mostrando X–Y de Z" e total real de resultados — não mais um corte silencioso em 100.
+- Cada card do Feed mostra fonte, data, resumo (ou aviso explícito de "sem análise"), sentimento/risco (badges — omitidos quando não há análise, nunca mostrados como neutro), localidade e até 2 temas, com ação para abrir a matéria original e ação para ver detalhes completos no drawer.
+
+## Fase 2.5 Rankings executivos (Instagram e X)
+
+- Novo `components/dashboard/SocialRankings.tsx`, compartilhado pelos dois módulos: recebe blocos já calculados a partir dos dados que a página já buscou (nenhuma consulta nova) e mostra apenas **volume absoluto**, com tooltip (`title`) explicando a fórmula de cada ranking. Não normaliza por seguidores (dado inexistente) para não fabricar uma "taxa".
+- Instagram: Maior Engajamento Absoluto, Mais Comentados, Perfis Mais Ativos.
+- X: Maior Volume de Interações, Mais Repostado, Perfis Mais Ativos.
+
+## Fase 2.6 Timeline consolidada (Visão Geral)
+
+- `lib/queries/overview.ts`: nova função pura `buildTimelineEvents` (testada isoladamente) + `getTimelineEvents`, que **reaproveita o mesmo `fetchOverviewData` já cacheado por `React.cache()`** — zero consultas novas ao Supabase. Usa os mesmos critérios de "item notável" de `getPriorityAlerts`, ordenados cronologicamente e deduplicados por `canal:id` (um mesmo item nunca aparece duas vezes, mesmo satisfazendo mais de um critério).
+- Novo `components/dashboard/overview/OverviewTimeline.tsx`: lista cronológica com filtro por canal, 15 itens iniciais e "Ver mais" (revela mais itens do array já carregado — até 40 no total —, sem nova consulta), link para a evidência original.
+
+## Fase 2.7 Filtros consistentes
+
+- Novo `components/ui/ActiveFilterChips.tsx` (genérico): aplicado em `NewsGlobalFilters.tsx` (notícias, que já tinha "Limpar" mas não chips), `InstagramFilterBar.tsx` e `XFilterBar.tsx` (que não tinham nem chips nem "Limpar" — adicionados). Cada filtro ativo aparece como chip removível individualmente; "Limpar todos" quando há mais de um filtro ativo.
+- Todos os filtros de todos os módulos (Visão Geral, Notícias, Instagram, X, Alertas) já persistem na URL via `router.push`/`searchParams` — recarregar a página ou compartilhar a URL preserva o estado filtrado.
+
+## Fase 2.8 Testes automatizados (Vitest)
+
+Configurado `vitest` (`vitest.config.ts`, scripts `test`/`test:run` no `package.json`). 42 testes em 5 arquivos, todos sobre **funções puras** (nenhum mock de Supabase, conforme diretriz):
+
+- `lib/queries/alerts.test.ts`: regras de alerta (notícia crítica/alta, volume anormal, sentimento negativo, temas sensíveis, Instagram risco/sentimento, X risco/crisisScore), ordenação por severidade+recência, e `shouldReturnEmptyForAccess` (gate de `allowedTargetIds`).
+- `lib/queries/overview.test.ts`: `buildTimelineEvents` — ordenação cronológica, threshold de relevância, deduplicação por canal+id, severidade.
+- `lib/queries/instagram.test.ts` / `lib/queries/x.test.ts`: `cleanFilter` (sanitização de parâmetros de URL).
+- `lib/utils/viewPreference.test.ts`: `resolveViewPreference` (preferência Feed/Tabela).
+
+**Não implementado nesta fase**: testes de componente/interação (abrir/fechar drawer, clique no Ctrl+K, alternância Feed/Tabela na UI) e testes E2E (Playwright). Exigiriam configurar `jsdom` + Testing Library (ou Playwright), uma segunda camada de infraestrutura de teste não presente no projeto. A lógica por trás desses comportamentos (sanitização, regras, ordenação, dedup, preferência) está coberta por testes de função pura; a interação de UI em si permanece validada apenas manualmente/por revisão de código.
+
+## Fase 2.9 Consultas otimizadas / performance
+
+- Central de Alertas: 3 consultas por carregamento (`Promise.allSettled`), reaproveitando os fetchers já existentes.
+- Timeline: 0 consultas novas (reaproveita cache da Visão Geral).
+- Rankings (Instagram/X): 0 consultas novas (calculados sobre dados já buscados pela página).
+- Nenhuma consulta duplicada foi reintroduzida; `React.cache()` em `fetchOverviewData`/`getTrendOverview`/`fetchMencoes` permanece intocado.
+
+## Fase 2.10 Métricas antes/depois
+
+| Métrica | Antes (Fase 2) | Depois |
+|---|---|---|
+| Variação % exibida nos KPIs de Instagram/X | Fabricada (`mockVar`, alternando +12%/-5%) | Removida — apenas valor real + indicador de status |
+| Detalhe de post (Instagram/X) | Modal central, sem focus trap documentado | Drawer lateral acessível (Esc, focus trap, retorno de foco) |
+| "Base Completa de Monitoramento" (notícias) | Tabela única, até 100 de N registros exibidos sem indicação de corte | Feed/Tabela com paginação real, "Mostrando X–Y de Z" |
+| Central de Alertas | Inexistente | Rota funcional com 9 regras documentadas e explicáveis |
+| Rankings sociais executivos | Inexistentes (havia apenas listas "top 5" sem explicação de fórmula) | 3 rankings por módulo, com fórmula em tooltip |
+| Timeline na Visão Geral | Inexistente | Presente, sem custo de consulta adicional |
+| Filtros com chip visual + "Limpar" | Só em Notícias (sem chips) | Notícias, Instagram, X e Alertas — todos com chips + limpar |
+| Testes automatizados | 0 | 42 (Vitest), lógica pura de filtros/alertas/timeline/preferência |
+
+## Fase 2.11 Limitações e dados que ainda não existem
+
+- Estado lido/não lido de alertas — sem tabela de persistência.
+- Taxa de engajamento normalizada por seguidores — sem dado de seguidores.
+- Comparação período-a-período nos KPIs de Instagram/X (ex.: "+12% vs. semana passada" real) — calculável, mas exigiria uma segunda consulta por módulo; não implementada nesta sessão para não aumentar o número de consultas por carregamento sem alinhamento prévio sobre o custo.
+- Comparador de candidatos e mapa geográfico — não implementados (auditoria de schema geográfico ainda pendente, conforme já registrado na Fase 1).
+- "Pergunte aos dados" (IA conversacional) — não implementado (decisão de produto/infra pendente).
+- Unificação total dos filtros entre módulos — cada módulo mantém filtros próprios (funcionais), não uma barra global compartilhada.
+
+## Fase 2.12 Funcionalidades não implementadas (resumo com motivo)
+
+| Item do pedido | Status | Motivo |
+|---|---|---|
+| Central de Alertas | ✅ Implementado | — |
+| Feed/Tabela em Notícias | ✅ Implementado | — |
+| Drawer de notícia | ✅ Implementado | — |
+| Rankings Instagram/X | ✅ Implementado (volume absoluto) | Taxa normalizada por seguidores não implementada — sem dado real |
+| Timeline consolidada | ✅ Implementado | — |
+| Testes mínimos | ✅ Implementado (funções puras) | Testes de componente/E2E não implementados — infra adicional necessária |
+| Estado lido/não lido em alertas | ❌ Não implementado | Sem infraestrutura de persistência (instrução explícita: não simular) |
+| Comparação período-a-período real nos KPIs sociais | ❌ Não implementado | Exigiria nova consulta por módulo; não orçado nesta sessão |
+| Validação do fluxo autenticado em navegador | ❌ Não realizado | Sem credenciais de teste; ver seção 13 |
+
+## Fase 2.13 Validação autenticada
+
+Mesma limitação da Fase 1: o projeto usa um único Supabase real (não há ambiente de staging), e não há credenciais de teste em `.env.local`, documentação ou scripts seguros. `scripts/seed-admin.mjs` gravaria um usuário real no banco de produção — não executado sem autorização explícita.
+
+**Validado sem autenticação** (via navegador real, `npm run dev`):
+- Login (`/login`) renderiza normalmente, tema visual preservado.
+- Acesso não autenticado a `/dashboard/overview` e à nova rota `/dashboard/alertas` redireciona corretamente para `/login`, sem loop, sem erros de console, sem erros de servidor.
+
+**Checklist manual objetivo para quando houver credenciais** (além do já registrado na Fase 1):
+1. Abrir Central de Alertas — resumo por severidade bate com a lista exibida.
+2. Aplicar filtro de severidade/canal/candidato — URL atualiza, lista atualiza, chip aparece.
+3. Abrir um alerta — drawer mostra regra, métrica, referência e (quando houver) link de evidência.
+4. Radar de Notícias — alternar Feed ↔ Tabela, recarregar a página e confirmar que a preferência persiste.
+5. Abrir um card do Feed — drawer mostra resumo completo; para notícia sem análise, aviso explícito aparece (não "neutro" silencioso).
+6. Instagram/X — abrir detalhe de post pelo botão "Detalhes"/clique na linha — deve abrir como drawer lateral (não mais modal central).
+7. Rankings do Instagram/X exibem itens reais do período filtrado; tooltip do ícone "i" mostra a fórmula.
+8. Visão Geral — bloco "Timeline Consolidada" aparece após o Mapa de Ação; filtro por canal funciona; "Ver mais" revela mais itens sem tela de carregamento nova.
+9. Nenhum erro no console do navegador em nenhuma das telas acima.

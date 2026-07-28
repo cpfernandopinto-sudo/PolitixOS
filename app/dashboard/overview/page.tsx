@@ -11,6 +11,7 @@ import OverviewTopics from '@/components/dashboard/overview/OverviewTopics';
 import OverviewSentiment from '@/components/dashboard/overview/OverviewSentiment';
 import OverviewRisk from '@/components/dashboard/overview/OverviewRisk';
 import OverviewExecutiveTable from '@/components/dashboard/overview/OverviewExecutiveTable';
+import OverviewTimeline from '@/components/dashboard/overview/OverviewTimeline';
 import {
   getOverviewKPIs,
   getCrisisOverview,
@@ -22,6 +23,7 @@ import {
   getStrategicActions,
   getExecutiveTable,
   getOverviewFiltersOptions,
+  getTimelineEvents,
   type OverviewFilters,
 } from '@/lib/queries/overview';
 
@@ -80,6 +82,11 @@ async function StrategicSection({ filters }: { filters: OverviewFilters }) {
 async function TableSection({ filters }: { filters: OverviewFilters }) {
   const table = await getExecutiveTable(filters);
   return <OverviewExecutiveTable rows={table} />;
+}
+
+async function TimelineSection({ filters }: { filters: OverviewFilters }) {
+  const events = await getTimelineEvents(filters);
+  return <OverviewTimeline events={events} />;
 }
 
 export default async function OverviewPage(props: {
@@ -161,6 +168,11 @@ export default async function OverviewPage(props: {
       {/* Strategic Actions */}
       <SectionBoundary label="Mapa de ação estratégica" fallback={<BlockSkeleton height={220} />} minHeight={220}>
         <StrategicSection filters={filters} />
+      </SectionBoundary>
+
+      {/* Timeline consolidada */}
+      <SectionBoundary label="Timeline consolidada" fallback={<BlockSkeleton height={320} />} minHeight={320}>
+        <TimelineSection filters={filters} />
       </SectionBoundary>
 
       {/* Executive Table */}

@@ -7,7 +7,7 @@ import GaugeChart from '@/components/charts/GaugeChart';
 import LineChart from '@/components/charts/LineChart';
 import BarChart from '@/components/charts/BarChart';
 import DonutChart from '@/components/charts/DonutChart';
-import DataTable from '@/components/ui/DataTable';
+import NewsFeedTableSection from './NewsFeedTableSection';
 import {
   AlertTriangle, SearchX, Clock, Activity, Target, ShieldAlert, Zap,
   ArrowUpRight, ArrowDownRight, Filter, Settings2, BarChart3, ListFilter
@@ -89,7 +89,10 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
     return data.slice(0, feedConfig.limit);
   }, [filteredRows, feedConfig.priority, feedConfig.limit]);
 
-  const fullTableData = useMemo(() => getFeedNoticias(filteredRows, 100), [filteredRows]);
+  const fullTableData = useMemo(
+    () => getFeedNoticias(filteredRows, filteredRows.length),
+    [filteredRows]
+  );
 
   if (initialRows.length === 0) {
     return (
@@ -547,7 +550,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
         <h3 className="text-xl font-bold text-white tracking-tight mb-4 flex items-center gap-2">
           <span className="w-1 h-6 bg-[#00FFFF] rounded-full shadow-[0_0_10px_#00FFFF]" /> Base Completa de Monitoramento
         </h3>
-        <DataTable data={fullTableData} rawRows={initialRows} />
+        <NewsFeedTableSection data={fullTableData} rawRows={initialRows} />
       </div>
     </div>
   );

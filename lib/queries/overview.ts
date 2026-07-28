@@ -328,6 +328,113 @@ export async function getPriorityAlerts(filters?: OverviewFilters) {
     .slice(0, 5);
 }
 
+export interface TimelineEvent {
+  id: string;
+  canal: 'Notícias' | 'Instagram' | 'X';
+  titulo: string;
+  data: string;
+  severidade: 'alta' | 'media';
+  url: string | null;
+}
+
+const TIMELINE_LIMIT = 40;
+
+interface TimelineSourceNoticia {
+  id: string;
+  title: string | null;
+  published_at: string | null;
+  local_relevance: number | null;
+  url: string | null;
+}
+
+interface TimelineSourcePost {
+  id: string;
+  text?: string | null;
+  created_at?: string | null;
+  risk?: string | null;
+  url?: string | null;
+}
+
+/**
+ * Monta e deduplica os eventos da timeline a partir dos itens já buscados
+ * (nenhum I/O aqui — função pura, testável isoladamente). Usa os mesmos
+ * critérios de "item notável" já usados em getPriorityAlerts, mas ordena
+ * cronologicamente (não por risco) e não limita a 5, pois aqui o objetivo é
+ * a linha do tempo, não o topo de prioridades.
+ *
+ * Deduplicação: cada evento é identificado por `${canal}:${id}` da linha de
+ * origem (notícia/post) — um mesmo item nunca aparece duas vezes na
+ * timeline, mesmo que satisfaça mais de um critério.
+ */
+export function buildTimelineEvents(source: {
+  noticias: TimelineSourceNoticia[];
+  instagramPosts: TimelineSourcePost[];
+  xPosts: TimelineSourcePost[];
+}): TimelineEvent[] {
+  const seen = new Set<string>();
+  const events: TimelineEvent[] = [];
+
+  const pushEvent = (event: TimelineEvent) => {
+    const key = `${event.canal}:${event.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    events.push(event);
+  };
+
+  source.noticias.forEach((n) => {
+    if ((n.local_relevance || 0) > 70 && n.published_at) {
+      pushEvent({
+        id: n.id,
+        canal: 'Notícias',
+        titulo: n.title || 'Notícia sem título',
+        data: n.published_at,
+        severidade: (n.local_relevance || 0) > 85 ? 'alta' : 'media',
+        url: n.url,
+      });
+    }
+  });
+
+  source.instagramPosts.forEach((p) => {
+    if (isHighRisk(p.risk) && p.created_at) {
+      pushEvent({
+        id: p.id,
+        canal: 'Instagram',
+        titulo: (p.text || 'Post sem legenda').substring(0, 140),
+        data: p.created_at,
+        severidade: isCriticalRisk(p.risk) ? 'alta' : 'media',
+        url: p.url ?? null,
+      });
+    }
+  });
+
+  source.xPosts.forEach((p) => {
+    if (isHighRisk(p.risk) && p.created_at) {
+      pushEvent({
+        id: p.id,
+        canal: 'X',
+        titulo: (p.text || 'Post sem texto').substring(0, 140),
+        data: p.created_at,
+        severidade: isCriticalRisk(p.risk) ? 'alta' : 'media',
+        url: p.url ?? null,
+      });
+    }
+  });
+
+  return events
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+    .slice(0, TIMELINE_LIMIT);
+}
+
+/**
+ * Timeline consolidada da Visão Geral: reaproveita o MESMO fetchOverviewData
+ * já cacheado (React.cache()) por esta requisição — não dispara nenhuma
+ * consulta nova.
+ */
+export async function getTimelineEvents(filters?: OverviewFilters): Promise<TimelineEvent[]> {
+  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  return buildTimelineEvents({ noticias, instagramPosts: instagram.posts, xPosts: x.posts });
+}
+
 /**
  * 6. TEMAS DOMINANTES
  */

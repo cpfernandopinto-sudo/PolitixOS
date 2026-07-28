@@ -7,6 +7,7 @@ import {
   ChevronDown, CalendarDays
 } from 'lucide-react';
 import clsx from 'clsx';
+import ActiveFilterChips from '@/components/ui/ActiveFilterChips';
 
 interface NewsGlobalFiltersProps {
   candidates: { id: string; name: string }[];
@@ -64,8 +65,26 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
 
   const hasActive = searchParams.size > 0;
 
+  const PERIOD_CHIP_LABELS: Record<string, string> = {
+    '24h': 'Últimas 24 horas',
+    '7d': 'Últimos 7 dias',
+    '30d': 'Últimos 30 dias',
+    custom: 'Período personalizado',
+  };
+
+  const chips = [
+    get('candidateId')
+      ? { key: 'candidateId', label: `Candidato: ${candidates.find((c) => c.id === get('candidateId'))?.name || get('candidateId')}` }
+      : null,
+    get('city') ? { key: 'city', label: `Cidade: ${get('city')}` } : null,
+    get('source') ? { key: 'source', label: `Fonte: ${get('source')}` } : null,
+    get('sentiment') ? { key: 'sentiment', label: `Sentimento: ${get('sentiment')}` } : null,
+    get('period') ? { key: 'period', label: `Período: ${PERIOD_CHIP_LABELS[get('period')] || get('period')}` } : null,
+    get('search') ? { key: 'search', label: `Busca: "${get('search')}"` } : null,
+  ].filter((c): c is { key: string; label: string } => c !== null);
+
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-xl p-4 mb-6 shadow-2xl">
+    <div className="bg-[#12192A] border border-white/5 rounded-xl p-4 mb-6 shadow-2xl space-y-3">
       <div className="flex flex-wrap items-center gap-4">
         {/* Indicador de Status */}
         <div className="flex items-center gap-2 text-gray-400 border-r border-white/5 pr-4 shrink-0">
@@ -214,6 +233,14 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
           </button>
         )}
       </div>
+
+      <ActiveFilterChips
+        chips={chips}
+        onRemove={(key) => {
+          if (key === 'search') setSearchInput('');
+          updateURL({ [key]: null });
+        }}
+      />
     </div>
   );
 }

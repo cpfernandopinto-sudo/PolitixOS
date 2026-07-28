@@ -3,6 +3,22 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import ActiveFilterChips from '@/components/ui/ActiveFilterChips';
+
+const FILTER_LABELS: Record<string, string> = {
+  candidate: 'Candidato',
+  period: 'Período',
+  sentiment: 'Sentimento',
+  risk: 'Risco',
+  topic: 'Tema',
+  search: 'Busca',
+};
+
+const PERIOD_LABELS: Record<string, string> = {
+  '1': 'Últimas 24h',
+  '7': 'Últimos 7 dias',
+  '30': 'Últimos 30 dias',
+};
 
 export default function XFilterBar({ options }: { options: any }) {
   const router = useRouter();
@@ -27,8 +43,26 @@ export default function XFilterBar({ options }: { options: any }) {
     setSearchValue(searchParams.get('search') || '');
   }, [searchParams]);
 
+  const chipLabel = (key: string, value: string) => {
+    if (key === 'candidate') return options.candidates?.find((c: any) => c.id === value)?.name || value;
+    if (key === 'period') return PERIOD_LABELS[value] || value;
+    if (key === 'search') return `"${value}"`;
+    return value;
+  };
+
+  const chips = ['candidate', 'period', 'sentiment', 'risk', 'topic', 'search']
+    .map((key) => {
+      const value = searchParams.get(key);
+      if (!value || value === 'todos') return null;
+      return { key, label: `${FILTER_LABELS[key]}: ${chipLabel(key, value)}` };
+    })
+    .filter((c): c is { key: string; label: string } => c !== null);
+
+  const clearAll = () => router.push(window.location.pathname);
+
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-xl p-4 flex flex-wrap gap-4 items-center mb-6">
+    <div className="bg-[#12192A] border border-white/5 rounded-xl p-4 mb-6 space-y-3">
+    <div className="flex flex-wrap gap-4 items-center">
       <div className="flex-1 min-w-[200px] relative">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
         <input
@@ -101,6 +135,16 @@ export default function XFilterBar({ options }: { options: any }) {
           <option key={t} value={t}>{t}</option>
         ))}
       </select>
+    </div>
+
+      <ActiveFilterChips
+        chips={chips}
+        onRemove={(key) => {
+          if (key === 'search') setSearchValue('');
+          handleChange(key, 'todos');
+        }}
+        onClearAll={clearAll}
+      />
     </div>
   );
 }
