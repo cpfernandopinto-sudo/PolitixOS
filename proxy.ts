@@ -47,7 +47,7 @@ export async function proxy(req: NextRequest) {
   // ── Autenticado em rota pública (ex: /login) → redirecionar para dashboard
   if (isPublic) {
     console.log(`[Middleware] Usuário autenticado acessando rota pública ${pathname}. Redirecionando para dashboard.`);
-    return NextResponse.redirect(new URL('/dashboard/noticias', req.nextUrl));
+    return NextResponse.redirect(new URL('/dashboard/overview', req.nextUrl));
   }
 
   // ── Admin ignora todas as restrições ──────────────────────────────────────

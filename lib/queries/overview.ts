@@ -1,7 +1,27 @@
+import { cache } from 'react';
 import { fetchMencoes, getGaugeScore as getNoticiasGauge } from './noticias';
 import { fetchInstagramData } from './instagram';
 import { fetchXData } from './x';
 import { createClient } from '@/lib/supabaseClient';
+import {
+  evaluateNoticiaItemAlerts,
+  evaluateNoticiaAggregateAlerts,
+  evaluateInstagramItemAlerts,
+  evaluateXItemAlerts,
+  sortAlerts,
+} from './alerts';
+import {
+  splitByPeriod,
+  computeSentimentShares,
+  deriveRisksFromAlerts,
+  evaluateOpportunities,
+  explainOpportunityAbsence,
+  selectKeyChanges,
+  rankEntities,
+  rankThemes,
+  composeExecutiveSynthesis,
+} from '@/lib/analytics/executive-summary';
+import { classifyPoliticalStatus } from '@/lib/analytics/political-status';
 
 export interface OverviewFilters {
   candidate?: string | null;
@@ -45,7 +65,7 @@ function weightedAverage(entries: Array<{ value: number; weight: number; count: 
   return available.reduce((sum, entry) => sum + entry.value * entry.weight, 0) / totalWeight;
 }
 
-function compareTrend(current: number, previous: number) {
+function compareTrend(current: number, previous: number): { direção: 'up' | 'down' | 'stable'; variação: number } {
   if (previous === 0) return { direção: 'stable', variação: 0 };
 
   const varPct = ((current - previous) / previous) * 100;
@@ -66,7 +86,7 @@ function getItemTimestamp(item: { published_at?: string | null; created_at?: str
 function calculateTrend(
   data: Awaited<ReturnType<typeof fetchOverviewData>>,
   period: string | null | undefined
-) {
+): { direção: 'up' | 'down' | 'stable'; variação: number } {
   const timestamps = [
     ...data.noticias.map(getItemTimestamp),
     ...data.instagram.posts.map(getItemTimestamp),
@@ -100,15 +120,21 @@ function calculateTrend(
 }
 
 /**
- * Busca dados consolidados de todos os radares
+ * Busca dados consolidados de todos os radares.
+ *
+ * Memoizada com React.cache(): todas as funções abaixo (getOverviewKPIs,
+ * getCrisisOverview, getChannelDistribution, etc.) recebem o MESMO objeto
+ * `filters` vindo da página e chamam esta função — o cache por referência do
+ * React garante que as ~9 chamadas por carregamento resultem em 1 única
+ * execução real (3 subconsultas: notícias, Instagram, X), não 9.
+ *
+ * Importante: nunca passar um objeto `filters` diferente (ou mutado) para
+ * esta função a partir de um contexto que deveria reaproveitar o cache —
+ * isso já causou um bug de segurança em `fetchInstagramData` (ver nota em
+ * lib/queries/instagram.ts) quando uma chamada sem `allowedTargetIds` foi
+ * cacheada e reaproveitada por engano para uma chamada restrita.
  */
-export async function fetchOverviewData(filters?: OverviewFilters) {
-  const allowedTargetIds = filters?.allowedTargetIds ?? null;
-  console.log("[overview filter]", {
-    allowedTargetIds,
-    mode: allowedTargetIds === null ? "admin_all_data" : "restricted"
-  });
-
+export const fetchOverviewData = cache(async (filters?: OverviewFilters) => {
   // Padronizar filtros para as funções específicas
   // period='all' = sem filtro de data (todo período)
   const period = filters?.period || 'all';
@@ -143,15 +169,8 @@ export async function fetchOverviewData(filters?: OverviewFilters) {
     ...xData
   ];
 
-  console.log("[OVERVIEW X CHECK]", {
-    rawX: x.posts?.length,
-    mappedX: xData?.length,
-    finalBaseX: baseData.filter(i => i.source === "x").length,
-    period
-  });
-
   return { noticias, instagram, x, baseData };
-}
+});
 
 /**
  * 2. KPIs EXECUTIVOS
@@ -273,59 +292,158 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
   return channelDistribution;
 }
 
+export interface TimelineEvent {
+  id: string;
+  canal: 'Notícias' | 'Instagram' | 'X';
+  titulo: string;
+  data: string;
+  severidade: 'alta' | 'media';
+  url: string | null;
+  /** Primeiro tema/tópico associado (para o modo agrupado da timeline) — `null` quando não há análise de tema. */
+  tema: string | null;
+  /** Candidato/target associado — `null` quando não identificado. */
+  entidade: string | null;
+  /** Sentimento normalizado — `null` quando não há análise de sentimento. */
+  sentimento: 'positivo' | 'negativo' | 'neutro' | null;
+}
+
+const TIMELINE_LIMIT = 40;
+
+interface TimelineSourceNoticia {
+  id: string;
+  title: string | null;
+  published_at: string | null;
+  local_relevance: number | null;
+  url: string | null;
+  candidate_name?: string | null;
+  ai_topics?: unknown;
+  ai_sentiment?: number | null;
+}
+
+interface TimelineSourcePost {
+  id: string;
+  text?: string | null;
+  created_at?: string | null;
+  risk?: string | null;
+  url?: string | null;
+  candidate_name?: string | null;
+  topic?: string | null;
+  sentiment?: string | null;
+}
+
+function firstTopic(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const first = value.find((v) => typeof v === 'string');
+    return typeof first === 'string' ? first : null;
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        const first = parsed.find((v) => typeof v === 'string');
+        return typeof first === 'string' ? first : null;
+      }
+    } catch { /* ignora */ }
+  }
+  return null;
+}
+
+function normalizeSentimentLabel(sentiment: string | null | undefined, numericSentiment?: number | null): 'positivo' | 'negativo' | 'neutro' | null {
+  if (typeof numericSentiment === 'number') {
+    return numericSentiment > 0 ? 'positivo' : numericSentiment < 0 ? 'negativo' : 'neutro';
+  }
+  const s = sentiment?.toLowerCase();
+  if (s === 'positivo' || s === 'negativo' || s === 'neutro') return s;
+  return null;
+}
+
 /**
- * 5. ALERTAS PRIORITÁRIOS
+ * Monta e deduplica os eventos da timeline a partir dos itens já buscados
+ * (nenhum I/O aqui — função pura, testável isoladamente). Usa os mesmos
+ * critérios de "item notável" já usados em getPriorityAlerts, mas ordena
+ * cronologicamente (não por risco) e não limita a 5, pois aqui o objetivo é
+ * a linha do tempo, não o topo de prioridades.
+ *
+ * Deduplicação: cada evento é identificado por `${canal}:${id}` da linha de
+ * origem (notícia/post) — um mesmo item nunca aparece duas vezes na
+ * timeline, mesmo que satisfaça mais de um critério.
  */
-export async function getPriorityAlerts(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+export function buildTimelineEvents(source: {
+  noticias: TimelineSourceNoticia[];
+  instagramPosts: TimelineSourcePost[];
+  xPosts: TimelineSourcePost[];
+}): TimelineEvent[] {
+  const seen = new Set<string>();
+  const events: TimelineEvent[] = [];
 
-  const alerts: any[] = [];
+  const pushEvent = (event: TimelineEvent) => {
+    const key = `${event.canal}:${event.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    events.push(event);
+  };
 
-  // Notícias
-  noticias.forEach(n => {
-    if ((n.local_relevance || 0) > 70) {
-      alerts.push({
+  source.noticias.forEach((n) => {
+    if ((n.local_relevance || 0) > 70 && n.published_at) {
+      pushEvent({
+        id: n.id,
         canal: 'Notícias',
-        resumo: n.title,
-        risco: n.local_relevance || 50,
-        impacto: (n.local_relevance || 50) * 1.2,
+        titulo: n.title || 'Notícia sem título',
         data: n.published_at,
-        url: n.url
+        severidade: (n.local_relevance || 0) > 85 ? 'alta' : 'media',
+        url: n.url,
+        tema: firstTopic(n.ai_topics),
+        entidade: n.candidate_name ?? null,
+        sentimento: normalizeSentimentLabel(null, n.ai_sentiment ?? null),
       });
     }
   });
 
-  // Instagram
-  instagram.posts.forEach(p => {
-    if (isHighRisk(p.risk)) {
-      alerts.push({
+  source.instagramPosts.forEach((p) => {
+    if (isHighRisk(p.risk) && p.created_at) {
+      pushEvent({
+        id: p.id,
         canal: 'Instagram',
-        resumo: p.text.substring(0, 100),
-        risco: riskScore(p.risk),
-        impacto: (p.like_count + p.comment_count) / 10,
+        titulo: (p.text || 'Post sem legenda').substring(0, 140),
         data: p.created_at,
-        url: p.url
+        severidade: isCriticalRisk(p.risk) ? 'alta' : 'media',
+        url: p.url ?? null,
+        tema: p.topic && p.topic !== 'Sem análise' ? p.topic : null,
+        entidade: p.candidate_name ?? null,
+        sentimento: normalizeSentimentLabel(p.sentiment, null),
       });
     }
   });
 
-  // X
-  x.posts.forEach(p => {
-    if (isHighRisk(p.risk)) {
-      alerts.push({
-        canal: 'X (Twitter)',
-        resumo: p.text.substring(0, 100),
-        risco: isCriticalRisk(p.risk) ? 100 : 80,
-        impacto: p.impactScore || 50,
+  source.xPosts.forEach((p) => {
+    if (isHighRisk(p.risk) && p.created_at) {
+      pushEvent({
+        id: p.id,
+        canal: 'X',
+        titulo: (p.text || 'Post sem texto').substring(0, 140),
         data: p.created_at,
-        url: p.url
+        severidade: isCriticalRisk(p.risk) ? 'alta' : 'media',
+        url: p.url ?? null,
+        tema: p.topic && p.topic !== 'Sem análise' ? p.topic : null,
+        entidade: p.candidate_name ?? null,
+        sentimento: normalizeSentimentLabel(p.sentiment, null),
       });
     }
   });
 
-  return alerts
-    .sort((a, b) => b.risco - a.risco || b.impacto - a.impacto || new Date(b.data).getTime() - new Date(a.data).getTime())
-    .slice(0, 5);
+  return events
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+    .slice(0, TIMELINE_LIMIT);
+}
+
+/**
+ * Timeline consolidada da Visão Geral: reaproveita o MESMO fetchOverviewData
+ * já cacheado (React.cache()) por esta requisição — não dispara nenhuma
+ * consulta nova.
+ */
+export async function getTimelineEvents(filters?: OverviewFilters): Promise<TimelineEvent[]> {
+  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  return buildTimelineEvents({ noticias, instagramPosts: instagram.posts, xPosts: x.posts });
 }
 
 /**
@@ -428,12 +546,31 @@ export async function getRiskOverview(filters?: OverviewFilters) {
 }
 
 /**
- * 9. TENDÊNCIA
+ * Busca o conjunto "período completo" (sem filtro de data), usado tanto por
+ * getTrendOverview quanto por getExecutiveOverviewData para comparação
+ * período-atual-vs-anterior. Memoizada com React.cache() e chamada com o
+ * `filters` ORIGINAL (não um spread novo) — é isso que permite as duas
+ * chamadas deduplicarem entre si. Antes desta função existir, cada uma
+ * construía seu próprio `{ ...filters, period: 'all' }` (referências
+ * diferentes) e disparava uma consulta "período completo" separada —
+ * confirmado via log em `fetchInstagramData` durante a validação visual do
+ * Sprint 4 (múltiplas chamadas repetidas com os mesmos filtros).
  */
-export async function getTrendOverview(filters?: OverviewFilters) {
-  const allData = await fetchOverviewData({ ...filters, period: 'all' });
+const getAllPeriodOverviewData = cache(async (filters?: OverviewFilters) => {
+  return fetchOverviewData({ ...filters, period: 'all' });
+});
+
+/**
+ * 9. TENDÊNCIA
+ *
+ * Memoizada com React.cache(): é chamada tanto diretamente pela página
+ * quanto internamente por getOverviewKPIs(), ambas com o mesmo `filters`
+ * vindo da página — sem cache, isso executava a consulta 2x.
+ */
+export const getTrendOverview = cache(async (filters?: OverviewFilters) => {
+  const allData = await getAllPeriodOverviewData(filters);
   return calculateTrend(allData, filters?.period || 'all');
-}
+});
 
 /**
  * 10. MAPA DE AÇÃO (IA)
@@ -486,7 +623,8 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
       sentimento: n.ai_sentiment && n.ai_sentiment > 0 ? 'Positivo' : n.ai_sentiment && n.ai_sentiment < 0 ? 'Negativo' : 'Neutro',
       risco: n.local_relevance && n.local_relevance > 70 ? 'Alto' : 'Baixo',
       impacto: 'Médio',
-      ação: 'Ver Clipping'
+      ação: 'Ver Clipping',
+      url: n.url
     });
   });
 
@@ -497,7 +635,8 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
       sentimento: p.sentiment,
       risco: p.risk,
       impacto: p.like_count > 500 ? 'Alto' : 'Médio',
-      ação: 'Ver Post'
+      ação: 'Ver Post',
+      url: p.url
     });
   });
 
@@ -508,7 +647,8 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
       sentimento: p.sentiment,
       risco: p.risk,
       impacto: p.impactScore > 70 ? 'Alto' : 'Médio',
-      ação: 'Ver Análise'
+      ação: 'Ver Análise',
+      url: p.url
     });
   });
 
@@ -517,6 +657,114 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
     return riskVal(b.risco) - riskVal(a.risco);
   }).slice(0, 20);
 }
+
+function pickMax<K extends string>(counts: Record<K, number>): K | null {
+  const entries = Object.entries(counts) as Array<[K, number]>;
+  const total = entries.reduce((sum, [, v]) => sum + v, 0);
+  if (total === 0) return null;
+  return entries.sort((a, b) => b[1] - a[1])[0][0];
+}
+
+/**
+ * 12. CENTRO EXECUTIVO (Sprint 3)
+ *
+ * Orquestrador de I/O para a síntese executiva da Visão Geral. Reaproveita:
+ * - `fetchOverviewData(filters)` — já cacheado, mesma referência de
+ *   `filters` usada pelos outros blocos da página (dedup por React.cache()).
+ * - `fetchOverviewData({ ...filters, period: 'all' })` — MESMA consulta já
+ *   feita por `getTrendOverview` (não é uma consulta nova de um tipo
+ *   diferente), agora também usada para a comparação período-atual vs.
+ *   período-anterior de Riscos/Oportunidades/Mudanças Relevantes.
+ * - `getCrisisOverview`, `getSentimentOverview`, `getRiskOverview`,
+ *   `getTrendOverview`, `getDominantTopics` — todas já existentes,
+ *   memoizadas via `fetchOverviewData`.
+ * - As regras de alerta de `lib/queries/alerts.ts` são reaproveitadas como
+ *   FUNÇÕES PURAS (evaluate*ItemAlerts) aplicadas diretamente sobre os dados
+ *   já buscados acima — não chama `getUnifiedAlerts` (que faria 3 consultas
+ *   novas via seu próprio `fetchMencoes`/`fetchInstagramData`/`fetchXData`
+ *   com um objeto de filtro diferente, fora do cache desta requisição).
+ *
+ * Único custo real além do que a Visão Geral já pagava: a consulta de
+ * "período completo" acima, que já existia para `getTrendOverview`.
+ *
+ * Memoizada com React.cache(): a página renderiza vários blocos
+ * independentes (síntese, estado político, riscos/oportunidades, mudanças,
+ * entidades/temas) em Suspense boundaries separados, todos chamando esta
+ * função com o MESMO objeto `filters` — sem cache(), isso re-executaria
+ * todo o orquestrador (incluindo a consulta de período completo) uma vez
+ * por bloco.
+ */
+export const getExecutiveOverviewData = cache(async (filters?: OverviewFilters) => {
+  const { noticias, instagram, x } = await fetchOverviewData(filters);
+
+  const alerts = sortAlerts([
+    ...evaluateNoticiaItemAlerts(noticias),
+    ...evaluateNoticiaAggregateAlerts(noticias),
+    ...evaluateInstagramItemAlerts(instagram.posts),
+    ...evaluateXItemAlerts(x.posts),
+  ]);
+  const criticalAlertCount = alerts.filter((a) => a.severidade === 'critico').length;
+  const highAlertCount = alerts.filter((a) => a.severidade === 'alto').length;
+
+  const [crisis, sentiment, risk, trend, topics] = await Promise.all([
+    getCrisisOverview(filters),
+    getSentimentOverview(filters),
+    getRiskOverview(filters),
+    getTrendOverview(filters),
+    getDominantTopics(filters),
+  ]);
+
+  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length;
+
+  const politicalStatus = classifyPoliticalStatus({
+    crisisScore: crisis.score,
+    volumeTotal,
+    criticalAlertCount,
+    highAlertCount,
+    predominantSentiment: pickMax(sentiment),
+    predominantRisk: pickMax(risk),
+    volumeTrend: volumeTotal > 0 ? { direcao: trend.direção, variacaoPercentual: trend.variação } : null,
+  });
+
+  // Comparação período atual vs. anterior — reaproveita a MESMA consulta de
+  // "período completo" que getTrendOverview já faz (getAllPeriodOverviewData
+  // é cache()-deduplicada entre as duas chamadas, mesma referência `filters`).
+  const allPeriodData = await getAllPeriodOverviewData(filters);
+  const period = filters?.period || 'all';
+  const getNoticiaTimestamp = (n: { published_at: string | null }) => (n.published_at ? new Date(n.published_at).getTime() : null);
+  const getPostTimestamp = (p: { created_at: string | null }) => (p.created_at ? new Date(p.created_at).getTime() : null);
+
+  const noticiasSplit = splitByPeriod(allPeriodData.noticias, getNoticiaTimestamp, period);
+  const instaSplit = splitByPeriod(allPeriodData.instagram.posts, getPostTimestamp, period);
+  const xSplit = splitByPeriod(allPeriodData.x.posts, getPostTimestamp, period);
+
+  const currentShares = computeSentimentShares(noticiasSplit.current, instaSplit.current, xSplit.current);
+  const hasPreviousWindow = noticiasSplit.previous.length + instaSplit.previous.length + xSplit.previous.length > 0;
+  const previousShares = hasPreviousWindow
+    ? computeSentimentShares(noticiasSplit.previous, instaSplit.previous, xSplit.previous)
+    : null;
+
+  const entities = rankEntities(noticias, instagram.posts, x.posts, alerts);
+  const themes = rankThemes(topics);
+  const risks = deriveRisksFromAlerts(alerts, 10);
+  const opportunities = evaluateOpportunities(currentShares, previousShares, entities, 10);
+  const opportunityAbsenceReasons = opportunities.length === 0 ? explainOpportunityAbsence(currentShares, previousShares, entities) : [];
+  const keyChanges = selectKeyChanges(currentShares, previousShares, volumeTotal > 0 ? { direcao: trend.direção, variacaoPercentual: trend.variação } : null);
+
+  const synthesis = composeExecutiveSynthesis({ politicalStatus, risks, opportunities, themes, entities, keyChanges });
+
+  return {
+    politicalStatus,
+    risks,
+    opportunities,
+    opportunityAbsenceReasons,
+    keyChanges,
+    entities,
+    themes,
+    synthesis,
+    alertCounts: { critico: criticalAlertCount, alto: highAlertCount },
+  };
+});
 
 /**
  * Filtros de Candidatos para o Overview
