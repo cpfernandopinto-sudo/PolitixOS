@@ -416,6 +416,7 @@ export function getFeedNoticias(rows: MencaoRow[], limit = 50): Noticia[] {
       id: r.id || r.hash,
       data: formatDate(r.published_at),
       fonte: r.source ?? '—',
+      candidato: r.candidate_name,
       titulo: r.title ?? 'Sem título',
       resumo: r.ai_takeaways ?? r.summary ?? r.title ?? '—',
       link: r.url ?? '#',
@@ -527,7 +528,7 @@ export function getCrisisTimeline24h(rows: MencaoRow[]) {
     risk: 0,
     sentiment: 0,
     count: 0,
-    topNews: null as any
+    topNews: null as MencaoRow | null
   }))
 
   rows.filter(r => r.published_at && new Date(r.published_at) >= last24h).forEach(r => {

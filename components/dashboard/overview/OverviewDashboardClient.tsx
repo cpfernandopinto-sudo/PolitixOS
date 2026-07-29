@@ -8,7 +8,7 @@ import OverviewAlerts from './OverviewAlerts';
 import OverviewChannels from './OverviewChannels';
 import OverviewStrategicMap from './OverviewStrategicMap';
 import ReactECharts from 'echarts-for-react';
-import { Newspaper, Search } from 'lucide-react';
+import { Activity, Newspaper, Search } from 'lucide-react';
 
 interface Props {
   initialData: {
@@ -65,7 +65,6 @@ function InstagramChannelIcon({ size = 14, className = '' }: { size?: number; cl
 }
 
 export default function OverviewDashboardClient({ initialData, candidates, currentCandidate, currentPeriod }: Props) {
-  console.log("[FRONT DATA]", initialData);
   const router = useRouter();
   const [candidate, setCandidate] = useState(currentCandidate || 'todos');
   const [period, setPeriod] = useState(currentPeriod || 'all');
@@ -76,6 +75,10 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
     { value: initialData.sentiment.misto, name: 'Misto', color: '#EAB308' },
   ];
   const sentimentTotal = sentimentItems.reduce((acc, item) => acc + item.value, 0);
+  const dominantSentiment = [...sentimentItems].sort((a, b) => b.value - a.value)[0];
+  const dominantSentimentPct = sentimentTotal > 0
+    ? Math.round((dominantSentiment.value / sentimentTotal) * 100)
+    : 0;
 
   const getItemUrl = (row: any) => {
     let rawJson = row.raw_json;
@@ -156,10 +159,12 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
       {
         name: 'Sentimento',
         type: 'pie',
-        radius: ['40%', '70%'],
+        radius: ['50%', '76%'],
+        center: ['50%', '50%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 10, borderColor: '#1A1A1A', borderWidth: 2 },
+        itemStyle: { borderRadius: 10, borderColor: '#0E1727', borderWidth: 2 },
         label: { show: false },
+        detail: { show: false },
         emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
         labelLine: { show: false },
         data: [
@@ -175,9 +180,9 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
 
   const riskOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 8, right: 8, top: 12, bottom: 18, containLabel: true },
-    xAxis: { type: 'category', data: ['Crítico', 'Alto', 'Médio', 'Baixo'], axisLabel: { color: '#666' } },
-    yAxis: { type: 'value', axisLabel: { color: '#666' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
+    grid: { left: 4, right: 8, top: 26, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', data: ['Crítico', 'Alto', 'Médio', 'Baixo'], axisLabel: { color: '#718096', fontSize: 9 }, axisTick: { show: false } },
+    yAxis: { type: 'value', axisLabel: { show: false }, axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
     series: [
       {
         data: [
@@ -187,7 +192,8 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
           { value: initialData.risk.baixo, itemStyle: { color: '#22C55E' } },
         ],
         type: 'bar',
-        barWidth: '46%',
+        barWidth: '52%',
+        label: { show: true, position: 'top', color: '#CBD5E1', fontSize: 10, fontWeight: 'bold' },
       }
     ]
   };
@@ -209,7 +215,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
               setCandidate(nextCandidate);
               applyFilters(nextCandidate, period);
             }}
-            className="bg-[#1A1A1A] border border-white/10 text-white text-sm rounded-lg px-4 py-2.5 focus:border-cyan-500/50 outline-none transition-all"
+            className="bg-[#0E1727] border border-blue-300/10 text-white text-sm rounded-xl px-4 py-2.5 focus:border-cyan-500/50 outline-none transition-all"
           >
             <option value="todos">Todos os Candidatos</option>
             {candidates.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -222,7 +228,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
               setPeriod(nextPeriod);
               applyFilters(candidate, nextPeriod);
             }}
-            className="bg-[#1A1A1A] border border-white/10 text-white text-sm rounded-lg px-4 py-2.5 focus:border-cyan-500/50 outline-none transition-all"
+            className="bg-[#0E1727] border border-blue-300/10 text-white text-sm rounded-xl px-4 py-2.5 focus:border-cyan-500/50 outline-none transition-all"
           >
             <option value="all">Todo período</option>
             <option value="1">Últimas 24h</option>
@@ -236,7 +242,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
       <OverviewKPI {...initialData.kpis} />
 
       {/* Main Row: Gauge & Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-1">
           <OverviewGauge {...initialData.crisis} />
         </div>
@@ -245,62 +251,81 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
         </div>
       </div>
 
-      {/* Topics & Channels */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Dominant Topics */}
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 h-full">
-          <h3 className="text-white font-bold text-lg mb-6">Temas Dominantes</h3>
-          <div className="space-y-4">
-            {initialData.topics.map((t: any, i: number) => (
-              <div key={i} className="flex items-center gap-4">
-                <div className="w-32 text-xs text-gray-400 truncate">{t.tema}</div>
-                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${t.sentimento > 0.2 ? 'bg-green-500' : t.sentimento < -0.2 ? 'bg-red-500' : 'bg-blue-500'}`}
-                    style={{ width: `${Math.min(100, (t.frequencia / initialData.topics[0].frequencia) * 100)}%` }}
-                  ></div>
-                </div>
-                <div className="w-10 text-right text-xs font-bold text-white">{t.frequencia}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Channel Dist */}
-        <OverviewChannels data={initialData.channels} />
-      </div>
-
-      {/* Charts: Sentiment & Risk */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5">
-          <h3 className="text-white font-bold text-lg mb-3">Sentimento Consolidado</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.2fr)_minmax(180px,0.8fr)] gap-4 items-center">
-            <div className="h-[220px]">
-              <ReactECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
+      {/* Faixa analítica executiva */}
+      <div>
+        <div className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-blue-300/10 bg-gradient-to-r from-[#0E1727] to-[#0B1423] px-5 py-3.5">
+          <div className="flex items-center gap-3">
+            <span className="rounded-xl border border-cyan-300/15 bg-cyan-400/10 p-2 text-cyan-300">
+              <Activity size={18} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-white">Leitura Analítica</h2>
+              <p className="text-[11px] text-slate-500">Pauta, canais, percepção e risco consolidados.</p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
-              {sentimentItems.map(item => {
-                const pct = sentimentTotal > 0 ? Math.round((item.value / sentimentTotal) * 100) : 0;
-                return (
-                  <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-xs font-medium text-gray-300 truncate">{item.name}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-white">{item.value}</div>
-                      <div className="text-[10px] text-gray-500">{pct}%</div>
-                    </div>
+          </div>
+          <span className="hidden rounded-full border border-blue-300/10 bg-blue-400/[0.06] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-200 md:inline-flex">
+            4 dimensões estratégicas
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="glass rounded-2xl p-5 h-full">
+            <div className="mb-5">
+              <h3 className="text-white font-bold text-base">Temas Dominantes</h3>
+              <p className="text-[11px] text-slate-500 mt-1">Top 5 pautas monitoradas</p>
+            </div>
+            <div className="space-y-4">
+              {initialData.topics.slice(0, 5).map((t: any, i: number) => (
+                <div key={i}>
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <span className="truncate text-xs text-slate-300">{t.tema}</span>
+                    <strong className="text-xs text-white">{t.frequencia}</strong>
                   </div>
-                );
-              })}
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className={`h-full rounded-full ${t.sentimento > 0.2 ? 'bg-emerald-500' : t.sentimento < -0.2 ? 'bg-rose-500' : 'bg-blue-500'}`}
+                      style={{ width: `${Math.min(100, (t.frequencia / Math.max(1, initialData.topics[0]?.frequencia)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5">
-          <h3 className="text-white font-bold text-lg mb-3">Distribuição de Risco</h3>
-          <div className="h-[258px]">
-            <ReactECharts option={riskOption} style={{ height: '100%', width: '100%' }} />
+
+          <OverviewChannels data={initialData.channels} />
+
+          <div className="glass rounded-2xl p-5 h-full">
+            <div>
+              <h3 className="text-white font-bold text-base">Sentimento Consolidado</h3>
+              <p className="text-[11px] text-slate-500 mt-1">Percepção predominante</p>
+            </div>
+            <div className="relative h-[150px]">
+              <ReactECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <strong className="text-2xl text-white">{dominantSentimentPct}%</strong>
+                <span className="text-[10px] text-slate-500">{dominantSentiment.name}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              {sentimentItems.map((item) => (
+                <div key={item.name} className="flex items-center justify-between gap-2 text-[10px]">
+                  <span className="flex items-center gap-1.5 text-slate-400">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                    {item.name}
+                  </span>
+                  <strong className="text-slate-200">{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass rounded-2xl p-5 h-full">
+            <div>
+              <h3 className="text-white font-bold text-base">Distribuição de Risco</h3>
+              <p className="text-[11px] text-slate-500 mt-1">Gravidade das ocorrências</p>
+            </div>
+            <div className="h-[220px]">
+              <ReactECharts option={riskOption} style={{ height: '100%', width: '100%' }} />
+            </div>
           </div>
         </div>
       </div>
@@ -309,7 +334,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
       <OverviewStrategicMap actions={initialData.actions} />
 
       {/* Executive Table */}
-      <div className="bg-[#1A1A1A] border border-white/5 rounded-xl overflow-hidden">
+      <div className="bg-[#0E1727] border border-blue-300/10 rounded-2xl overflow-hidden shadow-[0_18px_45px_rgba(0,0,0,.18)]">
         <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-white font-bold text-lg">Tabela Executiva de Monitoramento</h3>
           <div className="relative">
@@ -334,7 +359,7 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {initialData.table.map((row: any, i: number) => {
+              {initialData.table.slice(0, 10).map((row: any, i: number) => {
                 const actionUrl = getItemUrl(row);
                 const actionLabel = getActionLabel(row);
                 return (
@@ -382,6 +407,12 @@ export default function OverviewDashboardClient({ initialData, candidates, curre
             </tbody>
           </table>
         </div>
+        {initialData.table.length > 10 && (
+          <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3 text-xs text-slate-500">
+            <span>Exibindo 10 de {initialData.table.length} registros</span>
+            <span className="font-semibold text-slate-400">Use os radares para consultar a base completa</span>
+          </div>
+        )}
       </div>
     </div>
   );

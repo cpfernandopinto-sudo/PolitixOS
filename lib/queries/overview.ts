@@ -270,8 +270,6 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
     }
   };
 
-  console.log("[OVERVIEW CHANNELS CHECK]", channelDistribution);
-
   return channelDistribution;
 }
 

@@ -150,31 +150,31 @@ export default function Sidebar({ permissions }: Props) {
   const isActive = (href: string) => pathname.startsWith(href);
 
   const linkClass = (active: boolean) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${active
-      ? 'bg-blue-600/10 text-[#2563EB] border border-blue-500/20'
-      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+    `relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${active
+      ? 'bg-gradient-to-r from-blue-600/20 to-cyan-400/[0.07] text-blue-300 border border-blue-400/20 shadow-[inset_3px_0_0_#3b82f6]'
+      : 'text-slate-400 hover:text-white hover:bg-white/[0.045] border border-transparent'
     } ${collapsed ? 'justify-center' : ''}`;
 
   if (!mounted) return null;
 
   return (
     <aside
-      className={`${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#0D0D0D] border-r border-white/5 flex flex-col z-50 transition-all duration-300`}
+      className={`${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#080d17]/95 backdrop-blur-xl border-r border-white/[0.08] flex flex-col z-50 transition-all duration-300 shadow-[12px_0_40px_rgba(0,0,0,0.18)]`}
     >
       {/* Logo */}
-      <div className={`p-6 flex items-center min-h-[80px] ${collapsed ? 'justify-center' : 'justify-start'}`}>
+      <div className={`px-5 py-5 flex items-center min-h-[80px] border-b border-white/[0.06] ${collapsed ? 'justify-center' : 'justify-start'}`}>
         <img
           src="/brand/PolitixOS.png"
           alt="PolitixOS"
-          className={`${collapsed ? 'w-10' : 'w-full max-w-[160px]'} h-auto object-contain`}
+          className={`${collapsed ? 'w-10' : 'w-full max-w-[164px]'} h-auto object-contain drop-shadow-[0_0_18px_rgba(59,130,246,0.18)]`}
         />
       </div>
 
       {/* Toggle */}
-      <div className={`px-4 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
+      <div className={`px-4 pt-4 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-lg border border-white/[0.08] bg-white/[0.035] text-slate-400 hover:text-white hover:bg-blue-500/10 hover:border-blue-400/20 transition-all"
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -182,7 +182,7 @@ export default function Sidebar({ permissions }: Props) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-4 space-y-2 mt-4 overflow-x-hidden overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-1.5 mt-4 overflow-x-hidden overflow-y-auto">
         {/* Visão Geral — só admin ou quem tem permissão dashboard */}
         {(isAdmin || permissions.permissions.includes('dashboard')) && (
           <Link
@@ -221,7 +221,7 @@ export default function Sidebar({ permissions }: Props) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-white/5 space-y-2">
+      <div className="p-3 border-t border-white/[0.07] space-y-2">
         {(isAdmin || permissions.permissions.includes('configuracoes')) && (
           <button
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors ${collapsed ? 'justify-center' : ''}`}

@@ -52,6 +52,9 @@ function InstagramChannelIcon({ size = 16, className = '' }: { size?: number; cl
 }
 
 export default function OverviewAlerts({ alerts }: Props) {
+  const visibleAlerts = alerts.slice(0, 3);
+  const additionalAlerts = Math.max(alerts.length - visibleAlerts.length, 0);
+
   const getIcon = (canal: string) => {
     if (canal.includes('Notícias')) return <Newspaper size={16} className="text-blue-400" />;
     if (canal.includes('Instagram')) return <InstagramChannelIcon size={16} className="text-pink-400" />;
@@ -59,54 +62,85 @@ export default function OverviewAlerts({ alerts }: Props) {
   };
 
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-white font-bold text-lg tracking-tight">Alertas Prioritários</h3>
-        <AlertTriangle className="text-red-500" size={20} />
+    <div className="glass h-[254px] rounded-2xl p-4 flex flex-col">
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/15 bg-red-500/10">
+            <AlertTriangle className="text-red-400" size={16} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold tracking-tight text-white">Alertas Prioritários</h3>
+            <p className="text-[10px] text-slate-500">Ocorrências que exigem atenção imediata</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-red-500/15 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-300">
+            {alerts.length} {alerts.length === 1 ? 'alerta' : 'alertas'}
+          </span>
+          {additionalAlerts > 0 && (
+            <span className="hidden text-[10px] font-medium text-slate-500 xl:inline">
+              +{additionalAlerts} no monitoramento
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.025] divide-y divide-white/[0.06]">
         {alerts.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500 text-sm italic">
+          <div className="flex h-full items-center justify-center text-xs text-slate-500">
             Nenhum alerta crítico no momento.
           </div>
         ) : (
-          alerts.map((alert, i) => (
-            <div
+          visibleAlerts.map((alert, i) => (
+            <article
               key={i}
-              className="group bg-white/5 border border-white/5 hover:border-red-500/30 rounded-lg p-4 transition-all"
+              className="group grid min-h-[55px] grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 transition-colors hover:bg-white/[0.035]"
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {getIcon(alert.canal)}
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{alert.canal}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${alert.risco > 80 ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'
-                    }`}>
-                    RISCO: {alert.risco}
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-[#111D30]">
+                {getIcon(alert.canal)}
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold leading-4 text-slate-200 transition-colors group-hover:text-white">
+                  {alert.resumo}
+                </p>
+                <div className="mt-1 flex items-center gap-2 text-[9px] text-slate-500">
+                  <span className="font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    {alert.canal}
                   </span>
+                  <span className="h-1 w-1 rounded-full bg-slate-700" />
+                  <time>
+                    {new Date(alert.data).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </time>
                 </div>
               </div>
 
-              <p className="text-sm text-gray-200 line-clamp-2 mb-3 group-hover:text-white transition-colors">
-                {alert.resumo}
-              </p>
-
-              <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                <span className="text-[10px] text-gray-500">
-                  {new Date(alert.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              <div className="flex items-center gap-2">
+                <span className={`rounded-md border px-2 py-1 text-[9px] font-black ${alert.risco > 80
+                  ? 'border-red-500/10 bg-red-500/10 text-red-400'
+                  : 'border-orange-500/10 bg-orange-500/10 text-orange-400'
+                  }`}>
+                  {alert.risco}
                 </span>
-                <a
-                  href={alert.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  ACESSAR ORIGEM <ExternalLink size={10} />
-                </a>
+                {alert.url && (
+                  <a
+                    href={alert.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Abrir origem de ${alert.resumo}`}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-400/10 bg-cyan-400/[0.06] text-cyan-400 transition-colors hover:border-cyan-400/30 hover:bg-cyan-400/10"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                )}
               </div>
-            </div>
+            </article>
           ))
         )}
       </div>

@@ -12,12 +12,12 @@ interface ChartCardProps {
 export default function ChartCard({ title, children, className, danger = false, extra }: ChartCardProps) {
   return (
     <div className={clsx(
-      'glass rounded-xl p-5 flex flex-col',
-      danger ? 'border-[#FF3B3B]/20 shadow-[0_0_20px_rgba(255,59,59,0.05)]' : 'border-white/5',
+      'glass rounded-2xl p-5 md:p-6 flex flex-col transition-all duration-300 hover:border-blue-400/20',
+      danger ? 'border-rose-400/20 shadow-[0_18px_45px_rgba(244,63,94,0.06)]' : 'border-white/[0.08]',
       className
     )}>
-      <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
-        <h3 className="text-white text-base font-semibold">
+      <div className="flex justify-between items-center mb-5 border-b border-white/[0.07] pb-4">
+        <h3 className="text-white text-[15px] font-semibold tracking-tight">
           {title}
         </h3>
         {extra && <div className="shrink-0">{extra}</div>}

@@ -16,11 +16,11 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] flex">
+    <div className="dashboard-shell min-h-screen flex">
       <Sidebar permissions={sidebarPerms} />
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         <Header />
-        <main className="flex-1 p-8 overflow-x-hidden">
+        <main className="dashboard-main flex-1 overflow-x-hidden">
           {children}
         </main>
       </div>
