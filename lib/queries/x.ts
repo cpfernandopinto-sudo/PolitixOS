@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabaseClient';
+import { withTiming } from '@/lib/perf/timing';
 
 export interface XFilters {
   period?: string | null;
@@ -45,12 +46,7 @@ export async function fetchXData(filters?: XFilters) {
     return { posts: [], replies: [] };
   }
 
-  // 1. Targets map
-  const { data: targetsAll } = await client.from('targets').select('id, candidate_name');
-  const targetsMap = new Map<string, string>();
-  for (const t of targetsAll || []) targetsMap.set(t.id, t.candidate_name);
-
-  // 2. Posts Fetch
+  // 2. Posts query (montada, ainda não disparada — roda em paralelo com targets abaixo)
   let pQuery = client.from('social_posts').select('*').or('platform.ilike.x,platform.ilike.twitter');
 
   if (restricted && filters!.allowedTargetIds!.length > 0) {
@@ -74,34 +70,48 @@ export async function fetchXData(filters?: XFilters) {
     pQuery = pQuery.ilike('caption', `%${filters.search}%`);
   }
 
-  const { data: rawPosts, error: pError } = await pQuery.order('taken_at', { ascending: false }).limit(300);
+  // FASE A — targets (para candidate_name) e posts são independentes entre
+  // si; antes eram sequenciais (targets, DEPOIS posts), agora em paralelo.
+  const [targetsResult, postsResult] = await Promise.all([
+    withTiming('  x.targets', () => client.from('targets').select('id, candidate_name'), (r) => r.data?.length ?? 0),
+    withTiming('  x.posts', () => pQuery.order('taken_at', { ascending: false }).limit(300), (r) => r.data?.length ?? 0),
+  ]);
+
+  const targetsMap = new Map<string, string>();
+  for (const t of targetsResult.data || []) targetsMap.set(t.id, t.candidate_name);
+
+  const { data: rawPosts, error: pError } = postsResult;
   if (pError) console.error('[fetchXData] Error fetching posts:', pError.message);
   let postsData = rawPosts || [];
 
   const allPostIds = [...new Set(postsData.map(p => p.id))];
 
-  // 3. AI Analysis
+  // FASE B — análise de IA e replies dependem dos IDs de posts (FASE A), mas
+  // são independentes entre si — antes eram sequenciais (IA, DEPOIS
+  // replies), agora em paralelo.
+  const [aiResult, repliesResult] = await Promise.all([
+    allPostIds.length > 0
+      ? withTiming(
+          '  x.ai_analysis',
+          () => client.from('ai_analysis').select('*').eq('content_type', 'post').in('content_id', allPostIds),
+          (r) => r.data?.length ?? 0
+        )
+      : Promise.resolve({ data: null as unknown[] | null, error: null }),
+    allPostIds.length > 0
+      ? withTiming(
+          '  x.replies',
+          () => client.from('tweet_replies').select('*').in('post_id', allPostIds).order('created_at_twitter', { ascending: false }).limit(1000),
+          (r) => r.data?.length ?? 0
+        )
+      : Promise.resolve({ data: [] as any[], error: null }),
+  ]);
+
   const aiMap = new Map();
-  if (allPostIds.length > 0) {
-    const { data: aiData } = await client
-      .from('ai_analysis')
-      .select('*')
-      .eq('content_type', 'post')
-      .in('content_id', allPostIds);
+  for (const a of (aiResult.data as any[]) || []) aiMap.set(a.content_id, a);
 
-    if (aiData) {
-      for (const a of aiData) aiMap.set(a.content_id, a);
-    }
-  }
-
-  // 4. Replies Fetch
-  let repliesData: any[] = [];
-  if (allPostIds.length > 0) {
-    let rQuery = client.from('tweet_replies').select('*').in('post_id', allPostIds);
-    const { data: rawReplies, error: rError } = await rQuery.order('created_at_twitter', { ascending: false }).limit(1000);
-    if (rError) console.error('[fetchXData] Error fetching replies:', rError.message);
-    repliesData = rawReplies || [];
-  }
+  const { data: rawReplies, error: rError } = repliesResult;
+  if (rError) console.error('[fetchXData] Error fetching replies:', rError.message);
+  const repliesData = rawReplies || [];
 
   // 5. Strategic Insights Helper
   const getStrategicInsights = (p: any, maxEng: number) => {
@@ -239,8 +249,17 @@ export async function fetchXData(filters?: XFilters) {
   return { posts, replies };
 }
 
-export async function getXKPIs(filters?: XFilters) {
-  const { posts, replies } = await fetchXData(filters);
+type XPosts = Awaited<ReturnType<typeof fetchXData>>['posts'];
+type XReplies = Awaited<ReturnType<typeof fetchXData>>['replies'];
+
+/**
+ * Núcleo puro de `getXKPIs` — sem I/O, extraído para permitir que páginas
+ * que já buscaram `{ posts, replies }` (via `fetchXData`) derivem os KPIs
+ * sem disparar uma segunda consulta idêntica. Mesma lógica, mesmo
+ * resultado; `getXKPIs` abaixo continua funcionando exatamente como antes
+ * para qualquer chamador que só tenha os `filters`.
+ */
+export function computeXKPIs(posts: XPosts, replies: XReplies) {
   const totalPosts = posts.length;
   const totalReplies = replies.length;
   const totalEng = posts.reduce((acc, p) => acc + p.totalEngagement, 0);
@@ -258,9 +277,13 @@ export async function getXKPIs(filters?: XFilters) {
   ];
 }
 
-export async function getXChartData(filters?: XFilters) {
+export async function getXKPIs(filters?: XFilters) {
   const { posts, replies } = await fetchXData(filters);
+  return computeXKPIs(posts, replies);
+}
 
+/** Núcleo puro de `getXChartData` — ver nota em `computeXKPIs`. */
+export function computeXChartData(posts: XPosts, replies: XReplies) {
   // Sentiment Distribution
   const sentimentData = [
     { name: 'Positivo', value: posts.filter(d => d.sentiment === 'positivo').length, itemStyle: { color: '#22C55E' } },
@@ -314,13 +337,23 @@ export async function getXChartData(filters?: XFilters) {
   return { sentimentData, riskData, themes, topImpact, topRisk, crisisScore: Math.round(avgTemp) };
 }
 
-export async function getXAlert(filters?: XFilters) {
-  const { posts } = await fetchXData(filters);
+export async function getXChartData(filters?: XFilters) {
+  const { posts, replies } = await fetchXData(filters);
+  return computeXChartData(posts, replies);
+}
+
+/** Núcleo puro de `getXAlert` — ver nota em `computeXKPIs`. */
+export function computeXAlert(posts: XPosts) {
   const critical = [...posts]
     .filter(p => p.risk === 'alto' || p.risk === 'critico')
     .sort((a, b) => b.totalEngagement - a.totalEngagement || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
   return critical || null;
+}
+
+export async function getXAlert(filters?: XFilters) {
+  const { posts } = await fetchXData(filters);
+  return computeXAlert(posts);
 }
 
 export async function getXFiltersOptions(allowedTargetIds?: string[] | null) {

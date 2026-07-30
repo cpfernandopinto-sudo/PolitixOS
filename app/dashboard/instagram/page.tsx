@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import InstagramDashboard from '@/components/dashboard/InstagramDashboard';
 import InstagramFilterBar from '@/components/dashboard/InstagramFilterBar';
-import { getInstagramKPIs, getInstagramChartData, fetchInstagramData, cleanFilter, getInstagramFiltersOptions } from '@/lib/queries/instagram';
+import { computeInstagramKPIs, computeInstagramChartData, fetchInstagramData, cleanFilter, getInstagramFiltersOptions } from '@/lib/queries/instagram';
 import { getAllowedTargetIds } from '@/lib/auth/dal';
 
 export const metadata = {
@@ -26,14 +26,22 @@ export default async function InstagramPage({ searchParams }: PageProps) {
   };
 
 
-  const [kpis, charts, data, options] = await Promise.all([
-    getInstagramKPIs(filters),
-    getInstagramChartData(filters),
+  // Antes, getInstagramKPIs/getInstagramChartData/fetchInstagramData eram
+  // chamadas separadas aqui — cada uma repetia a MESMA busca completa
+  // (targets+posts+comentários+IA) com o mesmo `filters`, 3 execuções
+  // idênticas por carregamento (ver docs/AUDITORIA_PERFORMANCE_OVERVIEW.md,
+  // Sprint 3). Agora busca uma vez e deriva KPIs/gráficos localmente — mesmo
+  // resultado, 1 execução em vez de 3. `getInstagramFiltersOptions` continua
+  // separada de propósito: mostra as opções de filtro (tópicos/candidatos)
+  // para TODO o escopo permitido, não apenas os filtros já aplicados.
+  const [data, options] = await Promise.all([
     fetchInstagramData(filters),
     // Passa allowedTargetIds para que o seletor de candidatos
     // mostre apenas os candidatos permitidos para este usuário
     getInstagramFiltersOptions(allowedTargetIds),
   ]);
+  const kpis = computeInstagramKPIs(data.posts, data.comments);
+  const charts = computeInstagramChartData(data.posts, data.comments);
 
   return (
     <div className="space-y-6 pb-12">
