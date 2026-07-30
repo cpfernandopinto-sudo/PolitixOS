@@ -32,8 +32,8 @@ export default function OverviewChannels({ data }: Props) {
 
   const option = {
     radar: {
-      center: ['50%', '44%'],
-      radius: '46%',
+      center: ['45%', '48%'],
+      radius: '62%',
       indicator: [
         { name: 'Sentimento', max: 1, min: -1 },
         { name: 'Risco', max: 1 },
@@ -46,13 +46,13 @@ export default function OverviewChannels({ data }: Props) {
       shape: 'circle',
       splitNumber: 4,
       axisName: {
-        color: '#666',
-        fontSize: 9,
+        color: '#94a3b8',
+        fontSize: 12,
         fontWeight: 'bold'
       },
       splitLine: {
         lineStyle: {
-          color: 'rgba(255, 255, 255, 0.05)'
+          color: 'rgba(148, 163, 184, 0.24)'
         }
       },
       splitArea: {
@@ -60,7 +60,7 @@ export default function OverviewChannels({ data }: Props) {
       },
       axisLine: {
         lineStyle: {
-          color: 'rgba(255, 255, 255, 0.05)'
+          color: 'rgba(148, 163, 184, 0.24)'
         }
       }
     },
@@ -98,17 +98,17 @@ export default function OverviewChannels({ data }: Props) {
       bottom: 0,
       left: 'center',
       itemGap: 10,
-      textStyle: { color: '#999', fontSize: 10 },
+      textStyle: { color: '#94a3b8', fontSize: 11 },
       icon: 'circle',
-      itemWidth: 7,
-      itemHeight: 7
+      itemWidth: 8,
+      itemHeight: 8
     }
   };
 
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl px-5 py-4 overflow-hidden">
+    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-5 py-4 overflow-hidden h-full">
       <h3 className="text-white font-bold text-lg tracking-tight">Distribuição por Canal</h3>
-      <p className="text-xs text-gray-500 mb-2">Como cada canal contribui para o cenário.</p>
+      <p className="text-xs text-slate-500 mb-0.5">Como cada canal contribui para o cenário.</p>
       {/*
         Altura FIXA (não flex-1/h-full): este bloco monta imediatamente no
         carregamento inicial da página (Camada 2, sempre visível). echarts-for-react
@@ -117,9 +117,11 @@ export default function OverviewChannels({ data }: Props) {
         medição podia disparar antes do layout assentar (`[ECharts] Can't get
         DOM width or height`), resultando num canvas de ~100px. Altura fixa
         elimina a corrida, mesmo padrão já usado em OverviewSentiment/OverviewRisk.
-        Hotfix de apresentação: altura reduzida (compacta em card de 1/4 de largura).
+        Fase 2.1 do refinamento visual: raio ampliado bem mais (64%→85%) e
+        container mais alto — a Fase 2 tinha corrigido a direção certa, mas
+        o radar ainda ficava pequeno demais dentro do card.
       */}
-      <div className="h-[300px]">
+      <div className="h-[340px]">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
       </div>
     </div>

@@ -53,24 +53,24 @@ const SEVERITY_LABEL: Record<TimelineEvent['severidade'], string> = { alta: 'Alt
 
 function EventRow({ event }: { event: TimelineEvent }) {
   return (
-    <li className="flex items-start gap-3 border-l-2 border-white/5 pl-4 py-1.5 relative hover:bg-white/[0.02] rounded-r-md transition-colors">
+    <li className="flex items-start gap-3 border-l-2 border-blue-300/10 pl-4 py-1.5 relative hover:bg-blue-400/[0.03] rounded-r-md transition-colors">
       <span className={`absolute -left-[5px] top-3 w-2 h-2 rounded-full ${event.severidade === 'alta' ? 'bg-red-500' : 'bg-yellow-500'}`} />
       <div className="flex items-center gap-2 shrink-0 pt-0.5">{CHANNEL_ICON[event.canal]}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-gray-200 truncate">{event.titulo}</p>
+        <p className="text-sm text-slate-200 truncate">{event.titulo}</p>
         <div className="flex items-center gap-2 flex-wrap mt-0.5">
-          <span className="text-[10px] text-gray-500">
+          <span className="text-[10px] text-slate-500">
             {new Date(event.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
           </span>
           <span className={`text-[9px] font-bold uppercase tracking-wider ${event.severidade === 'alta' ? 'text-red-400' : 'text-yellow-500'}`}>
             {SEVERITY_LABEL[event.severidade]}
           </span>
-          {event.entidade && <span className="text-[10px] text-gray-600">· {event.entidade}</span>}
-          {event.tema && <span className="text-[10px] text-gray-600">· {event.tema}</span>}
+          {event.entidade && <span className="text-[10px] text-slate-600">· {event.entidade}</span>}
+          {event.tema && <span className="text-[10px] text-slate-600">· {event.tema}</span>}
         </div>
       </div>
       {event.url && (
-        <a href={event.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-gray-500 hover:text-cyan-400 transition-colors" aria-label="Abrir evidência original">
+        <a href={event.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-slate-500 hover:text-cyan-400 transition-colors" aria-label="Abrir evidência original">
           <ExternalLink size={13} />
         </a>
       )}
@@ -121,19 +121,19 @@ export default function OverviewTimeline({ events }: Props) {
   };
 
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6">
+    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
         <h3 className="text-white font-bold text-lg tracking-tight flex items-center gap-2">
           <History size={18} className="text-cyan-400" />
           Timeline Consolidada
         </h3>
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="inline-flex items-center bg-[#0D0D0D] border border-white/10 rounded-lg p-1 gap-1">
+          <div className="inline-flex items-center bg-[#070b14] border border-blue-300/15 rounded-lg p-1 gap-1">
             <button
               type="button"
               onClick={() => handleModeChange('cronologica')}
               aria-pressed={mode === 'cronologica'}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === 'cronologica' ? 'bg-cyan-500/15 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === 'cronologica' ? 'bg-cyan-500/15 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
               Cronológica
             </button>
@@ -141,7 +141,7 @@ export default function OverviewTimeline({ events }: Props) {
               type="button"
               onClick={() => handleModeChange('agrupada')}
               aria-pressed={mode === 'agrupada'}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === 'agrupada' ? 'bg-cyan-500/15 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === 'agrupada' ? 'bg-cyan-500/15 text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
               Agrupada por tema
             </button>
@@ -153,7 +153,7 @@ export default function OverviewTimeline({ events }: Props) {
                 type="button"
                 onClick={() => { setFilter(c); setVisible(INITIAL_VISIBLE); }}
                 className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                  filter === c ? 'bg-cyan-500/15 text-cyan-400' : 'text-gray-500 hover:text-gray-300'
+                  filter === c ? 'bg-cyan-500/15 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 {c === 'todos' ? 'Todos' : c}
@@ -164,7 +164,7 @@ export default function OverviewTimeline({ events }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="py-10 text-center text-gray-500 text-sm italic">
+        <div className="py-10 text-center text-slate-500 text-sm italic">
           Nenhum evento notável no período e filtros selecionados.
         </div>
       ) : mode === 'cronologica' ? (
@@ -190,7 +190,7 @@ export default function OverviewTimeline({ events }: Props) {
             return (
               <div
                 key={group.chave}
-                className={`border border-white/5 border-l-2 rounded-lg overflow-hidden ${
+                className={`border border-blue-300/10 border-l-2 rounded-lg overflow-hidden ${
                   group.severidadeMax === 'alta' ? 'border-l-red-500' : 'border-l-yellow-500'
                 }`}
               >
@@ -198,16 +198,16 @@ export default function OverviewTimeline({ events }: Props) {
                   type="button"
                   onClick={() => toggleGroup(group.chave)}
                   aria-expanded={isExpanded}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors text-left"
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-blue-400/[0.05] transition-colors text-left"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <ChevronRight size={14} className={`text-gray-500 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    <ChevronRight size={14} className={`text-slate-500 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${group.severidadeMax === 'alta' ? 'text-red-400' : 'text-yellow-500'}`}>
                       {SEVERITY_LABEL[group.severidadeMax]}
                     </span>
                     <span className="text-sm text-white font-medium truncate">{group.tema}</span>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0 text-[10px] text-gray-500">
+                  <div className="flex items-center gap-3 shrink-0 text-[10px] text-slate-500">
                     <div className="hidden sm:flex items-center gap-1">{canais.map((c) => <span key={c}>{CHANNEL_ICON[c]}</span>)}</div>
                     {group.entidadesAssociadas.length > 0 && (
                       <span className="hidden md:inline truncate max-w-[160px]">
@@ -216,11 +216,11 @@ export default function OverviewTimeline({ events }: Props) {
                       </span>
                     )}
                     {group.sentimentoPredominante && <span>Sentimento: {group.sentimentoPredominante}</span>}
-                    <span className="bg-white/5 px-1.5 py-0.5 rounded font-bold text-gray-300">{group.quantidade} evento{group.quantidade > 1 ? 's' : ''}</span>
+                    <span className="bg-blue-500/5 px-1.5 py-0.5 rounded font-bold text-slate-300">{group.quantidade} evento{group.quantidade > 1 ? 's' : ''}</span>
                   </div>
                 </button>
                 {isExpanded && (
-                  <ol className="px-4 pb-4 pt-1 space-y-3 border-t border-white/5">
+                  <ol className="px-4 pb-4 pt-1 space-y-3 border-t border-blue-300/10">
                     {group.eventos.map((event) => <EventRow key={`${event.canal}:${event.id}`} event={event} />)}
                   </ol>
                 )}

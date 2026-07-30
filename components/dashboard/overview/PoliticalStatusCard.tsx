@@ -27,7 +27,7 @@ const SEVERITY_STYLES: Record<PoliticalStatusResult['severidade'], string> = {
 function TrendIndicator({ direcao, variacaoPercentual }: { direcao: 'up' | 'down' | 'stable'; variacaoPercentual: number }) {
   if (direcao === 'stable') {
     return (
-      <span className="flex items-center gap-1 text-xs text-gray-400">
+      <span className="flex items-center gap-1 text-xs text-slate-400">
         <Minus size={12} /> Estável vs. período anterior
       </span>
     );
@@ -52,17 +52,17 @@ export default function PoliticalStatusCard({ status }: Props) {
 
   if (status.semDados) {
     return (
-      <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 h-full flex flex-col items-center justify-center text-center gap-3 min-h-[280px]">
-        <ShieldQuestion size={28} className="text-gray-600" />
-        <p className="text-gray-400 text-sm">Dados insuficientes para calcular o estado político no período selecionado.</p>
+      <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6 h-full flex flex-col items-center justify-center text-center gap-3 min-h-[280px]">
+        <ShieldQuestion size={28} className="text-slate-600" />
+        <p className="text-slate-400 text-sm">Dados insuficientes para calcular o estado político no período selecionado.</p>
       </div>
     );
   }
 
   return (
-    <div className={`bg-[#1A1A1A] border border-white/5 border-l-4 rounded-xl p-6 h-full flex flex-col ${SEVERITY_STYLES[status.severidade]}`}>
+    <div className={`bg-[#0E1727] border border-blue-300/10 border-l-4 rounded-xl p-6 h-full flex flex-col ${SEVERITY_STYLES[status.severidade]}`}>
       <div className="flex items-center justify-between gap-3 mb-2">
-        <h3 className="text-white font-bold text-lg tracking-tight">Estado Político</h3>
+        <h3 className="text-white font-bold text-[17px] tracking-tight">Estado Político</h3>
         <button
           type="button"
           onClick={() => setShowMethodology(true)}
@@ -84,8 +84,8 @@ export default function PoliticalStatusCard({ status }: Props) {
 
       <ul className="mt-4 space-y-1.5 flex-1">
         {status.fatores.map((fator, i) => (
-          <li key={i} className="text-xs text-gray-400 flex items-start gap-2">
-            <span className="w-1 h-1 rounded-full bg-gray-600 mt-1.5 shrink-0" />
+          <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+            <span className="w-1 h-1 rounded-full bg-slate-600 mt-1.5 shrink-0" />
             {fator}
           </li>
         ))}
@@ -98,26 +98,26 @@ export default function PoliticalStatusCard({ status }: Props) {
         subtitle="Metodologia e evidências"
       >
         <div>
-          <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Regra</h4>
-          <p className="text-sm text-gray-200 bg-white/5 border border-white/5 rounded-lg p-4 leading-relaxed">
+          <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Regra</h4>
+          <p className="text-sm text-slate-200 bg-blue-500/5 border border-blue-300/10 rounded-lg p-4 leading-relaxed">
             {status.justificativa}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/5 border border-white/5 rounded-lg p-3">
-            <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Score atual</div>
+          <div className="bg-blue-500/5 border border-blue-300/10 rounded-lg p-3">
+            <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Score atual</div>
             <div className="text-sm text-white font-medium">{status.score}/100</div>
           </div>
-          <div className="bg-white/5 border border-white/5 rounded-lg p-3">
-            <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Classificação</div>
+          <div className="bg-blue-500/5 border border-blue-300/10 rounded-lg p-3">
+            <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Classificação</div>
             <div className="text-sm text-white font-medium">{status.label}</div>
           </div>
         </div>
 
         <div>
-          <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Thresholds</h4>
-          <ul className="text-xs text-gray-400 space-y-1 bg-white/5 border border-white/5 rounded-lg p-4">
+          <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Thresholds</h4>
+          <ul className="text-xs text-slate-400 space-y-1 bg-blue-500/5 border border-blue-300/10 rounded-lg p-4">
             <li>Score &gt; 75 → Crítico</li>
             <li>Score &gt; 50 → Tensão elevada</li>
             <li>Score &gt; 25 → Atenção</li>
@@ -126,25 +126,25 @@ export default function PoliticalStatusCard({ status }: Props) {
         </div>
 
         <div>
-          <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Janela temporal</h4>
-          <p className="text-xs text-gray-400">Período selecionado nos filtros da Visão Geral. A variação (quando exibida) compara com o período imediatamente anterior de mesma duração.</p>
+          <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Janela temporal</h4>
+          <p className="text-xs text-slate-400">Período selecionado nos filtros da Visão Geral. A variação (quando exibida) compara com o período imediatamente anterior de mesma duração.</p>
         </div>
 
         <div>
-          <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Fatores considerados</h4>
-          <ul className="text-xs text-gray-400 space-y-1">
+          <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Fatores considerados</h4>
+          <ul className="text-xs text-slate-400 space-y-1">
             {status.fatores.map((f, i) => <li key={i}>• {f}</li>)}
           </ul>
         </div>
 
         <div>
-          <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Limitações</h4>
-          <p className="text-xs text-gray-500 leading-relaxed">
+          <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Limitações</h4>
+          <p className="text-xs text-slate-500 leading-relaxed">
             O score é um indicador sintético — não substitui a leitura das evidências individuais (notícias, posts e alertas). Não representa opinião, previsão eleitoral ou recomendação política.
           </p>
         </div>
 
-        <p className="text-[10px] text-gray-600">
+        <p className="text-[10px] text-slate-600">
           Regras detalhadas dos alertas que alimentam este score: <code>docs/REGRAS_ALERTAS_POLITIXOS.md</code> e <code>docs/METODOLOGIA_CENTRO_EXECUTIVO.md</code>.
         </p>
       </Drawer>

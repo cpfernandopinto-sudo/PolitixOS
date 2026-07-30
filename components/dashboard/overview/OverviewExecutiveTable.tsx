@@ -123,7 +123,7 @@ function getRiskClass(value: string | null | undefined) {
   const risk = normalizeRiskLabel(value);
   if (risk === 'alto' || risk === 'critico') return 'text-red-500 font-bold';
   if (risk === 'medio') return 'text-yellow-400 font-bold';
-  return 'text-gray-400';
+  return 'text-slate-400';
 }
 
 export default function OverviewExecutiveTable({ rows }: Props) {
@@ -138,39 +138,39 @@ export default function OverviewExecutiveTable({ rows }: Props) {
   }, [rows, search]);
 
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl overflow-hidden">
-      <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl overflow-hidden">
+      <div className="p-5 border-b border-blue-300/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h3 className="text-white font-bold text-lg">Tabela Executiva de Monitoramento</h3>
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Pesquisar..."
-            className="bg-black/20 border border-white/10 rounded-lg pl-9 pr-4 py-1.5 text-xs text-white focus:border-cyan-500/50 outline-none"
+            className="bg-black/20 border border-blue-300/15 rounded-lg pl-9 pr-4 py-1.5 text-xs text-white focus:border-cyan-500/50 outline-none"
           />
         </div>
       </div>
       {rows.length === 0 ? (
-        <div className="p-10 text-center text-gray-500 text-sm italic">
+        <div className="p-10 text-center text-slate-500 text-sm italic">
           Nenhum item para o período e filtros selecionados.
         </div>
       ) : filteredRows.length === 0 ? (
-        <div className="p-10 text-center text-gray-500 text-sm italic">
+        <div className="p-10 text-center text-slate-500 text-sm italic">
           Nenhum resultado para &quot;{search}&quot;.
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-white/5">
+            <thead className="bg-blue-500/5">
               <tr>
-                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Candidato</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Canal</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sentimento</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Risco</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Impacto</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ação</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Candidato</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Canal</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sentimento</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Risco</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Impacto</th>
+                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -178,10 +178,10 @@ export default function OverviewExecutiveTable({ rows }: Props) {
                 const actionUrl = getItemUrl(row);
                 const actionLabel = getActionLabel(row);
                 return (
-                  <tr key={i} className="hover:bg-white/5 transition-colors">
+                  <tr key={i} className="hover:bg-blue-500/5 transition-colors">
                     <td className="px-5 py-3 text-sm font-medium text-white">{row.candidato}</td>
                     <td className="px-5 py-3">
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
                         {getChannelIcon(row.canal)}
                         {row.canal}
                       </div>
@@ -198,7 +198,7 @@ export default function OverviewExecutiveTable({ rows }: Props) {
                     <td className="px-5 py-3 text-xs">
                       <span className={getRiskClass(row.risco)}>{row.risco}</span>
                     </td>
-                    <td className="px-5 py-3 text-xs text-gray-400">{row.impacto}</td>
+                    <td className="px-5 py-3 text-xs text-slate-400">{row.impacto}</td>
                     <td className="px-5 py-3">
                       {actionUrl ? (
                         <a
@@ -210,7 +210,7 @@ export default function OverviewExecutiveTable({ rows }: Props) {
                           {actionLabel}
                         </a>
                       ) : (
-                        <span className="text-gray-600 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed">
+                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed">
                           SEM LINK
                         </span>
                       )}

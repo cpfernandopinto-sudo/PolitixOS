@@ -77,28 +77,28 @@ export default function OverviewAlerts({ risks }: Props) {
   const visible = risks.slice(0, INITIAL_VISIBLE);
 
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 h-full flex flex-col">
+    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-white font-bold text-lg tracking-tight">Alertas Prioritários</h3>
         <AlertTriangle className="text-red-500" size={20} />
       </div>
-      <p className="text-xs text-gray-500 mb-5">Resumo operacional dos riscos mais recentes.</p>
+      <p className="text-xs text-slate-500 mb-5">Resumo operacional dos riscos mais recentes.</p>
 
       <div className="flex-1 space-y-4">
         {visible.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500 text-sm italic">
+          <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">
             Nenhum alerta crítico no momento.
           </div>
         ) : (
           visible.map((risk) => (
             <div
               key={risk.id}
-              className="group bg-white/5 border border-white/5 hover:border-red-500/30 rounded-lg p-4 transition-all"
+              className="group bg-blue-500/5 border border-blue-300/10 hover:border-red-500/30 rounded-lg p-4 transition-all"
             >
               <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   {CHANNEL_ICON[risk.origem]}
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{CHANNEL_LABEL[risk.origem]}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{CHANNEL_LABEL[risk.origem]}</span>
                 </div>
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${risk.severidade === 'critico' ? 'bg-red-500/10 text-red-500' : 'bg-orange-500/10 text-orange-500'}`}>
                   {SEVERITY_LABEL[risk.severidade].toUpperCase()}
@@ -106,13 +106,13 @@ export default function OverviewAlerts({ risks }: Props) {
               </div>
 
               {/* Descrição executiva (formatExecutiveRisk) — nunca o título bruto do item de origem. */}
-              <p className="text-sm text-gray-200 line-clamp-2 mb-1 group-hover:text-white transition-colors">
+              <p className="text-sm text-slate-200 line-clamp-2 mb-1 group-hover:text-white transition-colors">
                 {risk.descricao}
               </p>
-              <p className="text-[10px] text-gray-500 mb-3">{risk.metricaAtual}</p>
+              <p className="text-[10px] text-slate-500 mb-3">{risk.metricaAtual}</p>
 
-              <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                <span className="text-[10px] text-gray-500">{risk.entidade}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-blue-300/10">
+                <span className="text-[10px] text-slate-500">{risk.entidade}</span>
                 {risk.evidencia?.url && (
                   <a
                     href={risk.evidencia.url}

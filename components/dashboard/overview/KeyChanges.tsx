@@ -8,15 +8,15 @@ interface Props {
 const INTERPRETATION_COLOR: Record<KeyChange['interpretacao'], string> = {
   favoravel: 'text-green-400',
   desfavoravel: 'text-red-400',
-  neutro: 'text-gray-300',
+  neutro: 'text-slate-300',
 };
 
 function ChangeCard({ change }: { change: KeyChange }) {
   const Icon = change.diferencaAbsoluta > 0 ? ArrowUpRight : change.diferencaAbsoluta < 0 ? ArrowDownRight : ArrowLeftRight;
   return (
-    <div className="bg-white/[0.03] border border-white/5 rounded-lg p-4 space-y-2">
+    <div className="bg-blue-400/[0.05] border border-blue-300/10 rounded-lg p-4 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-gray-300 uppercase tracking-wide">{change.label}</span>
+        <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">{change.label}</span>
         <Icon size={14} className={INTERPRETATION_COLOR[change.interpretacao]} />
       </div>
       <div className="flex items-baseline gap-2">
@@ -24,13 +24,13 @@ function ChangeCard({ change }: { change: KeyChange }) {
           {change.diferencaAbsoluta > 0 ? '+' : ''}
           {change.diferencaAbsoluta}
         </span>
-        <span className="text-[10px] text-gray-500">{change.metrica}</span>
+        <span className="text-[10px] text-slate-500">{change.metrica}</span>
       </div>
-      <div className="flex items-center justify-between text-[10px] text-gray-600">
+      <div className="flex items-center justify-between text-[10px] text-slate-600">
         <span>Anterior: {change.valorAnterior}</span>
         <span>Atual: {change.valorAtual}</span>
       </div>
-      <p className="text-[10px] text-gray-600">{change.periodo}</p>
+      <p className="text-[10px] text-slate-600">{change.periodo}</p>
     </div>
   );
 }
@@ -43,10 +43,10 @@ function ChangeCard({ change }: { change: KeyChange }) {
  */
 export default function KeyChanges({ changes }: Props) {
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6">
+    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6">
       <h3 className="text-white font-bold text-base tracking-tight mb-4">Mudanças Mais Relevantes</h3>
       {changes.length === 0 ? (
-        <p className="text-sm text-gray-500 italic py-4 text-center">
+        <p className="text-sm text-slate-500 italic py-4 text-center">
           Sem comparação temporal real disponível para o período e filtros selecionados.
         </p>
       ) : (

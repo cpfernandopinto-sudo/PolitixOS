@@ -69,7 +69,11 @@ async function SynthesisSection({ filters }: { filters: OverviewFilters }) {
   const { synthesis } = await getExecutiveOverviewData(filters);
   return (
     <div className="surface-hero p-5 h-full">
-      <h2 className="text-white font-bold text-base tracking-tight mb-3">Síntese do Cenário</h2>
+      {/* Não é <h2>: mesma razão do PanoramaAnaliticoHeader acima. text-lg
+          iguala o peso visual de "Termômetro de Crise Master"/"Estado
+          Político" (ambos h3 text-lg) na mesma fileira — nenhum dos três
+          deve dominar só pela tipografia. */}
+      <p role="heading" aria-level={2} className="text-white font-bold text-lg tracking-tight mb-3">Síntese do Cenário</p>
       <ExecutiveScenarioSummary synthesis={synthesis} compact />
     </div>
   );
@@ -172,9 +176,11 @@ function PanoramaAnaliticoHeader() {
   return (
     <div className="flex items-center gap-2">
       <BarChart3 size={16} className="text-cyan-400 shrink-0" />
-      <h2 className="text-white font-bold text-sm tracking-tight">Panorama Analítico</h2>
-      <span className="text-xs text-gray-500 hidden sm:inline">— Temas, canais, percepção e risco consolidados.</span>
-      <div className="flex-1 h-px bg-white/5 ml-2" />
+      {/* Não é <h2>: .dashboard-main h2 (compartilhada com o Radar) força
+          clamp(1.55rem,2.1vw,2rem) — bem acima da meta de 22-24px aqui. */}
+      <p role="heading" aria-level={2} className="text-[22px] text-white font-bold tracking-tight">Panorama Analítico</p>
+      <span className="text-xs text-slate-500 hidden sm:inline">— Temas, canais, percepção e risco consolidados.</span>
+      <div className="flex-1 h-px bg-blue-500/5 ml-2" />
     </div>
   );
 }
@@ -229,7 +235,7 @@ export default async function OverviewPage(props: {
           lado em desktop largo (xl:grid-cols-4), 2x2 em notebook/tablet
           (md:grid-cols-2), 1 coluna em mobile. */}
       <PanoramaAnaliticoHeader />
-      <div id="analytics-grid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 scroll-mt-20">
+      <div id="analytics-grid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch scroll-mt-20">
         <SectionBoundary label="Temas dominantes" fallback={<BlockSkeleton height={300} />} minHeight={300}>
           <TopicsSection filters={filters} />
         </SectionBoundary>

@@ -16,10 +16,10 @@ export default function ExecutiveNarrative({ narrative }: Props) {
   if (narrative.semDados) {
     return (
       <div className="surface-hero p-6 flex items-start gap-4">
-        <Compass size={22} className="text-gray-600 shrink-0 mt-0.5" />
+        <Compass size={22} className="text-slate-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-narrative text-gray-300">{narrative.fraseGeral}</p>
-          <p className="text-sm text-gray-500 mt-1">{narrative.fraseContexto}</p>
+          <p className="text-narrative text-slate-300">{narrative.fraseGeral}</p>
+          <p className="text-sm text-slate-500 mt-1">{narrative.fraseContexto}</p>
         </div>
       </div>
     );
@@ -31,7 +31,7 @@ export default function ExecutiveNarrative({ narrative }: Props) {
         <Compass size={22} className="text-cyan-400 shrink-0 mt-0.5" />
         <div className="min-w-0 space-y-2">
           <p className="text-narrative text-white font-semibold">{narrative.fraseGeral}</p>
-          <p className="text-narrative text-gray-400">{narrative.fraseContexto}</p>
+          <p className="text-narrative text-slate-400">{narrative.fraseContexto}</p>
           {narrative.fraseAtencao && (
             <p className="text-narrative text-amber-300/90">{narrative.fraseAtencao}</p>
           )}
@@ -39,7 +39,7 @@ export default function ExecutiveNarrative({ narrative }: Props) {
       </div>
 
       {narrative.acoes.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/5">
+        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-blue-300/10">
           {narrative.acoes.map((acao) => (
             <Link
               key={`${acao.label}:${acao.href}`}

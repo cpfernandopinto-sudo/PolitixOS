@@ -17,8 +17,8 @@ function EntityCard({ entity, onFilter }: { entity: EntityRankItem; onFilter: (t
 
   return (
     <div
-      className={`bg-white/[0.03] border rounded-lg p-4 flex items-start gap-3 ${
-        highRisk ? 'border-red-500/30 border-l-2 border-l-red-500' : 'border-white/5'
+      className={`bg-blue-400/[0.05] border rounded-lg p-4 flex items-start gap-3 ${
+        highRisk ? 'border-red-500/30 border-l-2 border-l-red-500' : 'border-blue-300/10'
       }`}
     >
       <div
@@ -41,7 +41,7 @@ function EntityCard({ entity, onFilter }: { entity: EntityRankItem; onFilter: (t
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-gray-500 flex-wrap">
+        <div className="flex items-center gap-3 text-[10px] text-slate-500 flex-wrap">
           <span>{entity.volume} menções</span>
           {entity.sentimentoPredominante && <span>Sentimento: {entity.sentimentoPredominante}</span>}
           {entity.riscoPredominante && (
@@ -49,7 +49,7 @@ function EntityCard({ entity, onFilter }: { entity: EntityRankItem; onFilter: (t
           )}
           {entity.alertas > 0 && <span className="text-red-400 font-bold">{entity.alertas} alerta(s)</span>}
         </div>
-        {entity.temaPrincipal && <p className="text-[10px] text-gray-600">Tema principal: {entity.temaPrincipal}</p>}
+        {entity.temaPrincipal && <p className="text-[10px] text-slate-600">Tema principal: {entity.temaPrincipal}</p>}
       </div>
     </div>
   );
@@ -58,15 +58,15 @@ function EntityCard({ entity, onFilter }: { entity: EntityRankItem; onFilter: (t
 function ThemeCard({ theme }: { theme: ThemeRankItem }) {
   const sentimentLabel = theme.sentimento > 0.2 ? 'positivo' : theme.sentimento < -0.2 ? 'negativo' : 'neutro';
   const sentimentColor =
-    sentimentLabel === 'positivo' ? 'text-teal-400' : sentimentLabel === 'negativo' ? 'text-red-400' : 'text-gray-400';
+    sentimentLabel === 'positivo' ? 'text-teal-400' : sentimentLabel === 'negativo' ? 'text-red-400' : 'text-slate-400';
 
   return (
-    <div className="bg-white/[0.03] border border-white/5 rounded-lg p-4 space-y-2">
+    <div className="bg-blue-400/[0.05] border border-blue-300/10 rounded-lg p-4 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-white truncate">{theme.tema}</span>
         <span className={`text-[10px] font-bold uppercase tracking-wider ${sentimentColor}`}>{sentimentLabel}</span>
       </div>
-      <div className="flex items-center gap-3 text-[10px] text-gray-500">
+      <div className="flex items-center gap-3 text-[10px] text-slate-500">
         <span>{theme.frequencia} menções</span>
       </div>
     </div>
@@ -95,12 +95,12 @@ export default function AttentionEntitiesThemes({ entities, themes }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6">
+      <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6">
         <h3 className="text-white font-bold text-base tracking-tight mb-4 flex items-center gap-2">
           <Users size={16} className="text-purple-400" /> Entidades em Atenção
         </h3>
         {entities.length === 0 ? (
-          <p className="text-sm text-gray-500 italic py-4 text-center">Nenhuma entidade identificada no período.</p>
+          <p className="text-sm text-slate-500 italic py-4 text-center">Nenhuma entidade identificada no período.</p>
         ) : (
           <div className="space-y-3">
             {entities.map((e) => <EntityCard key={e.nome} entity={e} onFilter={filterByEntity} />)}
@@ -108,12 +108,12 @@ export default function AttentionEntitiesThemes({ entities, themes }: Props) {
         )}
       </div>
 
-      <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6">
+      <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6">
         <h3 className="text-white font-bold text-base tracking-tight mb-4 flex items-center gap-2">
           <Flame size={16} className="text-orange-400" /> Temas em Atenção
         </h3>
         {themes.length === 0 ? (
-          <p className="text-sm text-gray-500 italic py-4 text-center">Nenhum tema identificado no período.</p>
+          <p className="text-sm text-slate-500 italic py-4 text-center">Nenhum tema identificado no período.</p>
         ) : (
           <div className="space-y-3">
             {themes.map((t) => <ThemeCard key={t.tema} theme={t} />)}

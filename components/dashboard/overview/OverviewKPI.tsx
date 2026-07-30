@@ -34,7 +34,7 @@ export default function OverviewKPI({ score_geral, temperatura_geral, tendencia,
     switch (t) {
       case 'subindo': return <TrendingUp className="text-green-500" size={18} />;
       case 'caindo': return <TrendingDown className="text-red-500" size={18} />;
-      default: return <Minus className="text-gray-400" size={18} />;
+      default: return <Minus className="text-slate-400" size={18} />;
     }
   };
 
@@ -42,81 +42,71 @@ export default function OverviewKPI({ score_geral, temperatura_geral, tendencia,
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       {/* Score Geral */}
       <div
-        className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex flex-col justify-between group hover:border-cyan-500/30 transition-all"
+        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-cyan-400/20 transition-all"
         title="Consolidação sintética operacional — inverso do risco consolidado usado no Estado Político e no Termômetro de Crise (100 − risco)."
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">Score de Saúde</span>
-          <Activity className="text-cyan-400 opacity-50 group-hover:opacity-100 transition-opacity" size={20} />
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider truncate">Score de Saúde</span>
+          <Activity className="text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" size={16} />
         </div>
-        <div>
-          <div className="text-3xl font-bold text-white mb-1">{score_geral}<span className="text-sm text-gray-500 ml-1">/100</span></div>
-          <div className="text-xs text-cyan-400/70 font-medium">Consolidação sintética operacional</div>
-        </div>
+        <div className="text-2xl font-bold text-white leading-none">{score_geral}<span className="text-xs text-slate-500 ml-1 font-normal">/100</span></div>
+        <div className="text-[10px] text-cyan-400/70 font-medium truncate">Consolidação sintética operacional</div>
       </div>
 
       {/* Temperatura */}
       <div
-        className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex flex-col justify-between group hover:border-orange-500/30 transition-all"
+        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-orange-400/20 transition-all"
         title="Nível atual de tensão — rótulo qualitativo derivado do mesmo score de crise, sem a classificação executiva do Estado Político."
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">Temperatura</span>
-          <Thermometer className="text-orange-400 opacity-50 group-hover:opacity-100 transition-opacity" size={20} />
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider truncate">Temperatura</span>
+          <Thermometer className="text-orange-400 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" size={16} />
         </div>
-        <div>
-          <div className={`text-2xl font-bold capitalize mb-1 ${getTempColor(temperatura_geral)}`}>
-            {temperatura_geral}
-          </div>
-          <div className="text-xs text-gray-500 font-medium">Nível atual de tensão</div>
+        <div className={`text-2xl font-bold capitalize leading-none ${getTempColor(temperatura_geral)}`}>
+          {temperatura_geral}
         </div>
+        <div className="text-[10px] text-slate-500 font-medium truncate">Nível atual de tensão</div>
       </div>
 
       {/* Tendência */}
       <div
-        className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex flex-col justify-between group hover:border-blue-500/30 transition-all"
+        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-blue-400/20 transition-all"
         title="Direção temporal do volume monitorado no período, comparado ao período imediatamente anterior."
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">Tendência</span>
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider truncate">Tendência</span>
           {getTrendIcon(tendencia)}
         </div>
-        <div>
-          <div className="text-2xl font-bold text-white mb-1 capitalize">
-            {tendencia}
-          </div>
-          <div className="text-xs text-gray-500 font-medium">Direção temporal do volume</div>
+        <div className="text-2xl font-bold text-white capitalize leading-none">
+          {tendencia}
         </div>
+        <div className="text-[10px] text-slate-500 font-medium truncate">Direção temporal do volume</div>
       </div>
 
       {/* Alertas */}
       <div
-        className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex flex-col justify-between group hover:border-red-500/30 transition-all"
+        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-red-400/20 transition-all"
         title="Volume de ocorrências relevantes (contagem) — a leitura de severidade fica em Riscos Prioritários e Alertas Prioritários."
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">Alertas Ativos</span>
-          <AlertTriangle className="text-red-500 opacity-50 group-hover:opacity-100 transition-opacity" size={20} />
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider truncate">Alertas Ativos</span>
+          <AlertTriangle className="text-red-500 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" size={16} />
         </div>
-        <div>
-          <div className="text-3xl font-bold text-white mb-1">{alertas_ativos}</div>
-          <div className="text-xs text-red-500/70 font-medium">Volume de ocorrências relevantes</div>
-        </div>
+        <div className="text-2xl font-bold text-white leading-none">{alertas_ativos}</div>
+        <div className="text-[10px] text-red-500/70 font-medium truncate">Volume de ocorrências relevantes</div>
       </div>
 
       {/* Volume */}
       <div
-        className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 flex flex-col justify-between group hover:border-purple-500/30 transition-all"
+        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-purple-400/20 transition-all"
         title="Dimensão bruta da base monitorada (notícias + posts) no período selecionado."
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">Volume Total</span>
-          <BarChart3 className="text-purple-400 opacity-50 group-hover:opacity-100 transition-opacity" size={20} />
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider truncate">Volume Total</span>
+          <BarChart3 className="text-purple-400 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" size={16} />
         </div>
-        <div>
-          <div className="text-3xl font-bold text-white mb-1">{volume_total.toLocaleString('pt-BR')}</div>
-          <div className="text-xs text-gray-500 font-medium">Dimensão da base monitorada</div>
-        </div>
+        <div className="text-2xl font-bold text-white leading-none">{volume_total.toLocaleString('pt-BR')}</div>
+        <div className="text-[10px] text-slate-500 font-medium truncate">Dimensão da base monitorada</div>
       </div>
     </div>
   );

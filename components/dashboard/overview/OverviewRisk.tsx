@@ -11,9 +11,14 @@ export default function OverviewRisk({ risk }: Props) {
 
   const riskOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    grid: { left: 8, right: 8, top: 12, bottom: 18, containLabel: true },
-    xAxis: { type: 'category', data: ['Crítico', 'Alto', 'Médio', 'Baixo'], axisLabel: { color: '#666' } },
-    yAxis: { type: 'value', axisLabel: { color: '#666' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
+    // Fase 2.1 do refinamento visual: barras mais largas e menor espaçamento
+    // entre categorias para reduzir o vazio percebido entre elas (a Fase 2
+    // já usava quase toda a altura do grid, mas os vãos entre barras finas
+    // liam como espaço morto). Margens ligeiramente maiores para o eixo Y
+    // não cortar o rótulo "1.000". Escala, valores e cores de dados intactos.
+    grid: { left: 8, right: 16, top: 12, bottom: 20, containLabel: true },
+    xAxis: { type: 'category', data: ['Crítico', 'Alto', 'Médio', 'Baixo'], axisLabel: { color: '#94a3b8', fontSize: 12 } },
+    yAxis: { type: 'value', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.12)' } } },
     series: [
       {
         data: [
@@ -23,20 +28,21 @@ export default function OverviewRisk({ risk }: Props) {
           { value: risk.baixo, itemStyle: { color: '#22C55E' } },
         ],
         type: 'bar',
-        barWidth: '46%',
+        barWidth: '70%',
+        barCategoryGap: '20%',
       },
     ],
   };
 
   return (
-    <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 h-full">
+    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-5 h-full">
       <h3 className="text-white font-bold text-lg mb-3">Distribuição de Risco</h3>
       {total === 0 ? (
-        <div className="h-[300px] flex items-center justify-center text-gray-500 text-sm italic">
+        <div className="h-[320px] flex items-center justify-center text-slate-500 text-sm italic">
           Nenhum item classificado por risco no período selecionado.
         </div>
       ) : (
-        <div className="h-[300px]">
+        <div className="h-[320px]">
           <ReactECharts option={riskOption} style={{ height: '100%', width: '100%' }} />
         </div>
       )}

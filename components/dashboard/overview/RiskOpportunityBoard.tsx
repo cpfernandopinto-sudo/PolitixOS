@@ -47,28 +47,28 @@ function SeverityCountStrip({ risks }: { risks: RiskCard[] }) {
     .map((s) => `${counts[s]} ${SEVERITY_LABEL[s].toLowerCase()}${counts[s] > 1 ? 's' : ''}`);
 
   if (parts.length === 0) return null;
-  return <p className="text-[11px] text-gray-500 mb-3">{parts.join(' · ')}</p>;
+  return <p className="text-[11px] text-slate-500 mb-3">{parts.join(' · ')}</p>;
 }
 
 function RiskItem({ risk }: { risk: RiskCard }) {
   return (
-    <div className={`bg-white/[0.03] border border-white/5 border-l-2 ${RISK_ACCENT_BORDER[risk.severidade]} rounded-lg p-4 space-y-2`}>
+    <div className={`bg-blue-400/[0.05] border border-blue-300/10 border-l-2 ${RISK_ACCENT_BORDER[risk.severidade]} rounded-lg p-4 space-y-2`}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest border bg-transparent ${RISK_SEVERITY_STYLES[risk.severidade]}`}>
           {SEVERITY_LABEL[risk.severidade]}
         </span>
-        <span className="text-[10px] text-gray-600">{risk.entidade}</span>
+        <span className="text-[10px] text-slate-600">{risk.entidade}</span>
       </div>
       {/* Descrição EXECUTIVA do risco (regra + entidade) — nunca o título de uma notícia/post. */}
       <p className="text-sm text-white font-medium line-clamp-2">{risk.descricao}</p>
-      <div className="flex items-center justify-between text-[10px] text-gray-500">
+      <div className="flex items-center justify-between text-[10px] text-slate-500">
         <span>{risk.metricaAtual}</span>
         <span>{risk.referencia}</span>
       </div>
       {risk.evidencia && (
-        <div className="pt-2 border-t border-white/5 space-y-1">
-          <p className="text-[9px] text-gray-600 uppercase font-bold tracking-widest">Evidência principal</p>
-          <p className="text-xs text-gray-400 italic line-clamp-2">&ldquo;{risk.evidencia.descricao}&rdquo;</p>
+        <div className="pt-2 border-t border-blue-300/10 space-y-1">
+          <p className="text-[9px] text-slate-600 uppercase font-bold tracking-widest">Evidência principal</p>
+          <p className="text-xs text-slate-400 italic line-clamp-2">&ldquo;{risk.evidencia.descricao}&rdquo;</p>
           {risk.evidencia.url && (
             <a
               href={risk.evidencia.url}
@@ -87,15 +87,15 @@ function RiskItem({ risk }: { risk: RiskCard }) {
 
 function OpportunityItem({ opportunity }: { opportunity: OpportunityCard }) {
   return (
-    <div className="bg-white/[0.03] border border-white/5 border-l-2 border-l-teal-500 rounded-lg p-4 space-y-2">
+    <div className="bg-blue-400/[0.05] border border-blue-300/10 border-l-2 border-l-teal-500 rounded-lg p-4 space-y-2">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest border border-teal-500/40 text-teal-300">
           {opportunity.prioridade === 'alta' ? 'Prioridade alta' : 'Prioridade média'}
         </span>
-        <span className="text-[10px] text-gray-600">{opportunity.entidade}</span>
+        <span className="text-[10px] text-slate-600">{opportunity.entidade}</span>
       </div>
       <p className="text-sm text-white font-medium line-clamp-2">{opportunity.descricao}</p>
-      <div className="flex items-center justify-between text-[10px] text-gray-500">
+      <div className="flex items-center justify-between text-[10px] text-slate-500">
         <span>{opportunity.metricaAtual}</span>
         <span>{opportunity.referencia}</span>
       </div>
@@ -125,7 +125,7 @@ export default function RiskOpportunityBoard({ risks, opportunities, opportunity
       className={`grid grid-cols-1 ${showRisks && showOpportunities ? 'lg:grid-cols-2' : ''} gap-6 scroll-mt-20 h-full`}
     >
       {showRisks && (
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 h-full flex flex-col">
+        <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6 h-full flex flex-col">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-white font-bold text-base tracking-tight flex items-center gap-2">
               <AlertTriangle size={16} className="text-red-400" /> Riscos Prioritários
@@ -137,8 +137,8 @@ export default function RiskOpportunityBoard({ risks, opportunities, opportunity
             )}
           </div>
           {risks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-2 text-gray-500 text-sm">
-              <Inbox size={24} className="text-gray-600" />
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-slate-500 text-sm">
+              <Inbox size={24} className="text-slate-600" />
               Nenhum risco prioritário no período selecionado.
             </div>
           ) : (
@@ -153,7 +153,7 @@ export default function RiskOpportunityBoard({ risks, opportunities, opportunity
       )}
 
       {showOpportunities && (
-        <div id="oportunidades" className="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 scroll-mt-20 h-full flex flex-col">
+        <div id="oportunidades" className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6 scroll-mt-20 h-full flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-bold text-base tracking-tight flex items-center gap-2">
               <TrendingUp size={16} className="text-teal-400" /> Oportunidades Prioritárias
@@ -166,15 +166,15 @@ export default function RiskOpportunityBoard({ risks, opportunities, opportunity
           </div>
           {opportunities.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-6 text-sm">
-              <div className="flex flex-col items-center gap-2 text-gray-500">
-                <Inbox size={24} className="text-gray-600" />
+              <div className="flex flex-col items-center gap-2 text-slate-500">
+                <Inbox size={24} className="text-slate-600" />
                 Nenhuma oportunidade com regra objetiva identificada no período.
               </div>
               {opportunityAbsenceReasons.length > 0 && (
-                <ul className="w-full text-xs text-gray-500 space-y-1.5 bg-white/[0.02] border border-white/5 rounded-lg p-3">
+                <ul className="w-full text-xs text-slate-500 space-y-1.5 bg-blue-400/[0.03] border border-blue-300/10 rounded-lg p-3">
                   {opportunityAbsenceReasons.map((reason, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="w-1 h-1 rounded-full bg-gray-600 mt-1.5 shrink-0" />
+                      <span className="w-1 h-1 rounded-full bg-slate-600 mt-1.5 shrink-0" />
                       {reason}
                     </li>
                   ))}

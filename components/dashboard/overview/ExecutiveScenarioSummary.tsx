@@ -38,19 +38,19 @@ const COMPACT_SECONDARY_KEYS: ReadonlyArray<keyof ExecutiveSynthesis> = ['princi
 
 function PrimaryTile({ label, icon, field, compact }: { label: string; icon: React.ReactNode; field: ExecutiveSynthesisField; compact: boolean }) {
   return (
-    <div className={`bg-white/[0.04] border border-white/5 rounded-xl flex flex-col gap-2 min-w-0 ${compact ? 'p-4' : 'p-5 gap-2.5'}`}>
+    <div className={`bg-blue-400/[0.06] border border-blue-300/10 rounded-xl flex flex-col gap-2 min-w-0 ${compact ? 'p-4' : 'p-5 gap-2.5'}`}>
       <div className="flex items-center gap-2">
         {icon}
         <span className="text-label">{label}</span>
       </div>
 
       {field.semDados ? (
-        <p className="text-sm text-gray-500 italic">Dados insuficientes para síntese</p>
+        <p className="text-sm text-slate-500 italic">Dados insuficientes para síntese</p>
       ) : (
         <>
           <p className={`font-bold text-white leading-snug ${compact ? 'text-base' : 'text-lg'}`}>{field.valor}</p>
-          {!compact && <p className="text-xs text-gray-500 leading-relaxed">{field.justificativa}</p>}
-          {!compact && field.limitacoes && <p className="text-[10px] text-gray-600 italic">{field.limitacoes}</p>}
+          {!compact && <p className="text-xs text-slate-500 leading-relaxed">{field.justificativa}</p>}
+          {!compact && field.limitacoes && <p className="text-[10px] text-slate-600 italic">{field.limitacoes}</p>}
           {field.evidenceRefs.length > 0 && field.evidenceRefs[0].url && (
             <a
               href={field.evidenceRefs[0].url}
@@ -69,18 +69,18 @@ function PrimaryTile({ label, icon, field, compact }: { label: string; icon: Rea
 
 function SecondaryTile({ label, icon, field }: { label: string; icon: React.ReactNode; field: ExecutiveSynthesisField }) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3.5 flex flex-col gap-1.5 min-w-0">
+    <div className="bg-blue-400/[0.03] border border-blue-300/10 rounded-lg p-3.5 flex flex-col gap-1.5 min-w-0">
       <div className="flex items-center gap-1.5">
         {icon}
         <span className="text-label">{label}</span>
       </div>
 
       {field.semDados ? (
-        <p className="text-xs text-gray-500 italic">Dados insuficientes para síntese</p>
+        <p className="text-xs text-slate-500 italic">Dados insuficientes para síntese</p>
       ) : (
         <>
           <p className="text-sm font-semibold text-white leading-snug truncate">{field.valor}</p>
-          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">{field.justificativa}</p>
+          <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2">{field.justificativa}</p>
         </>
       )}
     </div>
