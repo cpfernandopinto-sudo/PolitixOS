@@ -22,6 +22,7 @@ import {
   composeExecutiveSynthesis,
 } from '@/lib/analytics/executive-summary';
 import { classifyPoliticalStatus } from '@/lib/analytics/political-status';
+import { withTiming } from '@/lib/perf/timing';
 
 export interface OverviewFilters {
   candidate?: string | null;
@@ -139,25 +140,30 @@ export const fetchOverviewData = cache(async (filters?: OverviewFilters) => {
   // period='all' = sem filtro de data (todo período)
   const period = filters?.period || 'all';
   const isAllPeriod = period === 'all';
+  const perfKey = `period=${period} candidate=${filters?.candidate ?? '—'}`;
 
-  const [noticias, instagram, x] = await Promise.all([
-    fetchMencoes({
-      candidateId: filters?.candidate,
-      city: filters?.city,
-      period: isAllPeriod ? undefined : (period === '1' ? '24h' : period === '7' ? '7d' : '30d'),
-      allowedTargetIds: filters?.allowedTargetIds
-    }),
-    fetchInstagramData({
-      candidate: filters?.candidate,
-      period: isAllPeriod ? undefined : period,
-      allowedTargetIds: filters?.allowedTargetIds
-    }),
-    fetchXData({
-      candidate: filters?.candidate,
-      period: isAllPeriod ? undefined : period,
-      allowedTargetIds: filters?.allowedTargetIds
-    })
-  ]);
+  const [noticias, instagram, x] = await withTiming(
+    `fetchOverviewData TOTAL (${perfKey})`,
+    () => Promise.all([
+      withTiming(`  noticias (${perfKey})`, () => fetchMencoes({
+        candidateId: filters?.candidate,
+        city: filters?.city,
+        period: isAllPeriod ? undefined : (period === '1' ? '24h' : period === '7' ? '7d' : '30d'),
+        allowedTargetIds: filters?.allowedTargetIds
+      }), (r) => r.length),
+      withTiming(`  instagram (${perfKey})`, () => fetchInstagramData({
+        candidate: filters?.candidate,
+        period: isAllPeriod ? undefined : period,
+        allowedTargetIds: filters?.allowedTargetIds
+      }), (r) => r.posts.length),
+      withTiming(`  x (${perfKey})`, () => fetchXData({
+        candidate: filters?.candidate,
+        period: isAllPeriod ? undefined : period,
+        allowedTargetIds: filters?.allowedTargetIds
+      }), (r) => r.posts.length),
+    ]),
+    ([n, i, x]) => `noticias=${n.length} instagram=${i.posts.length} x=${x.posts.length}`
+  );
 
   const newsData = noticias.map(n => ({ ...n, source: "noticias" }));
   const instagramData = instagram.posts.map(p => ({ ...p, source: "instagram" }));
@@ -556,8 +562,34 @@ export async function getRiskOverview(filters?: OverviewFilters) {
  * confirmado via log em `fetchInstagramData` durante a validação visual do
  * Sprint 4 (múltiplas chamadas repetidas com os mesmos filtros).
  */
+/**
+ * Decide o objeto de filtros a usar para a consulta de "período completo".
+ *
+ * Quando `filters.period` já é `'all'` (ou ausente — mesmo default), retorna
+ * a MESMA referência recebida — nunca um spread novo — para que
+ * `React.cache()` (que dedup por identidade do argumento, não por valor)
+ * reconheça isto como a MESMA chamada que `fetchOverviewData(filters)` feita
+ * por KPISection, CrisisSection, TopicsSection etc. Só cria um objeto novo
+ * quando o período realmente precisa ser sobrescrito para 'all' (ou seja,
+ * quando o filtro real é diferente — '7', '30' etc.).
+ *
+ * Função pura, exportada só para teste — não faz I/O.
+ */
+export function resolveAllPeriodFilters(filters?: OverviewFilters): OverviewFilters | undefined {
+  if (!filters?.period || filters.period === 'all') {
+    return filters;
+  }
+  return { ...filters, period: 'all' };
+}
+
 const getAllPeriodOverviewData = cache(async (filters?: OverviewFilters) => {
-  return fetchOverviewData({ ...filters, period: 'all' });
+  // Antes desta correção, esta função sempre construía `{ ...filters, period:
+  // 'all' }` — um objeto novo mesmo quando os valores já eram idênticos a
+  // `filters` — e por isso NUNCA reaproveitava o cache, dobrando o custo de
+  // fetchOverviewData (3 consultas → 6) toda vez que o período selecionado já
+  // era "todo período" (o padrão da página). Ver
+  // docs/AUDITORIA_PERFORMANCE_OVERVIEW.md.
+  return fetchOverviewData(resolveAllPeriodFilters(filters));
 });
 
 /**

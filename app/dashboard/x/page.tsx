@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getXKPIs, getXChartData, fetchXData, getXAlert, cleanFilter, getXFiltersOptions } from '@/lib/queries/x';
+import { computeXKPIs, computeXChartData, computeXAlert, fetchXData, cleanFilter, getXFiltersOptions } from '@/lib/queries/x';
 import XDashboard from '@/components/dashboard/XDashboard';
 import XFilterBar from '@/components/dashboard/XFilterBar';
 import { getAllowedTargetIds } from '@/lib/auth/dal';
@@ -25,13 +25,21 @@ export default async function XPage({ searchParams }: PageProps) {
     allowedTargetIds,
   };
 
-  const [kpis, charts, data, alert, options] = await Promise.all([
-    getXKPIs(filters),
-    getXChartData(filters),
+  // Antes, getXKPIs/getXChartData/fetchXData/getXAlert eram chamadas
+  // separadas aqui — cada uma repetia a MESMA busca completa
+  // (targets+posts+IA+replies) com o mesmo `filters`, 4 execuções idênticas
+  // por carregamento (ver docs/AUDITORIA_PERFORMANCE_OVERVIEW.md, Sprint 3).
+  // Agora busca uma vez e deriva KPIs/gráficos/alerta localmente — mesmo
+  // resultado, 1 execução em vez de 4. `getXFiltersOptions` continua
+  // separada de propósito: mostra as opções de filtro para TODO o escopo
+  // permitido, não apenas os filtros já aplicados.
+  const [data, options] = await Promise.all([
     fetchXData(filters),
-    getXAlert(filters),
     getXFiltersOptions(allowedTargetIds),
   ]);
+  const kpis = computeXKPIs(data.posts, data.replies);
+  const charts = computeXChartData(data.posts, data.replies);
+  const alert = computeXAlert(data.posts);
 
   return (
     <div className="space-y-6 pb-12">

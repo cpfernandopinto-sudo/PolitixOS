@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabaseClient'
+import { withTiming } from '@/lib/perf/timing'
 import type { KPI, GaugeScore, Noticia, MencaoRow, NoticiasFilters } from '@/lib/types/noticias'
 
 export type { KPI, Noticia }
@@ -169,7 +170,12 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
     q = q.or(`title.ilike.%${s}%,source.ilike.%${s}%,candidate_name.ilike.%${s}%`)
   }
 
-  const { data, error } = await q.order('published_at', { ascending: false })
+  const { data, error } = await withTiming(
+    `fetchMencoes(period=${filters?.period ?? 'all'}, candidate=${filters?.candidate ?? filters?.candidateId ?? '—'})`,
+    (): Promise<{ data: MencaoRow[] | null; error: { message: string } | null }> =>
+      q.order('published_at', { ascending: false }),
+    (r) => r.data?.length ?? 0
+  )
 
   if (error) {
     console.error('[fetchMencoes]', error.message)

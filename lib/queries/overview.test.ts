@@ -1,5 +1,39 @@
 import { describe, it, expect } from 'vitest';
-import { buildTimelineEvents } from './overview';
+import { buildTimelineEvents, resolveAllPeriodFilters } from './overview';
+
+describe('resolveAllPeriodFilters — dedup de fetchOverviewData para "Todo período"', () => {
+  it('reaproveita a MESMA referência quando period já é "all"', () => {
+    const filters = { candidate: null, period: 'all', allowedTargetIds: null };
+    expect(resolveAllPeriodFilters(filters)).toBe(filters);
+  });
+
+  it('reaproveita a MESMA referência quando period está ausente (default)', () => {
+    const filters = { candidate: null, allowedTargetIds: null };
+    expect(resolveAllPeriodFilters(filters)).toBe(filters);
+  });
+
+  it('reaproveita a MESMA referência mesmo com filtros adicionais (candidato selecionado)', () => {
+    const filters = { candidate: 'target-123', period: 'all', allowedTargetIds: ['target-123'] };
+    expect(resolveAllPeriodFilters(filters)).toBe(filters);
+  });
+
+  it('cria uma NOVA referência quando period é um filtro real diferente de "all"', () => {
+    const filters = { candidate: null, period: '7', allowedTargetIds: null };
+    const resolved = resolveAllPeriodFilters(filters);
+    expect(resolved).not.toBe(filters);
+    expect(resolved).toEqual({ candidate: null, period: 'all', allowedTargetIds: null });
+  });
+
+  it('preserva os demais campos do filtro ao sobrescrever period', () => {
+    const filters = { candidate: 'target-9', period: '30', allowedTargetIds: ['target-9'] };
+    const resolved = resolveAllPeriodFilters(filters);
+    expect(resolved).toEqual({ candidate: 'target-9', period: 'all', allowedTargetIds: ['target-9'] });
+  });
+
+  it('undefined permanece undefined (sem filtros nenhum)', () => {
+    expect(resolveAllPeriodFilters(undefined)).toBeUndefined();
+  });
+});
 
 describe('buildTimelineEvents', () => {
   const now = Date.now();
