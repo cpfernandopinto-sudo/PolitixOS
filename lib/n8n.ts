@@ -12,6 +12,10 @@ export const WEBHOOKS = {
   comentarios: process.env.NEXT_PUBLIC_WEBHOOK_COMENTARIOS ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-comentarios',
   analise: process.env.NEXT_PUBLIC_WEBHOOK_ANALISE ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-analise',
   reprocessamento: process.env.NEXT_PUBLIC_WEBHOOK_REPROCESSAMENTO ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-reprocessamento',
+  xPosts: process.env.NEXT_PUBLIC_WEBHOOK_X_POSTS,
+  xReplies: process.env.NEXT_PUBLIC_WEBHOOK_X_REPLIES,
+  xAiAnalysis: process.env.NEXT_PUBLIC_WEBHOOK_X_AI_ANALYSIS,
+  xReprocess: process.env.NEXT_PUBLIC_WEBHOOK_X_REPROCESS,
 } as const;
 
 export type WebhookKey = keyof typeof WEBHOOKS;

@@ -14,6 +14,7 @@ export interface Noticia {
   id: string
   data: string
   fonte: string
+  candidato: string | null
   titulo: string
   resumo: string
   link: string

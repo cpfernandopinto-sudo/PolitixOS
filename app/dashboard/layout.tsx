@@ -1,6 +1,11 @@
-import Sidebar from '@/components/Sidebar';
-import Header from '@/components/Header';
+import TopNavigation from '@/components/navigation/TopNavigation';
 import { requireAuth } from '@/lib/auth/dal';
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'Administrador',
+  gestor: 'Gestor',
+  visualizador: 'Visualizador',
+};
 
 export default async function DashboardLayout({
   children,
@@ -10,20 +15,21 @@ export default async function DashboardLayout({
   // Garante que o usuário está autenticado; redireciona para /login se não.
   const session = await requireAuth();
 
-  const sidebarPerms = {
+  const navPermissions = {
     role: session.role,
     permissions: session.permissions,
   };
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] flex">
-      <Sidebar permissions={sidebarPerms} />
-      <div className="flex-1 flex flex-col min-h-screen min-w-0">
-        <Header />
-        <main className="flex-1 p-8 overflow-x-hidden">
-          {children}
-        </main>
-      </div>
+    <div className="dashboard-shell flex min-h-screen flex-col">
+      <TopNavigation
+        permissions={navPermissions}
+        userName={session.name}
+        roleLabel={ROLE_LABEL[session.role] ?? session.role}
+      />
+      <main className="dashboard-main flex-1 overflow-x-hidden">
+        {children}
+      </main>
     </div>
   );
 }

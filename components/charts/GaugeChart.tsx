@@ -6,9 +6,11 @@ import ReactECharts from 'echarts-for-react';
 interface GaugeChartProps {
   score: number;
   level: 'success' | 'warning' | 'danger';
+  showValue?: boolean;
+  height?: number | string;
 }
 
-export default function GaugeChart({ score, level }: GaugeChartProps) {
+export default function GaugeChart({ score, level, showValue = true, height = 200 }: GaugeChartProps) {
   const color = level === 'success' ? '#22C55E' : level === 'warning' ? '#FACC15' : '#FF3B3B';
 
   const option = {
@@ -70,6 +72,7 @@ export default function GaugeChart({ score, level }: GaugeChartProps) {
           fontSize: 20
         },
         detail: {
+          show: showValue,
           fontSize: 30,
           offsetCenter: [0, '0%'],
           valueAnimation: true,
@@ -88,5 +91,12 @@ export default function GaugeChart({ score, level }: GaugeChartProps) {
     ]
   };
 
-  return <ReactECharts option={option} style={{ height: '200px', width: '100%' }} />;
+  return (
+    <ReactECharts
+      option={option}
+      notMerge
+      lazyUpdate
+      style={{ height, width: '100%', minHeight: typeof height === 'number' ? height : 180 }}
+    />
+  );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import {
   AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp,
-  TrendingDown, Info, ArrowUpRight, ArrowDownRight, Zap, SearchX,
+  TrendingDown, Info, Zap, SearchX,
   MessageSquare, Share2, Heart, ExternalLink, BarChart2, ShieldCheck, Thermometer
 } from 'lucide-react';
 import ChartCard from '@/components/ui/ChartCard';
@@ -190,20 +190,15 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
       {/* 3️⃣ CARDS EXECUTIVOS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpis.map((kpi: any, i: number) => {
-          const isNegative = kpi.title.includes('Negativo') || kpi.title.includes('Risco');
-          const mockVar = i % 2 === 0 ? 12 : -5;
           return (
             <div key={i} className="glass rounded-xl p-5 border-white/5 transition-all hover:scale-[1.02]">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-tight">{kpi.title}</h3>
-                {mockVar > 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
+                <Activity size={14} className="text-slate-500" />
               </div>
               <div className="flex items-end justify-between">
                 <span className="text-2xl md:text-3xl font-black text-white tracking-tighter">
                   {kpi.value.toLocaleString()}
-                </span>
-                <span className={clsx("text-[10px] font-bold px-1.5 py-0.5 rounded", mockVar > 0 ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400")}>
-                  {mockVar > 0 ? '+' : ''}{mockVar}%
                 </span>
               </div>
             </div>
@@ -257,15 +252,15 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 6️⃣ DISTRIBUIÇÃO DE SENTIMENTO */}
         <ChartCard title="Sentimento (Posts)">
-          <div className="h-[220px]">
-            <DonutChart data={charts.sentimentData} />
+          <div className="h-[240px]">
+            <DonutChart data={charts.sentimentData} height="100%" />
           </div>
         </ChartCard>
 
         {/* 7️⃣ DISTRIBUIÇÃO DE RISCO */}
         <ChartCard title="Níveis de Risco">
-          <div className="h-[220px]">
-            <DonutChart data={charts.riskData} />
+          <div className="h-[240px]">
+            <DonutChart data={charts.riskData} height="100%" />
           </div>
         </ChartCard>
 

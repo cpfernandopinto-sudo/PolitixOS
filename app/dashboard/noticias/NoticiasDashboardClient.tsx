@@ -8,26 +8,23 @@ import LineChart from '@/components/charts/LineChart';
 import BarChart from '@/components/charts/BarChart';
 import DonutChart from '@/components/charts/DonutChart';
 import DataTable from '@/components/ui/DataTable';
+import NewsDetailModal from '@/components/news/NewsDetailModal';
 import {
-  AlertTriangle, SearchX, Clock, Activity, Target, ShieldAlert, Zap,
-  ArrowUpRight, ArrowDownRight, Filter, Settings2, BarChart3, ListFilter
+  AlertTriangle, SearchX, Clock, Activity, ShieldAlert, Zap,
+  ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import clsx from 'clsx';
 
 import {
   getKPIs,
   getGaugeScore,
-  getNoticiasPorTempo,
-  getSentimento,
-  getFontes,
-  getRiscosPorFonte,
-  getTemas,
-  getRiscoTempo,
   getFeedNoticias,
   getRealTimeStatus,
   getNegativeThemesPareto,
   getImpactSources,
   getCrisisTimeline24h,
+  getRiscoTempo,
+  getFontes
 } from '@/lib/queries/noticias';
 import type { MencaoRow, Noticia } from '@/lib/types/noticias';
 import { ChartFilterPopover } from './ChartFilterPopover';
@@ -36,18 +33,44 @@ interface Props {
   initialRows: MencaoRow[];
 }
 
+const CRISE_FLAGS = new Set([
+  'crise_politica', 'crise_financeira', 'crise_economica',
+  'corrupcao', 'crime_acusacao', 'processo_judicial',
+  'Gestão de Crise', 'Acusação',
+]);
+
+function parseJsonField(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter((v) => typeof v === 'string') as string[];
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter((v) => typeof v === 'string') as string[];
+    } catch {}
+  }
+  return [];
+}
+
+function checkIsCrise(flagsField: unknown): boolean {
+  const flags = parseJsonField(flagsField);
+  return flags.length >= 2 || flags.some((f) => CRISE_FLAGS.has(f));
+}
 
 export default function NoticiasDashboardClient({ initialRows }: Props) {
   // --- Local Filters State ---
   const [gaugeConfig, setGaugeConfig] = useState({ base: 'mix', window: '24h' });
-  const [themesConfig, setThemesConfig] = useState({ topN: 5, minRisk: 0 });
-  const [sourcesConfig, setSourcesConfig] = useState({ metric: 'impact', topN: 5 });
+  const [sourcesConfig, setSourcesConfig] = useState({ metric: 'impact' });
   const [timelineConfig, setTimelineConfig] = useState({ zoom: '1x', showPeaks: true });
   const [feedConfig, setFeedConfig] = useState({ priority: 'all', limit: 5 });
 
+  const [topicsLimit, setTopicsLimit] = useState<5 | 10>(10);
+  const [sourcesLimit, setSourcesLimit] = useState<5 | 10>(10);
+
+  // Modal State
+  const [selectedNews, setSelectedNews] = useState<{ news: Noticia; raw?: MencaoRow } | null>(null);
+
   // --- Calculations (Memoized) ---
   const filteredRows = useMemo(() => initialRows, [initialRows]);
-
   const kpis = useMemo(() => getKPIs(filteredRows), [filteredRows]);
 
   // Local window filter for Gauge
@@ -60,22 +83,29 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
     const limit = new Date(now.getTime() - hours * 60 * 60 * 1000);
     const rows = filteredRows.filter(r => r.published_at && new Date(r.published_at) >= limit);
 
-    // Se a janela selecionada não tiver dados, mas houver dados no painel, 
-    // retorna todos os dados para não exibir "Sem dados".
     return rows.length > 0 ? rows : filteredRows;
   }, [filteredRows, gaugeConfig.window]);
 
   const gauge = useMemo(() => getGaugeScore(gaugeRows), [gaugeRows]);
   const realTimeStatus = useMemo(() => getRealTimeStatus(filteredRows), [filteredRows]);
-  const negativeThemesPareto = useMemo(() => {
-    const data = getNegativeThemesPareto(filteredRows);
-    return data.slice(0, themesConfig.topN);
-  }, [filteredRows, themesConfig.topN]);
 
-  const impactSources = useMemo(() => {
+  const sortedThemes = useMemo(() => {
+    const data = getNegativeThemesPareto(filteredRows);
+    return [...data].sort((a, b) => b.percentage - a.percentage);
+  }, [filteredRows]);
+
+  const visibleThemes = useMemo(() => {
+    return sortedThemes.slice(0, topicsLimit);
+  }, [sortedThemes, topicsLimit]);
+
+  const sortedSources = useMemo(() => {
     const data = getImpactSources(filteredRows);
-    return data.slice(0, sourcesConfig.topN);
-  }, [filteredRows, sourcesConfig.topN]);
+    return [...data].sort((a, b) => b.score - a.score);
+  }, [filteredRows]);
+
+  const visibleSources = useMemo(() => {
+    return sortedSources.slice(0, sourcesLimit);
+  }, [sortedSources, sourcesLimit]);
 
   const crisisTimeline = useMemo(() => getCrisisTimeline24h(filteredRows), [filteredRows]);
   const riscoTempoData = useMemo(() => getRiscoTempo(filteredRows), [filteredRows]);
@@ -91,6 +121,23 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
 
   const fullTableData = useMemo(() => getFeedNoticias(filteredRows, 100), [filteredRows]);
 
+  // Auxiliares para ECharts de Barras
+  const themeCategories = useMemo(() => visibleThemes.map(item => item.name).reverse(), [visibleThemes]);
+  const themeValues = useMemo(() => visibleThemes.map(item => item.percentage).reverse(), [visibleThemes]);
+
+  const sourceCategories = useMemo(() => visibleSources.map(item => item.name).reverse(), [visibleSources]);
+  const sourceValues = useMemo(() => visibleSources.map(item => item.score).reverse(), [visibleSources]);
+
+  // Auxiliar para a timeline vertical
+  const maxTimelineCount = useMemo(() => {
+    const counts = crisisTimeline.map(t => t.count);
+    return counts.length > 0 ? Math.max(...counts) : 0;
+  }, [crisisTimeline]);
+
+  const isTimelineEmpty = useMemo(() => {
+    return crisisTimeline.every(t => t.count === 0);
+  }, [crisisTimeline]);
+
   if (initialRows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4 text-gray-500">
@@ -101,21 +148,27 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
     );
   }
 
+  const handleScrollToTable = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById('base-monitoramento')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6">
-      {/* 1. CARDS SUPERIORES */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* 1. INDICADORES EXECUTIVOS (KPIs) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {kpis.map((kpi, idx) => (
-          <KpiCard key={idx} title={kpi.title} value={kpi.value} status={kpi.status} />
+          <KpiCard key={idx} title={kpi.title} value={kpi.value} status={kpi.status} compact={true} />
         ))}
       </div>
+      {/* 2. TERMÔMETRO + STATUS + FEED (TRÊS COLUNAS IGUAIS NO DESKTOP, ALTURA UNIFORME DE 340PX) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 min-[1180px]:grid-cols-3 gap-4 items-stretch">
 
-      {/* 2. TERMÔMETRO + STATUS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 md:col-span-2 order-1">
+        {/* Card 1: Termômetro de Crise */}
+        <div className="md:col-span-1 min-[1180px]:col-span-1 flex">
           <ChartCard
             title="Termômetro de Crise"
-            className="h-full flex flex-col items-center justify-center pt-12 relative overflow-hidden"
+            className="flex flex-col justify-between w-full h-[340px] !p-4 relative overflow-hidden bg-[#0E1727] border border-blue-300/10 rounded-2xl"
             extra={
               <ChartFilterPopover>
                 <div className="space-y-3">
@@ -124,7 +177,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <select
                       value={gaugeConfig.base}
                       onChange={e => setGaugeConfig(prev => ({ ...prev, base: e.target.value }))}
-                      className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value="mix">Misto (Sentimento + Risco)</option>
                       <option value="sentiment">Apenas Sentimento</option>
@@ -136,7 +189,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <select
                       value={gaugeConfig.window}
                       onChange={e => setGaugeConfig(prev => ({ ...prev, window: e.target.value }))}
-                      className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value="6h">Últimas 6 horas</option>
                       <option value="24h">Últimas 24 horas</option>
@@ -147,336 +200,144 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
               </ChartFilterPopover>
             }
           >
-            <div className="absolute top-4 right-4 flex items-center gap-2">
+            {/* Status Badge */}
+            <div className="absolute top-4 right-4 z-10">
               <div className={clsx(
-                "flex items-center gap-1 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider",
-                realTimeStatus?.hasRecentPeak ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse" : "bg-green-500/20 text-green-400 border border-green-500/30"
+                "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                realTimeStatus?.hasRecentPeak
+                  ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
+                  : "bg-green-500/20 text-green-400 border border-green-500/30"
               )}>
-                <Activity size={12} />
+                <Activity size={10} />
                 {realTimeStatus?.hasRecentPeak ? 'Pico Detectado' : 'Estável'}
               </div>
             </div>
 
-            <div className="w-full max-w-md mx-auto">
-              <GaugeChart score={gauge.score} level={gauge.level} />
+            {/* Gauge Chart */}
+            <div className="w-full mx-auto pt-0 flex items-center justify-center -mt-2">
+              <GaugeChart score={gauge.score} level={gauge.level} showValue={false} height={155} />
             </div>
 
-            <div className="text-center mt-[-40px] pb-8 z-10">
-              <div className={clsx(
-                "text-4xl font-black mb-2 tracking-tighter",
+            {/* Consolidated Value & Status (No duplication) */}
+            <div className="text-center z-10 -mt-7 mb-1">
+              <span className={clsx(
+                "text-base font-black tracking-tight",
                 gauge.level === 'danger' ? 'text-[#FF3B3B]' : gauge.level === 'warning' ? 'text-[#FACC15]' : 'text-[#22C55E]'
               )}>
-                {gauge.score}<span className="text-xl opacity-50 ml-1">/100</span>
-              </div>
-              <span className={clsx(
-                'text-lg font-bold px-6 py-1.5 rounded-full border',
-                gauge.level === 'danger' ? 'bg-[#FF3B3B]/10 text-[#FF3B3B] border-[#FF3B3B]/20' :
-                  gauge.level === 'warning' ? 'bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/20' :
-                    'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20'
-              )}>
-                {gauge.statusText}
+                {gauge.score}<span className="text-xs opacity-50 ml-0.5">/100</span> · {gauge.statusText}
               </span>
-
-              <div className="grid grid-cols-3 gap-8 mt-10 px-6">
-                <div className="text-center">
-                  <div className="text-gray-400 text-xs uppercase mb-1">Tendência</div>
-                  <div className="flex items-center justify-center gap-1 font-bold text-white">
-                    {gauge.score > 50 ? <ArrowUpRight size={16} className="text-red-500" /> : <ArrowDownRight size={16} className="text-green-500" />}
-                    {gauge.score > 60 ? 'Crescente' : gauge.score > 30 ? 'Estável' : 'Queda'}
-                  </div>
-                </div>
-                <div className="text-center border-x border-white/5">
-                  <div className="text-gray-400 text-xs uppercase mb-1">Sentimento Médio</div>
-                  <div className={clsx(
-                    "font-bold",
-                    gauge.score > 40 ? "text-red-400" : "text-green-400"
-                  )}>
-                    {gauge.score > 40 ? 'Negativo' : 'Positivo'}
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-gray-400 text-xs uppercase mb-1">Pico 6h</div>
-                  <div className="font-bold text-white">
-                    {realTimeStatus?.hasRecentPeak ? 'Sim' : 'Não'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ChartCard>
-        </div>
-
-        <div className="lg:col-span-5 md:col-span-2 order-3 lg:order-2">
-          <ChartCard title="Status em Tempo Real" className="h-full">
-            <div className="flex items-center gap-2 mb-6">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </span>
-              <span className="text-green-500 text-xs font-bold uppercase tracking-widest">Ao Vivo</span>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-white/5 rounded-lg p-4 border border-white/5">
-                <div className="flex items-center gap-2 text-red-400 mb-2 font-bold text-sm uppercase tracking-tight">
-                  <ShieldAlert size={16} />
-                  Última Menção Crítica
-                </div>
-                <p className="text-white font-medium line-clamp-2 text-sm">
-                  {realTimeStatus?.lastCriticalTitle}
-                </p>
-                <div className="flex items-center gap-1 text-gray-500 text-xs mt-2">
-                  <Clock size={12} />
-                  há {realTimeStatus?.timeSinceLastCritical}
+            {/* Indicators Grid */}
+            <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-2.5 mt-1 text-center text-[10px]">
+              <div>
+                <div className="text-slate-500 uppercase tracking-tight mb-0.5 font-bold">Tendência</div>
+                <div className="flex items-center justify-center gap-0.5 font-black text-white">
+                  {gauge.score > 50 ? <ArrowUpRight size={12} className="text-red-500" /> : <ArrowDownRight size={12} className="text-green-500" />}
+                  {gauge.score > 60 ? 'Crescente' : gauge.score > 30 ? 'Estável' : 'Queda'}
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
-                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Fonte Dominante</div>
-                  <div className="text-white font-bold text-sm truncate">{realTimeStatus?.dominantSource}</div>
+              <div className="border-x border-white/5">
+                <div className="text-slate-500 uppercase tracking-tight mb-0.5 font-bold">Sentimento</div>
+                <div className={clsx("font-black", gauge.score > 40 ? "text-red-400" : "text-green-400")}>
+                  {gauge.score > 40 ? 'Negativo' : 'Positivo'}
                 </div>
-                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
-                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Tema Dominante</div>
-                  <div className="text-white font-bold text-sm truncate">{realTimeStatus?.dominantTheme}</div>
-                </div>
-                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
-                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Fonte Mais Ativa</div>
-                  <div className="text-white font-bold text-sm truncate">{realTimeStatus?.mostActiveSource}</div>
-                </div>
-                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
-                  <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">Velocidade</div>
-                  <div className="text-white font-bold text-sm">{realTimeStatus?.velocity}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-[#00FFFF]/5 rounded-lg border border-[#00FFFF]/10">
-                <div className="flex items-center gap-2 text-[#00FFFF]">
-                  <Zap size={16} />
-                  <span className="text-xs font-bold uppercase tracking-wider">Ação Recomendada</span>
-                </div>
-                <span className="text-white text-xs font-medium">Monitoramento Ativo</span>
-              </div>
-            </div>
-          </ChartCard>
-        </div>
-      </div>
-
-      {/* 3. TEMAS NEGATIVOS + FONTES IMPACTO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 order-4">
-        <ChartCard
-          title="Principais Temas Negativos"
-          extra={
-            <ChartFilterPopover>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Exibir Top</label>
-                  <select
-                    value={themesConfig.topN}
-                    onChange={e => setThemesConfig(prev => ({ ...prev, topN: Number(e.target.value) }))}
-                    className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
-                  >
-                    <option value={5}>Top 5</option>
-                    <option value={10}>Top 10</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Risco Mínimo</label>
-                  <input
-                    type="range" min="0" max="100" step="10"
-                    value={themesConfig.minRisk}
-                    onChange={e => setThemesConfig(prev => ({ ...prev, minRisk: Number(e.target.value) }))}
-                    className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00FFFF]"
-                  />
-                  <div className="flex justify-between text-[10px] text-gray-600 mt-1 uppercase">
-                    <span>Todos</span>
-                    <span>Críticos</span>
-                  </div>
-                </div>
-              </div>
-            </ChartFilterPopover>
-          }
-        >
-          <div className="space-y-4 mt-2">
-            {negativeThemesPareto.length > 0 ? (
-              negativeThemesPareto.map((item, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-white">{item.name}</span>
-                    <span className="text-red-400">{item.percentage}%</span>
-                  </div>
-                  <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-red-600 to-red-400 h-full rounded-full transition-all duration-1000"
-                      style={{ width: `${item.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="py-12 text-center text-gray-500 italic text-sm">
-                Sem temas negativos no período.
-              </div>
-            )}
-          </div>
-        </ChartCard>
-
-        <ChartCard
-          title="Fontes com Maior Impacto"
-          extra={
-            <ChartFilterPopover>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Métrica</label>
-                  <select
-                    value={sourcesConfig.metric}
-                    onChange={e => setSourcesConfig(prev => ({ ...prev, metric: e.target.value }))}
-                    className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
-                  >
-                    <option value="impact">Impacto Calculado</option>
-                    <option value="volume">Volume Bruto</option>
-                    <option value="risk">Somente Riscos</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Top N</label>
-                  <select
-                    value={sourcesConfig.topN}
-                    onChange={e => setSourcesConfig(prev => ({ ...prev, topN: Number(e.target.value) }))}
-                    className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
-                  >
-                    <option value={5}>Top 5</option>
-                    <option value={10}>Top 10</option>
-                  </select>
-                </div>
-              </div>
-            </ChartFilterPopover>
-          }
-        >
-          <div className="space-y-4 mt-2">
-            {impactSources.map((item, i) => (
-              <div key={i} className="space-y-1">
-                <div className="flex justify-between text-xs font-medium">
-                  <span className="text-white">{item.name}</span>
-                  <span className="text-[#00FFFF]">{item.score} pts</span>
-                </div>
-                <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-[#00FFFF]/80 to-[#00FFFF] h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${item.score}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </ChartCard>
-      </div>
-
-      {/* 4. LINHA DO TEMPO */}
-      <ChartCard
-        title="Linha do Tempo de Crise — Últimas 24 horas"
-        className="w-full overflow-hidden"
-        extra={
-          <ChartFilterPopover>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-white">Exibir Picos</span>
-                <input
-                  type="checkbox" checked={timelineConfig.showPeaks}
-                  onChange={e => setTimelineConfig(prev => ({ ...prev, showPeaks: e.target.checked }))}
-                  className="accent-[#00FFFF]"
-                />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Agrupamento</label>
-                <select
-                  className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
-                  defaultValue="1h"
-                >
-                  <option value="1h">1 Hora</option>
-                  <option value="3h">3 Horas</option>
-                </select>
-              </div>
-            </div>
-          </ChartFilterPopover>
-        }
-      >
-        <div className="relative mt-4 mb-8">
-          <div className="flex h-12 w-full rounded-lg overflow-hidden bg-white/5 border border-white/10">
-            {crisisTimeline.map((step, i) => (
-              <div
-                key={i}
-                className={clsx(
-                  "flex-1 border-r border-white/5 transition-all hover:opacity-80 group relative",
-                  step.status === 'red' ? 'bg-red-500/40' : step.status === 'yellow' ? 'bg-yellow-500/30' : 'bg-green-500/10'
-                )}
-              >
-                {timelineConfig.showPeaks && step.risk > 4 && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <ShieldAlert size={16} className="text-red-500 animate-bounce" />
-                  </div>
-                )}
-
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                  <div className="bg-[#12192A] border border-white/10 rounded-lg p-2 shadow-2xl min-w-[200px]">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[#00FFFF] font-bold text-[10px]">{step.hour}</span>
-                      <span className={clsx(
-                        "text-[10px] px-1.5 py-0.5 rounded uppercase font-black",
-                        step.status === 'red' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
-                      )}>
-                        {step.risk > 0 ? `${step.risk} Riscos` : 'Normal'}
-                      </span>
-                    </div>
-                    {step.topNews && (
-                      <p className="text-white text-[10px] leading-tight line-clamp-2">
-                        {step.topNews.title}
-                      </p>
-                    )}
-                  </div>
+                <div className="text-slate-500 uppercase tracking-tight mb-0.5 font-bold">Pico 6h</div>
+                <div className="font-black text-white">
+                  {realTimeStatus?.hasRecentPeak ? 'Sim' : 'Não'}
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-2 px-1 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-            <span>00:00</span>
-            <span>06:00</span>
-            <span>12:00</span>
-            <span>18:00</span>
-            <span>24:00</span>
-          </div>
-        </div>
-      </ChartCard>
-
-      {/* 5. EVOLUÇÃO, IMPACTO E FEED CRÍTICO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 order-5 lg:order-none">
-        <div className="lg:col-span-4 md:col-span-1">
-          <ChartCard title="Evolução do Risco" className="h-full">
-            <LineChart
-              dates={riscoTempoData.dates}
-              seriesData={[
-                { name: 'Geral', data: riscoTempoData.alto.map((v, i) => v + riscoTempoData.medio[i]), color: '#FF3B3B' },
-                { name: 'Crítico', data: riscoTempoData.alto, color: '#991B1B' },
-              ]}
-            />
+            </div>
           </ChartCard>
         </div>
 
-        <div className="lg:col-span-4 md:col-span-1">
-          <ChartCard title="Distribuição do Impacto" className="h-full">
-            <DonutChart
-              data={fontesData.categories.slice(0, 5).map((cat, i) => ({
-                name: cat,
-                value: fontesData.values[i],
-                itemStyle: { color: i === 0 ? '#00FFFF' : i === 1 ? '#2563EB' : i === 2 ? '#7C3AED' : i === 3 ? '#DB2777' : '#4B5563' }
-              }))}
-            />
+        {/* Card 2: Status em Tempo Real */}
+        <div className="md:col-span-1 min-[1180px]:col-span-1 flex">
+          <ChartCard
+            title="Status em Tempo Real"
+            className="flex flex-col justify-between w-full h-[340px] !p-4 bg-[#0E1727] border border-blue-300/10 rounded-2xl"
+            extra={
+              <div className="flex items-center gap-1.5 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                </span>
+                <span className="text-green-400 text-[10px] font-bold uppercase tracking-wider">Ao Vivo</span>
+              </div>
+            }
+          >
+            <div className="flex-1 flex flex-col justify-between gap-2.5">
+              {/* Última Menção Crítica */}
+              <div
+                onClick={() => {
+                  const critRow = filteredRows.find(r => checkIsCrise(r.ai_risk_flags));
+                  if (critRow) {
+                    const news = getFeedNoticias([critRow], 1)[0];
+                    setSelectedNews({ news, raw: critRow });
+                  }
+                }}
+                className="bg-[#EF4444]/[0.05] border border-[#EF4444]/10 rounded-lg p-2 cursor-pointer transition-all hover:scale-[1.01] hover:bg-[#EF4444]/[0.08]"
+              >
+                <div className="flex items-center gap-1 text-red-400 mb-0.5 font-bold text-[10px] uppercase tracking-tight">
+                  <ShieldAlert size={12} />
+                  Última Menção Crítica
+                </div>
+                <p className="text-white font-bold text-xs truncate leading-snug">
+                  {realTimeStatus?.lastCriticalTitle}
+                </p>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                  <span>Fonte: {realTimeStatus?.dominantSource}</span>
+                  <span>há {realTimeStatus?.timeSinceLastCritical}</span>
+                </div>
+              </div>
+
+              {/* Grid de Informações 2x2 */}
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                  <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Fonte Dominante</div>
+                  <div className="text-white font-black truncate mt-0.5 text-xs">{realTimeStatus?.dominantSource}</div>
+                </div>
+                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                  <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Tema Dominante</div>
+                  <div className="text-white font-black truncate mt-0.5 text-xs">{realTimeStatus?.dominantTheme}</div>
+                </div>
+                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                  <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Fonte Mais Ativa</div>
+                  <div className="text-white font-black truncate mt-0.5 text-xs">{realTimeStatus?.mostActiveSource}</div>
+                </div>
+                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                  <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Velocidade</div>
+                  <div className="text-white font-black mt-0.5 text-xs">{realTimeStatus?.velocity}</div>
+                </div>
+              </div>
+
+              {/* Diretriz Recomendada */}
+              <div className="p-2 bg-[#22D3EE]/[0.06] border border-[#22D3EE]/10 rounded-lg flex items-start gap-2">
+                <Zap size={14} className="text-[#22D3EE] shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <div className="text-[#22D3EE] text-[10px] font-bold uppercase tracking-wider mb-0.5">Diretriz Recomendada</div>
+                  <p className="text-white text-[10px] leading-relaxed font-medium line-clamp-2">
+                    {realTimeStatus?.hasRecentPeak
+                      ? "Instaurar protocolo de crise e notificar assessoria sobre os temas dominantes."
+                      : gauge.level === 'danger'
+                      ? "Revisar publicações em canais dominantes e preparar relatórios de risco urgentes."
+                      : gauge.level === 'warning'
+                      ? "Monitorar tendências a cada 2h e acompanhar engajamento das fontes mais ativas."
+                      : "Manter monitoramento de rotina e compilar resumos diários de sentimento."}
+                  </p>
+                </div>
+              </div>
+            </div>
           </ChartCard>
         </div>
 
-        <div className="lg:col-span-4 md:col-span-2 order-2 lg:order-none">
+        {/* Card 3: Feed Crítico — Últimas */}
+        <div className="md:col-span-2 min-[1180px]:col-span-1 flex">
           <ChartCard
             title="Feed Crítico — Últimas"
-            className="h-full"
+            className="flex flex-col justify-between w-full h-[340px] !p-4 bg-[#0E1727] border border-blue-300/10 rounded-2xl"
             extra={
               <ChartFilterPopover>
                 <div className="space-y-3">
@@ -485,70 +346,374 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <select
                       value={feedConfig.priority}
                       onChange={e => setFeedConfig(prev => ({ ...prev, priority: e.target.value }))}
-                      className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value="all">Todas as Recentes</option>
                       <option value="high">Apenas Críticas</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Limite</label>
-                    <select
-                      value={feedConfig.limit}
-                      onChange={e => setFeedConfig(prev => ({ ...prev, limit: Number(e.target.value) }))}
-                      className="w-full bg-[#0D0D0D] border border-white/10 rounded px-2 py-1.5 text-xs text-white"
-                    >
-                      <option value={5}>5 notícias</option>
-                      <option value={10}>10 notícias</option>
-                      <option value={20}>20 notícias</option>
                     </select>
                   </div>
                 </div>
               </ChartFilterPopover>
             }
           >
-            <div className="space-y-4">
-              {feedData.map((news, i) => (
-                <div key={i} className="group cursor-pointer" onClick={() => window.open(news.link, '_blank')}>
-                  <div className="flex items-start gap-3">
-                    <div className={clsx(
-                      "mt-1 w-2 h-2 rounded-full shrink-0",
-                      news.risco === 'alto' ? 'bg-red-500 animate-pulse' : news.risco === 'médio' ? 'bg-yellow-500' : 'bg-green-500'
-                    )} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
+            {/* Lista do Feed Crítico */}
+            <div className="flex-1 flex flex-col justify-between my-1">
+              {feedData.slice(0, 3).map((news, index) => {
+                const isHigh = news.risco === 'alto';
+                const isMedium = news.risco === 'médio';
+
+                return (
+                  <div
+                    key={news.id}
+                    onClick={() => {
+                      const raw = filteredRows.find(r => r.id === news.id || r.hash === news.id);
+                      setSelectedNews({ news, raw });
+                    }}
+                    className={clsx(
+                      "py-2 flex flex-col gap-1 cursor-pointer group text-left transition-colors hover:bg-white/[0.02] px-1 rounded-md",
+                      index !== 2 && "border-b border-slate-400/[0.08]"
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-[10px]">
+                      <div className="flex items-center gap-1.5">
                         <span className={clsx(
-                          "text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                          news.risco === 'alto' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                          "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase border",
+                          isHigh ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                          isMedium ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" :
+                          "bg-green-500/10 text-green-400 border-green-500/20"
                         )}>
-                          {news.risco === 'alto' ? 'Urgente' : news.risco === 'médio' ? 'Atenção' : 'Monitorar'}
+                          {isHigh ? <AlertTriangle size={10} /> : <Clock size={10} />}
+                          {isHigh ? 'Crítico' : isMedium ? 'Atenção' : 'Monitorar'}
                         </span>
-                        <span className="text-[10px] text-gray-500">{news.data.split(' ')[1]}</span>
+                        <span className="text-slate-400 font-bold truncate max-w-[120px] text-[10px]">{news.fonte}</span>
                       </div>
-                      <h4 className="text-xs font-bold text-white group-hover:text-[#00FFFF] transition-colors line-clamp-2">
-                        {news.titulo}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] text-gray-400 truncate">{news.fonte}</span>
-                        <span className="text-[10px] text-gray-600">•</span>
-                        <span className="text-[10px] text-gray-400">Impacto {news.relevancia > 7 ? 'Alto' : news.relevancia > 4 ? 'Médio' : 'Baixo'}</span>
-                      </div>
+                      <span className="text-slate-500 font-medium">{news.data.split(' ')[1] || '—'}</span>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-white leading-tight line-clamp-2 group-hover:text-[#00FFFF] transition-colors">
+                      {news.titulo}
+                    </h4>
+
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      Impacto: {news.relevancia.toFixed(1)}/10
                     </div>
                   </div>
-                  {i < feedData.length - 1 && <div className="h-px bg-white/5 mt-4" />}
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            {/* Botão Ver Todos */}
+            <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-center text-center">
+              <a
+                href="#base-monitoramento"
+                onClick={handleScrollToTable}
+                className="text-cyan-400 hover:text-cyan-300 text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center"
+              >
+                Ver todos
+              </a>
+            </div>
+          </ChartCard>
+        </div>
+
+      </div>
+
+      {/* 3. SEÇÃO LEITURA ANALÍTICA (4 GRÁFICOS EM LINHA ÚNICA) */}
+      <div className="pt-4">
+        {/* Header da Seção */}
+        <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-blue-300/10 bg-[#0E1727] px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className="rounded-lg border border-cyan-300/15 bg-cyan-400/10 p-1.5 text-cyan-300">
+              <Activity size={16} />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-white">Leitura Analítica</h2>
+              <p className="text-[10px] text-slate-500 font-medium">Distribuição, evolução e fontes de impacto político monitorados.</p>
+            </div>
+          </div>
+          <span className="hidden sm:inline-flex rounded-full border border-blue-300/10 bg-blue-400/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-300">
+            Filtros integrados
+          </span>
+        </div>
+
+        {/* PRIMEIRA LINHA — TRÊS CARDS (COMPOSIÇÃO DOS GRÁFICOS) */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+          {/* Card 1: Principais Temas Negativos */}
+          <ChartCard
+            title="Principais Temas Negativos"
+            className="min-w-0 h-[300px]"
+            extra={
+              <ChartFilterPopover>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Exibir Top</label>
+                    <select
+                      value={topicsLimit}
+                      onChange={e => setTopicsLimit(Number(e.target.value) as 5 | 10)}
+                      aria-label="Quantidade de temas negativos exibidos"
+                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                    >
+                      <option value={5}>Top 5</option>
+                      <option value={10}>Top 10</option>
+                    </select>
+                  </div>
+                </div>
+              </ChartFilterPopover>
+            }
+          >
+            <div className="flex-1 flex items-center justify-center min-h-0">
+              {themeCategories.length > 0 ? (
+                <BarChart
+                  key={`topics-${topicsLimit}`}
+                  categories={themeCategories}
+                  values={themeValues}
+                  color="#FF3B3B"
+                  horizontal={true}
+                  isPercent={true}
+                  height={200}
+                  limit={topicsLimit}
+                  gridLeft={118}
+                  labelWidth={105}
+                />
+              ) : (
+                <div className="text-slate-500 italic text-xs">Sem temas no período.</div>
+              )}
+            </div>
+          </ChartCard>
+
+          {/* Card 2: Fontes com Maior Impacto */}
+          <ChartCard
+            title="Fontes com Maior Impacto"
+            className="min-w-0 h-[300px]"
+            extra={
+              <ChartFilterPopover>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Métrica</label>
+                    <select
+                      value={sourcesConfig.metric}
+                      onChange={e => setSourcesConfig(prev => ({ ...prev, metric: e.target.value }))}
+                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                    >
+                      <option value="impact">Impacto Calculado</option>
+                      <option value="volume">Volume Bruto</option>
+                      <option value="risk">Somente Riscos</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Exibir Top</label>
+                    <select
+                      value={sourcesLimit}
+                      onChange={e => setSourcesLimit(Number(e.target.value) as 5 | 10)}
+                      aria-label="Quantidade de fontes exibidas"
+                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                    >
+                      <option value={5}>Top 5</option>
+                      <option value={10}>Top 10</option>
+                    </select>
+                  </div>
+                </div>
+              </ChartFilterPopover>
+            }
+          >
+            <div className="flex-1 flex items-center justify-center min-h-0">
+              {sourceCategories.length > 0 ? (
+                <BarChart
+                  key={`sources-${sourcesLimit}`}
+                  categories={sourceCategories}
+                  values={sourceValues}
+                  color="#00FFFF"
+                  horizontal={true}
+                  isPercent={false}
+                  height={200}
+                  limit={sourcesLimit}
+                  gridLeft={126}
+                  labelWidth={112}
+                />
+              ) : (
+                <div className="text-slate-500 italic text-xs">Sem dados de impacto.</div>
+              )}
+            </div>
+          </ChartCard>
+
+          {/* Card 3: Distribuição do Impacto */}
+          <ChartCard
+            title="Distribuição do Impacto"
+            className="min-w-0 h-[300px]"
+          >
+            <div className="flex-1 flex items-center justify-center min-h-0 w-full">
+              {fontesData.categories.length > 0 ? (
+                <DonutChart
+                  data={fontesData.categories.slice(0, 5).map((cat, i) => ({
+                    name: cat,
+                    value: fontesData.values[i],
+                    itemStyle: {
+                      color: i === 0 ? '#00FFFF' : i === 1 ? '#2563EB' : i === 2 ? '#7C3AED' : i === 3 ? '#DB2777' : '#4B5563'
+                    }
+                  }))}
+                  height={200}
+                  radius={['45%', '65%']}
+                  center={['50%', '45%']}
+                />
+              ) : (
+                <div className="text-slate-500 italic text-xs">Sem fontes identificadas.</div>
+              )}
+            </div>
+          </ChartCard>
+
+        </div>
+
+        {/* SEGUNDA LINHA — DOIS CARDS (TEMPORAL: EVOLUÇÃO E LINHA DO TEMPO) */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
+
+          {/* Card 1: Evolução do Risco */}
+          <ChartCard
+            title="Evolução do Risco"
+            className="min-w-0 h-[300px]"
+          >
+            <div className="flex-1 flex items-center justify-center min-h-0 w-full">
+              {riscoTempoData.dates.length > 0 ? (
+                <LineChart
+                  dates={riscoTempoData.dates}
+                  seriesData={[
+                    { name: 'Geral', data: riscoTempoData.alto.map((v, i) => v + riscoTempoData.medio[i]), color: '#00FFFF' },
+                    { name: 'Crítico', data: riscoTempoData.alto, color: '#FF3B3B' },
+                  ]}
+                  height={200}
+                />
+              ) : (
+                <div className="text-slate-500 italic text-xs">Aguardando novos dados históricos.</div>
+              )}
+            </div>
+          </ChartCard>
+
+          {/* Card 2: Linha do Tempo de Crise — Últimas 24 horas */}
+          <ChartCard
+            title="Linha do Tempo de Crise — Últimas 24 horas"
+            className="min-w-0 h-[300px] relative overflow-hidden"
+            extra={!isTimelineEmpty && (
+              <ChartFilterPopover>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white">Exibir Picos</span>
+                    <input
+                      type="checkbox"
+                      checked={timelineConfig.showPeaks}
+                      onChange={e => setTimelineConfig(prev => ({ ...prev, showPeaks: e.target.checked }))}
+                      className="accent-[#00FFFF]"
+                    />
+                  </div>
+                </div>
+              </ChartFilterPopover>
+            )}
+          >
+            {isTimelineEmpty ? (
+              <div className="flex-1 flex items-center justify-center text-slate-500 italic text-xs py-16">
+                Nenhum evento de crise identificado nas últimas 24 horas.
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col justify-between mt-2">
+                {/* Barras Verticais de Atividade */}
+                <div className="flex items-end justify-between h-[150px] w-full gap-0.5 sm:gap-1 px-1">
+                  {crisisTimeline.map((step, i) => {
+                    const pctHeight = maxTimelineCount > 0 ? Math.max(8, (step.count / maxTimelineCount) * 100) : 8;
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 group relative flex flex-col justify-end h-full cursor-pointer"
+                      >
+                        {/* Event Peak Indicator Bounce */}
+                        {timelineConfig.showPeaks && step.risk > 4 && (
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 block animate-ping" />
+                          </div>
+                        )}
+
+                        {/* Styled Vertical Activity Bar */}
+                        <div
+                          className={clsx(
+                            "w-full rounded-t-sm transition-all duration-300 group-hover:opacity-85",
+                            step.status === 'red' ? 'bg-[#FF3B3B]' :
+                            step.status === 'yellow' ? 'bg-[#FACC15]' :
+                            step.count > 0 ? 'bg-[#22C55E]' : 'bg-white/5'
+                          )}
+                          style={{ height: `${pctHeight}%` }}
+                        />
+
+                        {/* Rich timeline tooltip */}
+                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                          <div className="bg-[#0E1727] border border-blue-300/10 rounded-lg p-2.5 shadow-2xl min-w-[220px] text-xs">
+                            <div className="flex justify-between items-center mb-1.5 font-bold border-b border-white/5 pb-1">
+                              <span className="text-[#00FFFF]">{step.hour}</span>
+                              <span className={clsx(
+                                "px-1.5 py-0.5 rounded text-[10px] uppercase",
+                                step.status === 'red' ? 'bg-red-500/10 text-red-400' :
+                                step.status === 'yellow' ? 'bg-yellow-500/10 text-yellow-400' :
+                                'bg-green-500/10 text-green-400'
+                              )}>
+                                {step.status === 'red' ? 'Crise' : step.status === 'yellow' ? 'Atenção' : 'Normal'}
+                              </span>
+                            </div>
+                            <div className="space-y-1 text-[10px] text-slate-300">
+                              <div className="flex justify-between">
+                                <span>Menções:</span>
+                                <span className="text-white font-bold">{step.count}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Pontos de Risco:</span>
+                                <span className="text-white font-bold">{step.risk}</span>
+                              </div>
+                              {step.topNews && (
+                                <div className="mt-1.5 border-t border-white/5 pt-1.5">
+                                  <span className="text-slate-400 font-bold block mb-0.5 text-left">Notícia Principal:</span>
+                                  <p className="text-white leading-snug line-clamp-2 text-left">
+                                    {step.topNews.title}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Marcações de Horário */}
+                <div className="flex justify-between mt-2 px-1 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-t border-white/5 pt-1.5">
+                  <span>00:00</span>
+                  <span>04:00</span>
+                  <span>08:00</span>
+                  <span>12:00</span>
+                  <span>16:00</span>
+                  <span>20:00</span>
+                  <span>24:00</span>
+                </div>
+              </div>
+            )}
           </ChartCard>
         </div>
       </div>
 
-      <div className="pt-10">
-        <h3 className="text-xl font-bold text-white tracking-tight mb-4 flex items-center gap-2">
-          <span className="w-1 h-6 bg-[#00FFFF] rounded-full shadow-[0_0_10px_#00FFFF]" /> Base Completa de Monitoramento
+      {/* 5. BASE COMPLETA DE MONITORAMENTO */}
+      <div id="base-monitoramento" className="pt-4">
+        <h3 className="text-lg font-bold text-white tracking-tight mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-[#00FFFF] rounded-full shadow-[0_0_10px_#00FFFF]" /> Base Completa de Monitoramento
         </h3>
-        <DataTable data={fullTableData} rawRows={initialRows} />
+        <DataTable
+          data={fullTableData}
+          rawRows={initialRows}
+          onSelectNews={(news, raw) => setSelectedNews({ news, raw })}
+        />
       </div>
+
+      {/* Root Details Modal */}
+      {selectedNews && (
+        <NewsDetailModal
+          selection={selectedNews}
+          onClose={() => setSelectedNews(null)}
+        />
+      )}
     </div>
   );
 }

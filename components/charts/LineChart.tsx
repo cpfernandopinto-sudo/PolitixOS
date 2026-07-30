@@ -7,9 +7,10 @@ interface LineChartProps {
   dates: string[];
   values?: number[]; // Simple line
   seriesData?: { name: string; data: number[]; color: string }[]; // Multi-line
+  height?: number | string;
 }
 
-export default function LineChart({ dates, values, seriesData }: LineChartProps) {
+export default function LineChart({ dates, values, seriesData, height = 280 }: LineChartProps) {
   const series = seriesData ? seriesData.map(s => ({
     name: s.name,
     type: 'line',
@@ -54,21 +55,40 @@ export default function LineChart({ dates, values, seriesData }: LineChartProps)
       borderColor: 'rgba(255,255,255,0.1)',
       textStyle: { color: '#FFFFFF' }
     },
-    grid: { left: '3%', right: '4%', bottom: '3%', top: '5%', containLabel: true },
+    legend: {
+      show: true,
+      textStyle: { color: '#8b9ab1', fontSize: 10 },
+      top: '0',
+      right: '10%'
+    },
+    grid: { left: 16, right: 16, bottom: 8, top: 32, containLabel: true },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
+      boundaryGap: true,
       data: dates,
-      axisLabel: { color: '#9CA3AF' },
+      axisLabel: {
+        color: '#8b9ab1',
+        hideOverlap: true,
+        fontSize: 10,
+        interval: dates.length > 6 ? Math.floor(dates.length / 6) - 1 : 0
+      },
       axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#9CA3AF' },
-      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } }
+      axisLabel: { color: '#8b9ab1', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
+      boundaryGap: [0, '15%']
     },
     series: series
   };
 
-  return <ReactECharts option={option} style={{ height: '300px', width: '100%' }} />;
+  return (
+    <ReactECharts
+      option={option}
+      notMerge
+      lazyUpdate
+      style={{ height, width: '100%', minHeight: typeof height === 'number' ? height : 220 }}
+    />
+  );
 }

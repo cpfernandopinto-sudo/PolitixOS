@@ -5,9 +5,12 @@ import ReactECharts from 'echarts-for-react';
 
 interface DonutChartProps {
   data: { name: string; value: number; itemStyle?: { color: string } }[];
+  height?: number | string;
+  radius?: [string, string];
+  center?: [string, string];
 }
 
-export default function DonutChart({ data }: DonutChartProps) {
+export default function DonutChart({ data, height = 280, radius = ['52%', '78%'], center = ['50%', '42%'] }: DonutChartProps) {
   const option = {
     tooltip: {
       trigger: 'item',
@@ -17,22 +20,29 @@ export default function DonutChart({ data }: DonutChartProps) {
       formatter: '{b}: {c} ({d}%)'
     },
     legend: {
-      orient: 'vertical',
-      right: '5%',
-      top: 'center',
-      textStyle: { color: '#9CA3AF' }
+      orient: 'horizontal',
+      bottom: '0',
+      left: 'center',
+      itemGap: 10,
+      itemWidth: 9,
+      itemHeight: 9,
+      textStyle: {
+        color: '#9CA3AF',
+        fontSize: 10,
+      },
+      formatter: (name: string) => name.length > 15 ? `${name.slice(0, 14)}…` : name,
     },
     series: [
       {
         type: 'pie',
-        radius: ['50%', '80%'],
-        center: ['35%', '50%'],
+        radius: radius,
+        center: center,
         avoidLabelOverlap: false,
         label: { show: false, position: 'center' },
         emphasis: {
           label: {
             show: true,
-            fontSize: '20',
+            fontSize: '18',
             fontWeight: 'bold',
             color: '#FFFFFF'
           }
@@ -47,5 +57,12 @@ export default function DonutChart({ data }: DonutChartProps) {
     ]
   };
 
-  return <ReactECharts option={option} style={{ height: '300px', width: '100%' }} />;
+  return (
+    <ReactECharts
+      option={option}
+      notMerge
+      lazyUpdate
+      style={{ height, width: '100%', minHeight: typeof height === 'number' ? height : 220 }}
+    />
+  );
 }

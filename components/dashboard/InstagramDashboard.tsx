@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import ReactECharts from 'echarts-for-react';
 import clsx from 'clsx';
 import {
   AlertTriangle, Target, Activity, ShieldAlert, Clock, TrendingUp,
-  TrendingDown, Minus, Info, ArrowUpRight, ArrowDownRight, Zap, SearchX
+  TrendingDown, Minus, Info, Zap, SearchX
 } from 'lucide-react';
 import ChartCard from '@/components/ui/ChartCard';
 import GaugeChart from '@/components/charts/GaugeChart';
@@ -280,25 +281,15 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
       {/* 2. MÉTRICAS (CARDS SUPERIORES) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpis.map((kpi, i) => {
-          const isNegativeMetric = kpi.title.includes('Negativo') || kpi.title.includes('Risco');
-          const status = isNegativeMetric && kpi.value > 0 ? 'danger' : kpi.title.includes('Positivo') ? 'success' : 'neutral';
-          // Mocking variations for visual effect as requested
-          const mockVar = i % 2 === 0 ? 12 : -5;
           return (
             <div key={i} className="glass rounded-xl p-5 border-white/5 transition-all hover:scale-[1.02]">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest">{kpi.title}</h3>
-                {mockVar > 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
+                <Activity size={14} className="text-slate-500" />
               </div>
               <div className="flex items-end justify-between">
                 <span className="text-2xl md:text-3xl font-black text-white tracking-tighter">
                   {kpi.value}
-                </span>
-                <span className={clsx(
-                  "text-[10px] font-bold px-1.5 py-0.5 rounded",
-                  mockVar > 0 ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"
-                )}>
-                  {mockVar > 0 ? '+' : ''}{mockVar}%
                 </span>
               </div>
             </div>
@@ -321,7 +312,11 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
         </div>
         <div className="lg:col-span-4">
           <ChartCard title="Termômetro de Risco" className="flex flex-col items-center justify-center pt-8">
-            <GaugeChart score={riskScore} level={riskScore > 70 ? 'danger' : riskScore > 30 ? 'warning' : 'success'} />
+            <GaugeChart
+              score={riskScore}
+              level={riskScore > 70 ? 'danger' : riskScore > 30 ? 'warning' : 'success'}
+              showValue={false}
+            />
             <div className="text-center mt-[-40px] pb-6">
               <div className={clsx(
                 "text-4xl font-black mb-1 tracking-tighter",
@@ -573,13 +568,13 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
       </div>
 
       {/* Modal do Post */}
-      {selectedPost && (
+      {selectedPost && typeof document !== 'undefined' && createPortal((
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-black/80 px-4 pb-6 pt-[88px] backdrop-blur-md"
           onClick={() => setSelectedPost(null)}
         >
           <div
-            className="bg-[#12192A] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            className="bg-[#12192A] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[calc(100dvh-112px)] overflow-y-auto shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-[#12192A]/90 backdrop-blur-md z-10">
@@ -664,7 +659,7 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }
