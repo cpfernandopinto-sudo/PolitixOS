@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, Minus, ShieldQuestion } from 'lucide-react';
-import GaugeChart from '@/components/charts/GaugeChart';
+import { ArrowUpRight, ArrowDownRight, Minus, ShieldQuestion, CheckCircle2 } from 'lucide-react';
 import Drawer from '@/components/ui/Drawer';
 import type { PoliticalStatusResult } from '@/lib/analytics/political-status';
 
@@ -10,18 +9,18 @@ interface Props {
   status: PoliticalStatusResult;
 }
 
-const SEVERITY_LEVEL: Record<PoliticalStatusResult['severidade'], 'success' | 'warning' | 'danger'> = {
-  baixo: 'success',
-  medio: 'warning',
-  alto: 'warning',
-  critico: 'danger',
+const SEVERITY_TEXT: Record<PoliticalStatusResult['severidade'], string> = {
+  baixo: 'text-green-400',
+  medio: 'text-yellow-400',
+  alto: 'text-orange-400',
+  critico: 'text-red-400',
 };
 
-const SEVERITY_STYLES: Record<PoliticalStatusResult['severidade'], string> = {
-  baixo: 'border-l-green-500 bg-green-500/5',
-  medio: 'border-l-yellow-500 bg-yellow-500/5',
-  alto: 'border-l-orange-500 bg-orange-500/5',
-  critico: 'border-l-red-500 bg-red-500/5',
+const SEVERITY_BAR: Record<PoliticalStatusResult['severidade'], string> = {
+  baixo: 'bg-green-500',
+  medio: 'bg-yellow-500',
+  alto: 'bg-orange-500',
+  critico: 'bg-red-500',
 };
 
 function TrendIndicator({ direcao, variacaoPercentual }: { direcao: 'up' | 'down' | 'stable'; variacaoPercentual: number }) {
@@ -42,54 +41,88 @@ function TrendIndicator({ direcao, variacaoPercentual }: { direcao: 'up' | 'down
 }
 
 /**
- * Evolução executiva do Termômetro de Crise (Sprint 3). Reaproveita o
- * mesmo GaugeChart já usado em notícias/Instagram/X para o visual — não
- * introduz biblioteca nova. A classificação vem de
- * lib/analytics/political-status.ts (função pura, testada isoladamente).
+ * Estado Político (Sprint 3; redesign Sprint UX — Etapa 3). Classificação
+ * vem de lib/analytics/political-status.ts (função pura, testada
+ * isoladamente) — esta etapa é só de layout, nenhum cálculo mudou.
+ *
+ * Hierarquia executiva nova: status grande em destaque → índice (barra
+ * fina, mesmo `status.score` de antes) → lista compacta de fatores com
+ * ícone. O gauge (GaugeChart, compartilhado com Notícias/Instagram/X) saiu
+ * do card: o Termômetro de Crise Master ao lado já mostra um gauge com o
+ * mesmo tipo de leitura — repeti-lo aqui era o principal gerador do espaço
+ * vazio identificado nesta etapa. Estrutura do wrapper (padding, borda,
+ * raio) agora idêntica à de OverviewGauge.tsx, para os dois cards lerem
+ * como um único painel dividido em dois módulos.
  */
 export default function PoliticalStatusCard({ status }: Props) {
   const [showMethodology, setShowMethodology] = useState(false);
 
   if (status.semDados) {
     return (
-      <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6 h-full flex flex-col items-center justify-center text-center gap-3 min-h-[280px]">
-        <ShieldQuestion size={28} className="text-slate-600" />
+      <div className="surface-primary p-5 h-full flex flex-col items-center justify-center text-center gap-3 min-h-[240px]">
+        <ShieldQuestion size={28} className="text-slate-600" aria-hidden="true" />
         <p className="text-slate-400 text-sm">Dados insuficientes para calcular o estado político no período selecionado.</p>
       </div>
     );
   }
 
   return (
-    <div className={`bg-[#0E1727] border border-blue-300/10 border-l-4 rounded-xl p-6 h-full flex flex-col ${SEVERITY_STYLES[status.severidade]}`}>
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <h3 className="text-white font-bold text-[17px] tracking-tight">Estado Político</h3>
+    <div className="surface-primary p-5 h-full flex flex-col">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <h3 className="text-white font-bold text-base tracking-tight">Estado Político</h3>
         <button
           type="button"
           onClick={() => setShowMethodology(true)}
-          className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider transition-colors"
+          className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400/60 rounded"
         >
           Entenda o cálculo
         </button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="w-32 shrink-0 -my-4">
-          <GaugeChart score={status.score} level={SEVERITY_LEVEL[status.severidade]} />
-        </div>
-        <div className="min-w-0">
-          <div className="text-2xl font-black text-white tracking-tight">{status.label}</div>
-          {status.variacao && <TrendIndicator direcao={status.variacao.direcao} variacaoPercentual={status.variacao.variacaoPercentual} />}
-        </div>
-      </div>
+      {/* Abaixo de 1024px: empilhado (status/índice, depois divisória
+          horizontal, depois fatores) — igual à Etapa 3. Em 1024px+: duas
+          zonas lado a lado (42%/58%) com divisória vertical sutil, para
+          aproveitar a largura do card em vez de concentrar tudo à
+          esquerda. Nenhum dado/cálculo muda — só o agrupamento visual. */}
+      <div className="flex-1 flex flex-col lg:flex-row lg:items-center min-h-0">
+        {/* Zona esquerda (~42% em desktop): título já está acima; aqui só
+            status, variação e índice. */}
+        <div className="lg:w-[42%] lg:pr-6 lg:border-r lg:border-blue-300/10 flex flex-col justify-center">
+          {/* Status grande — elemento de maior destaque do card. Tamanho
+              reduzido ~8% (36px → 33px) para não competir tanto com o
+              valor central do Termômetro ao lado. */}
+          <div className={`text-[33px] font-black tracking-tight leading-none uppercase ${SEVERITY_TEXT[status.severidade]}`}>
+            {status.label}
+          </div>
+          {status.variacao && (
+            <div className="mt-2">
+              <TrendIndicator direcao={status.variacao.direcao} variacaoPercentual={status.variacao.variacaoPercentual} />
+            </div>
+          )}
 
-      <ul className="mt-4 space-y-1.5 flex-1">
-        {status.fatores.map((fator, i) => (
-          <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
-            <span className="w-1 h-1 rounded-full bg-slate-600 mt-1.5 shrink-0" />
-            {fator}
-          </li>
-        ))}
-      </ul>
+          {/* Índice — mesmo status.score de antes, barra fina em vez de gauge próprio. */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-label">Índice</span>
+              <span className="text-xs font-bold text-slate-300">{status.score}/100</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-blue-500/10 overflow-hidden" role="progressbar" aria-valuenow={status.score} aria-valuemin={0} aria-valuemax={100} aria-label="Índice do Estado Político">
+              <div className={`h-full rounded-full ${SEVERITY_BAR[status.severidade]}`} style={{ width: `${status.score}%` }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Zona direita (~58% em desktop): fatores — lista compacta, um
+            ícone por item (mesmo status.fatores de antes), nunca cards. */}
+        <ul className="mt-4 pt-3 border-t border-blue-300/10 space-y-1.5 lg:mt-0 lg:pt-0 lg:border-t-0 lg:pl-6 lg:w-[58%] lg:space-y-2.5 lg:flex lg:flex-col lg:justify-center">
+          {status.fatores.map((fator, i) => (
+            <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+              <CheckCircle2 size={13} className="text-cyan-400/80 mt-0.5 shrink-0" aria-hidden="true" />
+              {fator}
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <Drawer
         open={showMethodology}

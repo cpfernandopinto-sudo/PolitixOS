@@ -1,4 +1,4 @@
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Layers } from 'lucide-react';
 import { requireAuth } from '@/lib/auth/dal';
 import SectionBoundary from '@/components/ui/SectionBoundary';
 import { BlockSkeleton, KpiRowSkeleton } from '@/components/ui/BlockSkeleton';
@@ -6,7 +6,7 @@ import CollapsibleSection from '@/components/ui/CollapsibleSection';
 import OverviewHeader from '@/components/dashboard/overview/OverviewHeader';
 import OverviewKPI from '@/components/dashboard/overview/OverviewKPI';
 import OverviewGauge from '@/components/dashboard/overview/OverviewGauge';
-import OverviewAlerts from '@/components/dashboard/overview/OverviewAlerts';
+import PriorityAlertsCenter from '@/components/dashboard/overview/PriorityAlertsCenter';
 import OverviewChannels from '@/components/dashboard/overview/OverviewChannels';
 import OverviewStrategicMap from '@/components/dashboard/overview/OverviewStrategicMap';
 import OverviewTopics from '@/components/dashboard/overview/OverviewTopics';
@@ -16,9 +16,9 @@ import OverviewExecutiveTable from '@/components/dashboard/overview/OverviewExec
 import OverviewTimeline from '@/components/dashboard/overview/OverviewTimeline';
 import ExecutiveScenarioSummary from '@/components/dashboard/overview/ExecutiveScenarioSummary';
 import PoliticalStatusCard from '@/components/dashboard/overview/PoliticalStatusCard';
-import RiskOpportunityBoard from '@/components/dashboard/overview/RiskOpportunityBoard';
+import OpportunityBoard from '@/components/dashboard/overview/OpportunityBoard';
 import KeyChanges from '@/components/dashboard/overview/KeyChanges';
-import AttentionEntitiesThemes from '@/components/dashboard/overview/AttentionEntitiesThemes';
+import AttentionEntitiesStrip from '@/components/dashboard/overview/AttentionEntitiesStrip';
 import AssistedInsight from '@/components/dashboard/overview/AssistedInsight';
 import ExecutiveNarrative from '@/components/dashboard/overview/ExecutiveNarrative';
 import { buildExecutiveNarrative } from '@/lib/analytics/executive-narrative';
@@ -68,12 +68,16 @@ async function KPISection({ filters }: { filters: OverviewFilters }) {
 async function SynthesisSection({ filters }: { filters: OverviewFilters }) {
   const { synthesis } = await getExecutiveOverviewData(filters);
   return (
-    <div className="surface-hero p-5 h-full">
+    // surface-primary (nível 2 do design system) — um nível abaixo do
+    // surface-hero da Leitura Executiva ao lado (nível 1), para que a
+    // leitura interpretativa tenha mais destaque visual que os fatos
+    // estruturados da Síntese, sem deixar de ter presença própria.
+    <div className="surface-primary p-4 h-full">
       {/* Não é <h2>: mesma razão do PanoramaAnaliticoHeader acima. text-lg
           iguala o peso visual de "Termômetro de Crise Master"/"Estado
-          Político" (ambos h3 text-lg) na mesma fileira — nenhum dos três
-          deve dominar só pela tipografia. */}
-      <p role="heading" aria-level={2} className="text-white font-bold text-lg tracking-tight mb-3">Síntese do Cenário</p>
+          Político" na mesma página — nenhum título deve dominar só pela
+          tipografia. */}
+      <p role="heading" aria-level={2} className="text-white font-bold text-lg tracking-tight mb-2">Síntese do Cenário</p>
       <ExecutiveScenarioSummary synthesis={synthesis} compact />
     </div>
   );
@@ -91,14 +95,14 @@ async function CrisisSection({ filters }: { filters: OverviewFilters }) {
   return <OverviewGauge {...crisis} />;
 }
 
-async function AlertsSection({ filters }: { filters: OverviewFilters }) {
-  // Reaproveita os MESMOS `risks` (já em linguagem executiva via
-  // formatExecutiveRisk) usados pelo board de Riscos Prioritários — nenhuma
-  // consulta nova, nenhum critério de severidade paralelo. Substitui a
-  // antiga getPriorityAlerts (removida), que usava título bruto como texto
-  // do alerta.
+async function PriorityAlertsSection({ filters }: { filters: OverviewFilters }) {
+  // Centro de Alertas Prioritários (Sprint UX — Etapa 4): consolida os
+  // antigos "Riscos Prioritários" e "Alertas Prioritários", que liam os
+  // MESMOS `risks` (já em linguagem executiva via formatExecutiveRisk) e
+  // mostravam a mesma informação em dois cartões lado a lado — nenhuma
+  // consulta nova, nenhum critério de severidade paralelo.
   const { risks } = await getExecutiveOverviewData(filters);
-  return <OverviewAlerts risks={risks} />;
+  return <PriorityAlertsCenter risks={risks} activeCandidateId={filters.candidate} period={filters.period} />;
 }
 
 async function TopicsSection({ filters }: { filters: OverviewFilters }) {
@@ -123,22 +127,9 @@ async function RiskSection({ filters }: { filters: OverviewFilters }) {
 
 // ─── Camada 3 — investigação e aprofundamento ───────────────────────────────
 
-async function RiskOpportunitySection({
-  filters,
-  variant = 'both',
-}: {
-  filters: OverviewFilters;
-  variant?: 'both' | 'risks' | 'opportunities';
-}) {
-  const { risks, opportunities, opportunityAbsenceReasons } = await getExecutiveOverviewData(filters);
-  return (
-    <RiskOpportunityBoard
-      risks={risks}
-      opportunities={opportunities}
-      opportunityAbsenceReasons={opportunityAbsenceReasons}
-      variant={variant}
-    />
-  );
+async function OpportunitySection({ filters }: { filters: OverviewFilters }) {
+  const { opportunities, opportunityAbsenceReasons } = await getExecutiveOverviewData(filters);
+  return <OpportunityBoard opportunities={opportunities} opportunityAbsenceReasons={opportunityAbsenceReasons} />;
 }
 
 async function KeyChangesSection({ filters }: { filters: OverviewFilters }) {
@@ -147,8 +138,12 @@ async function KeyChangesSection({ filters }: { filters: OverviewFilters }) {
 }
 
 async function AttentionSection({ filters }: { filters: OverviewFilters }) {
-  const { entities, themes } = await getExecutiveOverviewData(filters);
-  return <AttentionEntitiesThemes entities={entities} themes={themes} />;
+  // `themes` continua calculado dentro de getExecutiveOverviewData (usado na
+  // síntese executiva) — só não é mais repassado para este componente, que
+  // agora mostra só a faixa compacta de entidades (Sprint UX — Etapa 1;
+  // painel de Temas em Atenção removido por duplicar Temas Dominantes).
+  const { entities } = await getExecutiveOverviewData(filters);
+  return <AttentionEntitiesStrip entities={entities} />;
 }
 
 async function TimelineSection({ filters }: { filters: OverviewFilters }) {
@@ -175,7 +170,7 @@ async function TableSection({ filters }: { filters: OverviewFilters }) {
 function PanoramaAnaliticoHeader() {
   return (
     <div className="flex items-center gap-2">
-      <BarChart3 size={16} className="text-cyan-400 shrink-0" />
+      <BarChart3 size={16} className="text-cyan-400 shrink-0" aria-hidden="true" />
       {/* Não é <h2>: .dashboard-main h2 (compartilhada com o Radar) força
           clamp(1.55rem,2.1vw,2rem) — bem acima da meta de 22-24px aqui. */}
       <p role="heading" aria-level={2} className="text-[22px] text-white font-bold tracking-tight">Panorama Analítico</p>
@@ -250,25 +245,50 @@ export default async function OverviewPage(props: {
         </SectionBoundary>
       </div>
 
-      {/* Narrativa executiva — determinística, sem IA. Resume o que
-          aconteceu, por que merece atenção e onde clicar a seguir. */}
-      <SectionBoundary label="Narrativa executiva" fallback={<BlockSkeleton height={120} />} minHeight={120}>
-        <NarrativeSection filters={filters} />
+      {/* Entidades em atenção — faixa compacta (Sprint UX, Etapa 1),
+          promovida para logo após o Panorama Analítico (Sprint UX, Etapa 2):
+          precisa vir antes da nova linha Síntese+Leitura Executiva, que por
+          sua vez precisa vir antes de Termômetro/Estado Político. */}
+      <SectionBoundary label="Entidades em atenção" fallback={<BlockSkeleton height={72} />} minHeight={72}>
+        <AttentionSection filters={filters} />
       </SectionBoundary>
 
-      {/* 4. LINHA de Diagnóstico Executivo: Síntese (compacta) | Termômetro
-          de Crise Master | Estado Político, mesma altura, 3 colunas em
-          desktop. */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-        <SectionBoundary label="Síntese do cenário" fallback={<BlockSkeleton height={280} />} minHeight={280}>
-          <SynthesisSection filters={filters} />
-        </SectionBoundary>
-        <SectionBoundary label="Termômetro de crise" fallback={<BlockSkeleton height={280} />} minHeight={280}>
-          <CrisisSection filters={filters} />
-        </SectionBoundary>
-        <SectionBoundary label="Estado político" fallback={<BlockSkeleton height={280} />} minHeight={280}>
-          <PoliticalStatusSection filters={filters} />
-        </SectionBoundary>
+      {/* 4. LINHA Síntese do Cenário + Leitura Executiva (Sprint UX, Etapa 2).
+          Síntese ~42%, Leitura Executiva ~58% — a leitura interpretativa tem
+          mais largura que os fatos estruturados. Substitui o antigo par
+          "Narrativa executiva" (bloco isolado, largura total, acima) +
+          "Síntese do cenário" (1/3 da linha de diagnóstico, abaixo) — mesmos
+          dados (`synthesis` e `narrative`), só a composição visual muda. */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <div className="lg:col-span-5">
+          <SectionBoundary label="Síntese do cenário" fallback={<BlockSkeleton height={220} />} minHeight={220}>
+            <SynthesisSection filters={filters} />
+          </SectionBoundary>
+        </div>
+        <div className="lg:col-span-7">
+          <SectionBoundary label="Leitura executiva" fallback={<BlockSkeleton height={220} />} minHeight={220}>
+            <NarrativeSection filters={filters} />
+          </SectionBoundary>
+        </div>
+      </div>
+
+      {/* 4b. LINHA de Diagnóstico: Termômetro de Crise Master | Estado
+          Político, mesma altura — os dois cards agora leem como um único
+          painel de diagnóstico dividido em dois módulos (Sprint UX — Etapa
+          3: mesmo padding/borda/raio nos dois componentes). 40/60 em
+          desktop largo (Estado Político tem mais conteúdo textual), 50/50
+          em tablet, empilhado em mobile (Termômetro primeiro). */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 items-stretch">
+        <div className="xl:col-span-2">
+          <SectionBoundary label="Termômetro de crise" fallback={<BlockSkeleton height={280} />} minHeight={280}>
+            <CrisisSection filters={filters} />
+          </SectionBoundary>
+        </div>
+        <div className="xl:col-span-3">
+          <SectionBoundary label="Estado político" fallback={<BlockSkeleton height={280} />} minHeight={280}>
+            <PoliticalStatusSection filters={filters} />
+          </SectionBoundary>
+        </div>
       </div>
 
       {/* 5. Mudanças Mais Relevantes — imediatamente após a linha de
@@ -279,23 +299,20 @@ export default async function OverviewPage(props: {
         </SectionBoundary>
       </div>
 
-      {/* 6. LINHA de Ação Imediata: Riscos Prioritários | Alertas
-          Prioritários — só essas duas colunas (Oportunidades Prioritárias
-          já aparece compacta na Síntese acima, e em detalhe em "Análises
-          Complementares", sem duplicar aqui). */}
-      <div id="crisis-alerts" className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch scroll-mt-20">
-        <SectionBoundary label="Riscos prioritários" fallback={<BlockSkeleton height={340} />} minHeight={340}>
-          <RiskOpportunitySection filters={filters} variant="risks" />
-        </SectionBoundary>
-        <SectionBoundary label="Alertas prioritários" fallback={<BlockSkeleton height={340} />} minHeight={340}>
-          <AlertsSection filters={filters} />
+      {/* 6. Centro de Alertas Prioritários (Sprint UX — Etapa 4): consolida
+          os antigos "Riscos Prioritários" e "Alertas Prioritários" — os dois
+          liam os MESMOS `risks` e mostravam a mesma informação em dois
+          cartões lado a lado (duplicação confirmada em código, não só
+          visual). Card único, largura total (Oportunidades Prioritárias já
+          aparece compacta na Síntese acima, e em detalhe em "Análises
+          Complementares", sem duplicar aqui). Mantém o id
+          "riscos-oportunidades", alvo real do link "Ver riscos" em
+          lib/analytics/executive-narrative.ts. */}
+      <div id="riscos-oportunidades" className="scroll-mt-20">
+        <SectionBoundary label="Centro de alertas prioritários" fallback={<BlockSkeleton height={340} />} minHeight={340}>
+          <PriorityAlertsSection filters={filters} />
         </SectionBoundary>
       </div>
-
-      {/* 7. Entidades e temas em atenção. */}
-      <SectionBoundary label="Entidades e temas em atenção" fallback={<BlockSkeleton height={320} />} minHeight={320}>
-        <AttentionSection filters={filters} />
-      </SectionBoundary>
 
       {/* 14. Timeline consolidada. */}
       <div id="timeline" className="scroll-mt-20">
@@ -304,10 +321,11 @@ export default async function OverviewPage(props: {
         </SectionBoundary>
       </div>
 
-      {/* 15. Leitura Analítica Assistida por IA — claramente identificada
-          como IA, sempre depois da síntese/timeline determinísticas, nunca
-          antes. Não busca dados no mount (só ao clicar "Gerar leitura
-          analítica") — não é um Server Component. */}
+      {/* 15. Relatório Executivo com IA — CTA compacto, sempre depois da
+          síntese/timeline determinísticas, nunca antes (Sprint UX — Etapa
+          5: deixou de ser um card grande permanente; agora abre em Drawer,
+          só quando o usuário clica). Não busca dados no mount — não é um
+          Server Component. */}
       <AssistedInsight candidate={filters.candidate ?? null} period={filters.period ?? 'all'} isAdmin={session.role === 'admin'} />
 
       {/* 16. Análises complementares — só itens realmente secundários. Os
@@ -315,23 +333,28 @@ export default async function OverviewPage(props: {
           Sentimento, Risco) NÃO ficam mais aqui — promovidos para o
           Panorama Analítico. Oportunidades Prioritárias (lista completa)
           fica aqui — a Síntese acima já mostra só a principal, sem
-          duplicar Riscos (que tem sua própria linha, "Ação Imediata"). */}
+          duplicar Riscos (que tem sua própria linha, "Ação Imediata").
+          Sprint UX — Etapa 6: a Tabela Executiva passou a viver dentro
+          deste accordion (antes era uma seção própria, sempre visível, ao
+          final da página) — fecha o arco narrativo da metade inferior em
+          "Resumo Executivo → Indicadores → Alertas → Timeline → Relatório
+          Executivo IA → Análises Complementares", sem um bloco extra solto
+          depois do accordion. */}
       <CollapsibleSection
+        icon={<Layers size={16} />}
         title="Análises Complementares"
-        subtitle="Oportunidades detalhadas e ações recomendadas com base nos itens de maior risco monitorados"
+        subtitle="Tabelas detalhadas e informações de apoio"
       >
         <SectionBoundary label="Oportunidades prioritárias" fallback={<BlockSkeleton height={220} />} minHeight={220}>
-          <RiskOpportunitySection filters={filters} variant="opportunities" />
+          <OpportunitySection filters={filters} />
         </SectionBoundary>
         <SectionBoundary label="Mapa de ação estratégica" fallback={<BlockSkeleton height={220} />} minHeight={220}>
           <StrategicSection filters={filters} />
         </SectionBoundary>
+        <SectionBoundary label="Tabela executiva" fallback={<BlockSkeleton height={360} />} minHeight={360}>
+          <TableSection filters={filters} />
+        </SectionBoundary>
       </CollapsibleSection>
-
-      {/* 17. Tabela executiva — posição secundária, ao final. */}
-      <SectionBoundary label="Tabela executiva" fallback={<BlockSkeleton height={360} />} minHeight={360}>
-        <TableSection filters={filters} />
-      </SectionBoundary>
     </div>
   );
 }

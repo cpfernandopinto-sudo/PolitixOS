@@ -39,10 +39,13 @@ export default function OverviewKPI({ score_geral, temperatura_geral, tendencia,
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    // sm: 2 colunas (mobile grande); md/tablet: 3+2 (evita o 2º card sozinho
+    // numa linha, que acontecia indo direto de 2 para 5 colunas); lg+: 5
+    // numa única fileira.
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {/* Score Geral */}
       <div
-        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-cyan-400/20 transition-all"
+        className="surface-primary px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-cyan-400/20 transition-colors"
         title="Consolidação sintética operacional — inverso do risco consolidado usado no Estado Político e no Termômetro de Crise (100 − risco)."
       >
         <div className="flex items-center justify-between">
@@ -55,7 +58,7 @@ export default function OverviewKPI({ score_geral, temperatura_geral, tendencia,
 
       {/* Temperatura */}
       <div
-        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-orange-400/20 transition-all"
+        className="surface-primary px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-orange-400/20 transition-colors"
         title="Nível atual de tensão — rótulo qualitativo derivado do mesmo score de crise, sem a classificação executiva do Estado Político."
       >
         <div className="flex items-center justify-between">
@@ -70,7 +73,7 @@ export default function OverviewKPI({ score_geral, temperatura_geral, tendencia,
 
       {/* Tendência */}
       <div
-        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-blue-400/20 transition-all"
+        className="surface-primary px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-blue-400/20 transition-colors"
         title="Direção temporal do volume monitorado no período, comparado ao período imediatamente anterior."
       >
         <div className="flex items-center justify-between">
@@ -85,7 +88,7 @@ export default function OverviewKPI({ score_geral, temperatura_geral, tendencia,
 
       {/* Alertas */}
       <div
-        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-red-400/20 transition-all"
+        className="surface-primary px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-red-400/20 transition-colors"
         title="Volume de ocorrências relevantes (contagem) — a leitura de severidade fica em Riscos Prioritários e Alertas Prioritários."
       >
         <div className="flex items-center justify-between">
@@ -98,7 +101,7 @@ export default function OverviewKPI({ score_geral, temperatura_geral, tendencia,
 
       {/* Volume */}
       <div
-        className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-purple-400/20 transition-all"
+        className="surface-primary px-4 py-3 h-[84px] flex flex-col justify-between group hover:border-purple-400/20 transition-colors"
         title="Dimensão bruta da base monitorada (notícias + posts) no período selecionado."
       >
         <div className="flex items-center justify-between">

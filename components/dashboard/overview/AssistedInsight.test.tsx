@@ -37,20 +37,23 @@ describe('AssistedInsight', () => {
     mockGenerate.mockReset();
   });
 
-  it('estado inicial: mostra "Gerar leitura analítica" e não chama a action automaticamente', () => {
+  it('estado inicial: mostra o CTA "Gerar Relatório Executivo" compacto, sem painel permanente e sem chamar a action automaticamente', () => {
     render(<AssistedInsight candidate={null} period="all" />);
-    expect(screen.getByRole('button', { name: /Gerar leitura analítica/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Gerar Relatório Executivo/ })).toBeInTheDocument();
+    // O conteúdo do relatório (drawer) não deve existir no DOM antes do clique — não é mais um painel permanente.
+    expect(screen.queryByText('Nenhuma leitura gerada para este período e filtros ainda.')).not.toBeInTheDocument();
     expect(mockGenerate).not.toHaveBeenCalled();
   });
 
-  it('ao clicar, chama a action e exibe o resultado, diferenciando dado/interpretação/hipótese/limitação', async () => {
+  it('ao clicar no CTA, abre o relatório e chama a action, diferenciando dado/interpretação/hipótese/limitação', async () => {
     mockGenerate.mockResolvedValueOnce(availableResult());
     render(<AssistedInsight candidate={null} period="all" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Relatório Executivo/ }));
 
     await waitFor(() => expect(screen.getByText('Resumo do período monitorado.')).toBeInTheDocument());
     expect(mockGenerate).toHaveBeenCalledWith({ candidate: null, period: 'all', forceRefresh: false });
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
 
     // Dado (síntese) vs. interpretação vs. hipótese vs. limitação em seções distintas
     expect(screen.getByText('Riscos interpretados')).toBeInTheDocument();
@@ -67,7 +70,7 @@ describe('AssistedInsight', () => {
     mockGenerate.mockReturnValueOnce(new Promise((resolve) => { resolvePromise = resolve; }));
     render(<AssistedInsight candidate={null} period="all" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Relatório Executivo/ }));
     expect(await screen.findByText(/Organizando evidências e síntese/)).toBeInTheDocument();
 
     resolvePromise(availableResult());
@@ -87,7 +90,7 @@ describe('AssistedInsight', () => {
     } satisfies AssistedInsightResult);
 
     render(<AssistedInsight candidate={null} period="all" />);
-    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Relatório Executivo/ }));
 
     await waitFor(() => expect(screen.getByText('Não foi possível gerar a leitura analítica agora.')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /Tentar novamente/ })).toBeInTheDocument();
@@ -107,7 +110,7 @@ describe('AssistedInsight', () => {
     } satisfies AssistedInsightResult);
 
     render(<AssistedInsight candidate={null} period="all" />);
-    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Relatório Executivo/ }));
 
     await waitFor(() => expect(screen.getByText(/ainda não está configurada neste ambiente/)).toBeInTheDocument());
     expect(screen.getByText(/O restante da Visão Geral continua funcionando normalmente/)).toBeInTheDocument();
@@ -127,7 +130,7 @@ describe('AssistedInsight', () => {
     } satisfies AssistedInsightResult);
 
     render(<AssistedInsight candidate={null} period="all" isAdmin />);
-    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Relatório Executivo/ }));
 
     await waitFor(() => expect(screen.getByText(/ANTHROPIC_API_KEY/)).toBeInTheDocument());
     expect(screen.getByText(/visível só para admin/)).toBeInTheDocument();
@@ -137,11 +140,39 @@ describe('AssistedInsight', () => {
     mockGenerate.mockResolvedValueOnce(availableResult());
     const { rerender } = render(<AssistedInsight candidate={null} period="all" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Gerar leitura analítica/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Relatório Executivo/ }));
     await waitFor(() => expect(screen.getByText('Resumo do período monitorado.')).toBeInTheDocument());
 
     rerender(<AssistedInsight candidate="target-1" period="all" />);
     expect(screen.getByText(/pode estar desatualizada/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Atualizar$/ })).toBeInTheDocument();
+  });
+
+  it('fecha com Esc e devolve o foco ao CTA (Drawer acessível reutilizado de components/ui/Drawer)', async () => {
+    mockGenerate.mockResolvedValueOnce(availableResult());
+    render(<AssistedInsight candidate={null} period="all" />);
+
+    const cta = screen.getByRole('button', { name: /Gerar Relatório Executivo/ });
+    fireEvent.click(cta);
+    await waitFor(() => expect(screen.getByText('Resumo do período monitorado.')).toBeInTheDocument());
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('reabrir depois de fechado mostra o resultado em cache, sem gerar de novo', async () => {
+    mockGenerate.mockResolvedValueOnce(availableResult());
+    render(<AssistedInsight candidate={null} period="all" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Relatório Executivo/ }));
+    await waitFor(() => expect(screen.getByText('Resumo do período monitorado.')).toBeInTheDocument());
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Ver Relatório Executivo/ }));
+    expect(screen.getByText('Resumo do período monitorado.')).toBeInTheDocument();
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
 });

@@ -28,8 +28,8 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
     series: [
       {
         type: 'gauge',
-        center: ['50%', '56%'],
-        radius: '96%',
+        center: ['50%', '58%'],
+        radius: '99%',
         startAngle: 210,
         endAngle: -30,
         min: 0,
@@ -37,33 +37,59 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
         splitNumber: 5,
         itemStyle: {
           color: color,
+          shadowColor: color,
+          shadowBlur: 6,
         },
         progress: {
           show: true,
-          width: 10
+          width: 9,
+          roundCap: true,
         },
+        // Ponteiro fino e elegante — puramente visual (mesmo `score`, mesma
+        // lógica); antes o gauge não tinha nenhum indicador de agulha, só o
+        // arco de progresso. Sprint UX — Etapa 3.
         pointer: {
-          show: false
+          show: true,
+          icon: 'path://M2,0 C2,0 1,-2 0,-64 C-1,-2 -2,0 -2,0 Z',
+          length: '58%',
+          width: 4,
+          offsetCenter: [0, 0],
+          itemStyle: { color, shadowColor: color, shadowBlur: 4 },
+        },
+        anchor: {
+          show: true,
+          size: 8,
+          itemStyle: { color, borderColor: 'rgba(255,255,255,0.35)', borderWidth: 1.5 },
         },
         axisLine: {
+          roundCap: true,
           lineStyle: {
-            width: 10,
-            color: [[1, '#2D2D2D']]
+            width: 9,
+            color: [[1, 'rgba(148,163,184,0.12)']]
           }
         },
-        axisTick: { show: false },
-        splitLine: { show: false },
+        axisTick: {
+          show: true,
+          distance: -18,
+          length: 3,
+          splitNumber: 5,
+          lineStyle: { color: 'rgba(148,163,184,0.35)', width: 1 },
+        },
+        splitLine: {
+          show: true,
+          distance: -20,
+          length: 8,
+          lineStyle: { color: 'rgba(148,163,184,0.45)', width: 1.5 },
+        },
         axisLabel: { show: false },
-        anchor: { show: false },
         title: { show: false },
         detail: {
           valueAnimation: true,
           width: '60%',
-          lineHeight: 34,
-          borderRadius: 8,
-          offsetCenter: [0, '4%'],
-          fontSize: 34,
-          fontWeight: 'bold',
+          lineHeight: 40,
+          offsetCenter: [0, '2%'],
+          fontSize: 40,
+          fontWeight: 700,
           formatter: '{value}',
           color: 'inherit'
         },
@@ -73,9 +99,9 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
   };
 
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-5 h-full flex flex-col">
+    <div className="surface-primary p-5 h-full flex flex-col">
       <div className="flex items-center justify-between gap-3 mb-1">
-        <h3 className="text-white font-bold text-[17px] tracking-tight">Termômetro de Crise Master</h3>
+        <h3 className="text-white font-bold text-base tracking-tight">Termômetro de Crise Master</h3>
         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${status === 'crítico' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
             status === 'quente' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
               'bg-cyan-500/10 text-cyan-500 border-cyan-500/20'
@@ -83,31 +109,31 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
           {status}
         </span>
       </div>
-      <p className="text-[11px] text-slate-500 mb-2">
+      <p className="text-[11px] text-slate-500 mb-1">
         Decomposição analítica do risco por canal — o Estado Político (acima) já resume esta mesma leitura em uma classificação executiva.
       </p>
 
-      <div className="flex flex-col items-center">
-        <div className="w-full h-[178px] md:h-[190px] -my-2">
+      <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+        <div className="w-full h-[188px] md:h-[200px]">
           <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
         </div>
 
-        <div className="text-slate-400 text-xs font-medium -mt-3 mb-3 uppercase tracking-widest opacity-60">
+        <div className="text-slate-400 text-[11px] font-semibold -mt-4 mb-2.5 uppercase tracking-widest opacity-70">
           Risco Consolidado
         </div>
 
         <div className="w-full grid grid-cols-3 gap-2">
-          <div className="bg-blue-500/5 rounded-lg px-2 py-2 border border-blue-300/10 text-center">
-            <div className="text-[9px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Notícias (50%)</div>
-            <div className="text-lg font-bold text-white">{breakdown.noticias}</div>
+          <div className="bg-blue-500/5 rounded-lg px-2 py-1.5 border border-blue-300/10 text-center">
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Notícias (50%)</div>
+            <div className="text-base font-bold text-white">{breakdown.noticias}</div>
           </div>
-          <div className="bg-blue-500/5 rounded-lg px-2 py-2 border border-blue-300/10 text-center">
-            <div className="text-[9px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">X/Twitter (30%)</div>
-            <div className="text-lg font-bold text-white">{breakdown.x}</div>
+          <div className="bg-blue-500/5 rounded-lg px-2 py-1.5 border border-blue-300/10 text-center">
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">X/Twitter (30%)</div>
+            <div className="text-base font-bold text-white">{breakdown.x}</div>
           </div>
-          <div className="bg-blue-500/5 rounded-lg px-2 py-2 border border-blue-300/10 text-center">
-            <div className="text-[9px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Instagram (20%)</div>
-            <div className="text-lg font-bold text-white">{breakdown.instagram}</div>
+          <div className="bg-blue-500/5 rounded-lg px-2 py-1.5 border border-blue-300/10 text-center">
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Instagram (20%)</div>
+            <div className="text-base font-bold text-white">{breakdown.instagram}</div>
           </div>
         </div>
       </div>

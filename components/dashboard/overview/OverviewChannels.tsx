@@ -106,8 +106,8 @@ export default function OverviewChannels({ data }: Props) {
   };
 
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl px-5 py-4 overflow-hidden h-full">
-      <h3 className="text-white font-bold text-lg tracking-tight">Distribuição por Canal</h3>
+    <div className="surface-primary px-5 py-4 overflow-hidden h-full">
+      <h3 className="text-white font-bold text-base tracking-tight">Distribuição por Canal</h3>
       <p className="text-xs text-slate-500 mb-0.5">Como cada canal contribui para o cenário.</p>
       {/*
         Altura FIXA (não flex-1/h-full): este bloco monta imediatamente no

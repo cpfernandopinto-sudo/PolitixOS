@@ -35,8 +35,8 @@ export default function OverviewRisk({ risk }: Props) {
   };
 
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-5 h-full">
-      <h3 className="text-white font-bold text-lg mb-3">Distribuição de Risco</h3>
+    <div className="surface-primary p-5 h-full">
+      <h3 className="text-white font-bold text-base tracking-tight mb-3">Distribuição de Risco</h3>
       {total === 0 ? (
         <div className="h-[320px] flex items-center justify-center text-slate-500 text-sm italic">
           Nenhum item classificado por risco no período selecionado.

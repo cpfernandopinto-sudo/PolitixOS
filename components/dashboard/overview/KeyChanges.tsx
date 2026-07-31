@@ -43,8 +43,8 @@ function ChangeCard({ change }: { change: KeyChange }) {
  */
 export default function KeyChanges({ changes }: Props) {
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-6">
-      <h3 className="text-white font-bold text-base tracking-tight mb-4">Mudanças Mais Relevantes</h3>
+    <div className="surface-primary p-5">
+      <h3 className="text-white font-bold text-base tracking-tight mb-3">Mudanças Mais Relevantes</h3>
       {changes.length === 0 ? (
         <p className="text-sm text-slate-500 italic py-4 text-center">
           Sem comparação temporal real disponível para o período e filtros selecionados.
