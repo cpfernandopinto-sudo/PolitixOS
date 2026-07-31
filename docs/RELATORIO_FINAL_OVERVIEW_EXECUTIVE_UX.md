@@ -2,7 +2,9 @@
 
 **Branch:** `feature/overview-executive-ux-refinement`
 **Base:** `origin/main` @ `0566c0c` (inclui a Sprint de Performance Core, PR #5, já mesclada em produção)
-**Commit / PR / Preview:** ver seção 12 (preenchido após commit, push e abertura do PR)
+**Commit:** `931d7dd589b5e717de7794eb3aecafffe85a2833`
+**PR:** [#6](https://github.com/cpfernandopinto-sudo/PolitixOS/pull/6)
+**Preview (Vercel):** https://politix-os-git-feature-ov-e20620-cpfernandopinto-4810s-projects.vercel.app (protegido por SSO da Vercel — validação manual necessária)
 
 ## 1. Objetivo da entrega
 
@@ -119,6 +121,6 @@ Por instrução explícita do usuário, mantidos exatamente como estavam: `lib/q
 ## 13. Branch, commit, PR e Preview
 
 - **Branch:** `feature/overview-executive-ux-refinement`
-- **Commit:** _a preencher após o commit_
-- **PR:** _a preencher após a abertura_
-- **Preview (Vercel):** _a preencher quando disponível_
+- **Commit:** `931d7dd589b5e717de7794eb3aecafffe85a2833`
+- **PR:** https://github.com/cpfernandopinto-sudo/PolitixOS/pull/6
+- **Preview (Vercel):** https://politix-os-git-feature-ov-e20620-cpfernandopinto-4810s-projects.vercel.app — status **Ready**, protegido por SSO da Vercel (validação manual do usuário necessária)
