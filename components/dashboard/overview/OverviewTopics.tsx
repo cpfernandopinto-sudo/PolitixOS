@@ -14,8 +14,8 @@ export default function OverviewTopics({ topics }: Props) {
   const top5 = topics.slice(0, 5);
 
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-5 h-full flex flex-col">
-      <h3 className="text-white font-bold text-lg">Temas Dominantes</h3>
+    <div className="surface-primary p-5 h-full flex flex-col">
+      <h3 className="text-white font-bold text-base tracking-tight">Temas Dominantes</h3>
       <p className="text-xs text-slate-500 mb-3">Top 5 pautas monitoradas</p>
       {top5.length === 0 ? (
         <div className="h-[300px] flex items-center justify-center text-slate-500 text-sm italic">

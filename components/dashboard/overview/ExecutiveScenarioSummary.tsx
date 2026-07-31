@@ -4,12 +4,11 @@ import type { ExecutiveSynthesis, ExecutiveSynthesisField } from '@/lib/analytic
 interface Props {
   synthesis: ExecutiveSynthesis;
   /**
-   * Versão compacta (hotfix de apresentação): mostra apenas 4 campos —
-   * Estado Geral, Principal Risco, Principal Oportunidade, Mudança
-   * Relevante — para caber lado a lado com o Termômetro de Crise e o
-   * Estado Político na primeira linha ("Diagnóstico Executivo"). Tema em
-   * Destaque e Maior Exposição continuam disponíveis na versão completa,
-   * não removidos do sistema — apenas ocultos nesta variante compacta.
+   * Versão compacta: grid 2×2 com 4 campos — Estado Geral, Principal
+   * Risco, Principal Oportunidade, Mudança Relevante — usada na linha
+   * Síntese + Leitura Executiva (Sprint UX — Etapa 2). Tema em Destaque e
+   * Maior Exposição continuam disponíveis na versão completa, não
+   * removidos do sistema — apenas ocultos nesta variante.
    */
   compact?: boolean;
 }
@@ -34,7 +33,57 @@ const SECONDARY_FIELD_META: Array<{
   { key: 'mudancaRelevante', label: 'Mudança Relevante', icon: <ArrowLeftRight size={14} className="text-blue-400" /> },
 ];
 
-const COMPACT_SECONDARY_KEYS: ReadonlyArray<keyof ExecutiveSynthesis> = ['principalOportunidade', 'mudancaRelevante'];
+/**
+ * Grid 2×2 unificado da versão compacta (Sprint UX — Etapa 2). Substitui o
+ * antigo esquema de 2 tiles grandes + 2 tiles pequenos (dois pesos visuais
+ * diferentes) — os 4 campos agora têm o MESMO tratamento visual, como partes
+ * de uma única síntese, separados por divisórias internas sutis em vez de
+ * 4 caixas isoladas com borda própria.
+ */
+const COMPACT_FIELD_META: Array<{
+  key: keyof ExecutiveSynthesis;
+  label: string;
+  icon: React.ReactNode;
+}> = [
+  { key: 'estadoGeral', label: 'Estado Geral', icon: <Sparkles size={14} className="text-cyan-400" aria-hidden="true" /> },
+  { key: 'principalRisco', label: 'Principal Risco', icon: <AlertTriangle size={14} className="text-red-400" aria-hidden="true" /> },
+  { key: 'principalOportunidade', label: 'Principal Oportunidade', icon: <TrendingUp size={14} className="text-teal-400" aria-hidden="true" /> },
+  { key: 'mudancaRelevante', label: 'Mudança Relevante', icon: <ArrowLeftRight size={14} className="text-blue-400" aria-hidden="true" /> },
+];
+
+function CompactCell({ label, icon, field, borderRight, borderBottom }: { label: string; icon: React.ReactNode; field: ExecutiveSynthesisField; borderRight: boolean; borderBottom: boolean }) {
+  return (
+    <div
+      className={[
+        'p-3 min-w-0',
+        borderRight ? 'sm:border-r sm:border-blue-300/10' : '',
+        borderBottom ? 'border-b border-blue-300/10' : '',
+      ].join(' ')}
+    >
+      <div className="flex items-center gap-1.5 mb-1.5">
+        {icon}
+        <span className="text-label">{label}</span>
+      </div>
+      {field.semDados ? (
+        <p className="text-xs text-slate-500 italic">Dados insuficientes para síntese.</p>
+      ) : (
+        <>
+          <p className="text-sm font-semibold text-white leading-snug line-clamp-2">{field.valor}</p>
+          {field.evidenceRefs.length > 0 && field.evidenceRefs[0].url && (
+            <a
+              href={field.evidenceRefs[0].url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider mt-1.5"
+            >
+              Ver evidência <ExternalLink size={9} aria-hidden="true" />
+            </a>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 function PrimaryTile({ label, icon, field, compact }: { label: string; icon: React.ReactNode; field: ExecutiveSynthesisField; compact: boolean }) {
   return (
@@ -93,26 +142,42 @@ function SecondaryTile({ label, icon, field }: { label: string; icon: React.Reac
  * frase aqui é gerada por IA; todo texto vem de template determinístico
  * a partir dos dados reais.
  *
- * Hierarquia em dois níveis — Estado Geral e Principal Risco em destaque
- * (nível 1), os outros campos como tiles secundários menores (nível 2) —
- * evita a "parede de cards iguais" identificada em
- * docs/AUDITORIA_VISUAL_SPRINT_5.md (achado #3). `compact` (hotfix de
- * apresentação) reduz para 4 campos e menos padding, sem alterar dados.
+ * `compact` (usado na linha Síntese+Leitura Executiva da Visão Geral,
+ * Sprint UX — Etapa 2): grid 2×2 unificado com os 4 campos executivos
+ * (Estado Geral, Principal Risco, Principal Oportunidade, Mudança
+ * Relevante), mesmo tratamento visual para os 4 — Tema em Destaque e Maior
+ * Exposição continuam calculados (não removidos do sistema), só não
+ * aparecem nesta variante. Sem `compact`: versão completa com os 6 campos
+ * (não usada atualmente por nenhuma página — preservada para os testes e
+ * para eventual reuso).
  */
 export default function ExecutiveScenarioSummary({ synthesis, compact = false }: Props) {
-  const secondaryFields = compact
-    ? SECONDARY_FIELD_META.filter((f) => COMPACT_SECONDARY_KEYS.includes(f.key))
-    : SECONDARY_FIELD_META;
-
-  return (
-    <div className={compact ? 'space-y-3' : 'space-y-4'}>
-      <div className={compact ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'grid grid-cols-1 sm:grid-cols-2 gap-4'}>
-        {PRIMARY_FIELD_META.map(({ key, label, icon }) => (
-          <PrimaryTile key={key} label={label} icon={icon} field={synthesis[key]} compact={compact} />
+  if (compact) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-y-0 divide-y divide-blue-300/10 -m-1">
+        {COMPACT_FIELD_META.map(({ key, label, icon }, i) => (
+          <CompactCell
+            key={key}
+            label={label}
+            icon={icon}
+            field={synthesis[key]}
+            borderRight={i % 2 === 0}
+            borderBottom={i < 2}
+          />
         ))}
       </div>
-      <div className={compact ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-2 xl:grid-cols-4 gap-3'}>
-        {secondaryFields.map(({ key, label, icon }) => (
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {PRIMARY_FIELD_META.map(({ key, label, icon }) => (
+          <PrimaryTile key={key} label={label} icon={icon} field={synthesis[key]} compact={false} />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {SECONDARY_FIELD_META.map(({ key, label, icon }) => (
           <SecondaryTile key={key} label={label} icon={icon} field={synthesis[key]} />
         ))}
       </div>

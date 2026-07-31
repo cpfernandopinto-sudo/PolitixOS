@@ -45,8 +45,8 @@ export default function OverviewSentiment({ sentiment }: Props) {
   };
 
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-5 h-full">
-      <h3 className="text-white font-bold text-lg mb-3">Sentimento Consolidado</h3>
+    <div className="surface-primary p-5 h-full">
+      <h3 className="text-white font-bold text-base tracking-tight mb-3">Sentimento Consolidado</h3>
       {sentimentTotal === 0 ? (
         <div className="h-[320px] flex items-center justify-center text-slate-500 text-sm italic">
           Nenhum dado de sentimento no período selecionado.

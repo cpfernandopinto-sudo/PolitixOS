@@ -138,19 +138,23 @@ export default function OverviewExecutiveTable({ rows }: Props) {
   }, [rows, search]);
 
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl overflow-hidden">
-      <div className="p-5 border-b border-blue-300/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h3 className="text-white font-bold text-lg">Tabela Executiva de Monitoramento</h3>
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+    <div className="surface-primary overflow-hidden">
+      <div className="p-4 border-b border-blue-300/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-white font-bold text-base tracking-tight">Tabela Executiva de Monitoramento</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Itens do período e filtros selecionados, com ação direta para a fonte.</p>
+        </div>
+        <label className="relative shrink-0">
+          <span className="sr-only">Pesquisar na tabela</span>
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pesquisar..."
-            className="bg-black/20 border border-blue-300/15 rounded-lg pl-9 pr-4 py-1.5 text-xs text-white focus:border-cyan-500/50 outline-none"
+            placeholder="Pesquisar candidato, canal, sentimento…"
+            className="w-full sm:w-64 bg-black/20 border border-blue-300/15 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-600 outline-none transition-colors focus:border-cyan-500/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400/40"
           />
-        </div>
+        </label>
       </div>
       {rows.length === 0 ? (
         <div className="p-10 text-center text-slate-500 text-sm italic">
@@ -161,65 +165,70 @@ export default function OverviewExecutiveTable({ rows }: Props) {
           Nenhum resultado para &quot;{search}&quot;.
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-blue-500/5">
-              <tr>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Candidato</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Canal</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sentimento</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Risco</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Impacto</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredRows.map((row, i) => {
-                const actionUrl = getItemUrl(row);
-                const actionLabel = getActionLabel(row);
-                return (
-                  <tr key={i} className="hover:bg-blue-500/5 transition-colors">
-                    <td className="px-5 py-3 text-sm font-medium text-white">{row.candidato}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
-                        {getChannelIcon(row.canal)}
-                        {row.canal}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                        row.sentimento?.toLowerCase() === 'positivo' ? 'bg-green-500/10 text-green-500' :
-                          row.sentimento?.toLowerCase() === 'negativo' ? 'bg-red-500/10 text-red-500' :
-                            'bg-blue-500/10 text-blue-500'
-                      }`}>
-                        {row.sentimento}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-xs">
-                      <span className={getRiskClass(row.risco)}>{row.risco}</span>
-                    </td>
-                    <td className="px-5 py-3 text-xs text-slate-400">{row.impacto}</td>
-                    <td className="px-5 py-3">
-                      {actionUrl ? (
-                        <a
-                          href={actionUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-400 text-[10px] font-bold hover:text-cyan-300 transition-colors uppercase tracking-wider"
-                        >
-                          {actionLabel}
-                        </a>
-                      ) : (
-                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed">
-                          SEM LINK
+        <div className="relative">
+          <div className="overflow-auto max-h-[420px]">
+            <table className="w-full text-left">
+              <thead className="bg-blue-500/5 sticky top-0 z-[1] backdrop-blur-sm">
+                <tr>
+                  <th className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Candidato</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Canal</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sentimento</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Risco</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Impacto</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredRows.map((row, i) => {
+                  const actionUrl = getItemUrl(row);
+                  const actionLabel = getActionLabel(row);
+                  return (
+                    <tr key={i} className="hover:bg-blue-500/5 transition-colors">
+                      <td className="px-4 py-2 text-sm font-medium text-white">{row.candidato}</td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          {getChannelIcon(row.canal)}
+                          {row.canal}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                          row.sentimento?.toLowerCase() === 'positivo' ? 'bg-green-500/10 text-green-500' :
+                            row.sentimento?.toLowerCase() === 'negativo' ? 'bg-red-500/10 text-red-500' :
+                              'bg-blue-500/10 text-blue-500'
+                        }`}>
+                          {row.sentimento}
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-4 py-2 text-xs">
+                        <span className={getRiskClass(row.risco)}>{row.risco}</span>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-slate-400">{row.impacto}</td>
+                      <td className="px-4 py-2">
+                        {actionUrl ? (
+                          <a
+                            href={actionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-400 text-[10px] font-bold hover:text-cyan-300 transition-colors uppercase tracking-wider focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400/60 rounded"
+                          >
+                            {actionLabel}
+                          </a>
+                        ) : (
+                          <span className="text-slate-600 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed">
+                            SEM LINK
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* Fade nas extremidades do scroll vertical — sensação de componente premium, puramente visual. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-[#101827] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#101827] to-transparent" />
         </div>
       )}
     </div>
