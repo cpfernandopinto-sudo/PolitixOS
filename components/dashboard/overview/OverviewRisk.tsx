@@ -11,14 +11,13 @@ export default function OverviewRisk({ risk }: Props) {
 
   const riskOption = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    // Fase 2.1 do refinamento visual: barras mais largas e menor espaçamento
-    // entre categorias para reduzir o vazio percebido entre elas (a Fase 2
-    // já usava quase toda a altura do grid, mas os vãos entre barras finas
-    // liam como espaço morto). Margens ligeiramente maiores para o eixo Y
-    // não cortar o rótulo "1.000". Escala, valores e cores de dados intactos.
-    grid: { left: 8, right: 16, top: 12, bottom: 20, containLabel: true },
+    // Recuperação do modelo executivo anterior: rótulo de valor acima de
+    // cada barra (leitura imediata, sem precisar olhar a escala do eixo Y),
+    // eixo Y oculto (a barra + rótulo já comunicam a grandeza) — mesmos
+    // dados e cores de sempre, só a apresentação do gráfico muda.
+    grid: { left: 8, right: 16, top: 28, bottom: 20, containLabel: true },
     xAxis: { type: 'category', data: ['Crítico', 'Alto', 'Médio', 'Baixo'], axisLabel: { color: '#94a3b8', fontSize: 12 } },
-    yAxis: { type: 'value', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.12)' } } },
+    yAxis: { type: 'value', show: false },
     series: [
       {
         data: [
@@ -30,13 +29,22 @@ export default function OverviewRisk({ risk }: Props) {
         type: 'bar',
         barWidth: '70%',
         barCategoryGap: '20%',
+        label: {
+          show: true,
+          position: 'top',
+          color: '#F4F7FB',
+          fontSize: 13,
+          fontWeight: 'bold',
+          formatter: '{c}',
+        },
       },
     ],
   };
 
   return (
     <div className="surface-primary p-5 h-full">
-      <h3 className="text-white font-bold text-base tracking-tight mb-3">Distribuição de Risco</h3>
+      <h3 className="text-white font-bold text-base tracking-tight">Distribuição de Risco</h3>
+      <p className="text-xs text-slate-500 mb-3">Gravidade das ocorrências</p>
       {total === 0 ? (
         <div className="h-[320px] flex items-center justify-center text-slate-500 text-sm italic">
           Nenhum item classificado por risco no período selecionado.
