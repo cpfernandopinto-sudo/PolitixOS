@@ -1,27 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import OverviewChannels from './OverviewChannels';
-
-// Captura a `option` passada ao ECharts sem renderizar Canvas real (jsdom
-// não suporta a Canvas API) — mesmo padrão já usado em outros testes de
-// gráfico deste projeto (ver PoliticalStatusCard.test.tsx).
-interface RadarOption {
-  radar: { indicator: Array<{ name: string }> };
-  series: Array<{ data: Array<{ name: string; value: number[] }> }>;
-}
-let lastOption: RadarOption | null = null;
-vi.mock('echarts-for-react', () => ({
-  default: (props: { option: RadarOption }) => {
-    lastOption = props.option;
-    return null;
-  },
-}));
-
-function getCapturedOption(): RadarOption {
-  if (!lastOption) throw new Error('ECharts option não foi capturada — o componente não renderizou.');
-  return lastOption;
-}
 
 const data = {
   noticias: { sentimento_medio: 0.1, risco_medio: 0.2, volume: 50 },
@@ -29,35 +9,55 @@ const data = {
   x: { sentimento_medio: 0.2, risco_medio: 0.1, polarização: 0.4, volume: 20, posts: [] },
 };
 
-describe('OverviewChannels — radar (reintegração Sprint 6)', () => {
-  it('não inclui dimensões fabricadas ("Alcance" ou "Polarização" para todos os canais)', () => {
+describe('OverviewChannels — painel executivo (recuperação de UX)', () => {
+  it('não inclui dimensões fabricadas ("Alcance" ou "Polarização") em lugar nenhum da tela', () => {
     render(<OverviewChannels data={data} />);
-    const indicatorNames = getCapturedOption().radar.indicator.map((i: { name: string }) => i.name);
-    expect(indicatorNames).not.toContain('Alcance');
-    expect(indicatorNames).not.toContain('Polarização');
+    expect(screen.queryByText(/Alcance/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Polarização$/)).not.toBeInTheDocument();
   });
 
-  it('usa apenas dimensões com dado real disponível para os três canais', () => {
+  it('identifica claramente os três canais', () => {
     render(<OverviewChannels data={data} />);
-    const indicatorNames = getCapturedOption().radar.indicator.map((i: { name: string }) => i.name);
-    expect(indicatorNames).toEqual(['Sentimento', 'Risco', 'Vol./Engaj.']);
+    expect(screen.getByText('Notícias')).toBeInTheDocument();
+    expect(screen.getByText('Instagram')).toBeInTheDocument();
+    expect(screen.getByText('X (Twitter)')).toBeInTheDocument();
   });
 
-  it('não recalcula os dados no client — usa exatamente os valores já preparados no servidor', () => {
+  it('usa exatamente o volume já calculado no servidor, sem recalcular no client', () => {
     render(<OverviewChannels data={data} />);
-    const series = getCapturedOption().series[0].data;
-    expect(series[0].value[0]).toBe(data.noticias.sentimento_medio);
-    expect(series[0].value[1]).toBe(data.noticias.risco_medio);
+    // total = 50 + 30 + 20 = 100 — percentuais batem exatamente com o volume de cada canal
+    expect(screen.getByText('50')).toBeInTheDocument();
+    expect(screen.getByText('30')).toBeInTheDocument();
+    expect(screen.getByText('20')).toBeInTheDocument();
+    expect(screen.getByText('· 50%')).toBeInTheDocument();
+    expect(screen.getByText('· 30%')).toBeInTheDocument();
+    expect(screen.getByText('· 20%')).toBeInTheDocument();
   });
 
-  it('identifica claramente os três canais na legenda', () => {
+  it('ordena do maior para o menor volume e destaca o canal dominante', () => {
     render(<OverviewChannels data={data} />);
-    const names = getCapturedOption().series[0].data.map((d: { name: string }) => d.name);
+    const names = screen.getAllByText(/^(Notícias|Instagram|X \(Twitter\))$/).map((el) => el.textContent);
     expect(names).toEqual(['Notícias', 'Instagram', 'X (Twitter)']);
+    expect(screen.getByText('Dominante')).toBeInTheDocument();
   });
 
-  it('explica o que o gráfico responde', () => {
+  it('mostra o total consolidado como a soma real dos três canais', () => {
     render(<OverviewChannels data={data} />);
-    expect(screen.getByText(/Como cada canal contribui/)).toBeInTheDocument();
+    expect(screen.getByText('100 itens')).toBeInTheDocument();
+  });
+
+  it('explica o que o painel mostra', () => {
+    render(<OverviewChannels data={data} />);
+    expect(screen.getByText(/Volume, sentimento e risco por canal/)).toBeInTheDocument();
+  });
+
+  it('estado vazio é honesto quando não há volume em nenhum canal', () => {
+    const empty = {
+      noticias: { sentimento_medio: 0, risco_medio: 0, volume: 0 },
+      instagram: { sentimento_medio: 0, risco_medio: 0, engajamento: 0, volume: 0 },
+      x: { sentimento_medio: 0, risco_medio: 0, polarização: 0, volume: 0, posts: [] },
+    };
+    render(<OverviewChannels data={empty} />);
+    expect(screen.getByText(/Nenhum item monitorado no período selecionado/)).toBeInTheDocument();
   });
 });
