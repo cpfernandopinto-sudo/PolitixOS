@@ -31,12 +31,14 @@ const STATUS_COLORS: Record<string, string> = {
   running: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
   completed: 'bg-green-500/15 text-green-400 border-green-500/25',
   error: 'bg-red-500/15 text-red-400 border-red-500/25',
+  partial: 'bg-orange-500/15 text-orange-400 border-orange-500/25',
 };
 
 const STATUS_LABELS: Record<string, string> = {
   running: 'Processando',
   completed: 'Concluído',
   error: 'Erro',
+  partial: 'Concluído com ressalvas',
 };
 
 function formatDate(iso: string | null) {
@@ -49,9 +51,16 @@ function formatDate(iso: string | null) {
   } catch { return iso; }
 }
 
-function getDisplayStatus(inv: Investigation) {
-  if (inv.status === 'error' && (inv.executive_summary || inv.full_report != null)) {
-    return 'completed';
+/**
+ * Estado exibido na lista — só de apresentação, nunca escrito de volta ao
+ * banco. Uma investigação com status técnico `error` NUNCA deve aparecer
+ * como "Concluído": quando há conteúdo parcial (resumo ou relatório bruto),
+ * ela é rotulada como "Concluído com ressalvas" (visível, mas sinalizada);
+ * sem nenhum conteúdo, continua como "Erro".
+ */
+function getDisplayStatus(inv: Investigation): 'running' | 'completed' | 'error' | 'partial' {
+  if (inv.status === 'error') {
+    return (inv.executive_summary || inv.full_report != null) ? 'partial' : 'error';
   }
   return inv.status;
 }
@@ -154,6 +163,7 @@ export default function InvestigacoesClient({ investigations }: Props) {
             <option value="">Todos os status</option>
             <option value="running">Processando</option>
             <option value="completed">Concluído</option>
+            <option value="partial">Concluído com ressalvas</option>
             <option value="error">Erro</option>
           </select>
 

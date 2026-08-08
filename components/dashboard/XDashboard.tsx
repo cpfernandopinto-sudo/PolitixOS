@@ -293,16 +293,6 @@ export default function XDashboard({ kpis, charts, posts, replies, alert }: any)
                 <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Média de Replies / Post</div>
                 <div className="text-3xl font-black text-white">{(replies.length / (posts.length || 1)).toFixed(1)}</div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-green-500/5 rounded-xl border border-green-500/10 text-center">
-                  <div className="text-green-500/70 text-[9px] font-black uppercase">Taxa Aprovação</div>
-                  <div className="text-lg font-bold text-green-400">64%</div>
-                </div>
-                <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 text-center">
-                  <div className="text-red-500/70 text-[9px] font-black uppercase">Taxa Rejeição</div>
-                  <div className="text-lg font-bold text-red-400">36%</div>
-                </div>
-              </div>
             </div>
           </ChartCard>
         </div>

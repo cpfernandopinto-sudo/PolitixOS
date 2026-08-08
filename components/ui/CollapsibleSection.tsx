@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface Props {
@@ -8,6 +8,14 @@ interface Props {
   title: string;
   subtitle?: string;
   defaultOpen?: boolean;
+  /**
+   * IDs de âncora presentes dentro de `children` (ex.: `id="oportunidades"`
+   * num componente filho) que, se corresponderem ao hash da URL, devem
+   * abrir esta seção automaticamente — corrige links como "Ver
+   * oportunidades" que rolam a página até um conteúdo que, fechado por
+   * padrão, ficaria invisível (altura zero) mesmo com o scroll já lá.
+   */
+  anchorIds?: string[];
   children: ReactNode;
 }
 
@@ -25,8 +33,19 @@ interface Props {
  * servidor independente do estado `open`, que só controla a apresentação
  * no cliente — não há refetch nem atraso adicional ao abrir.
  */
-export default function CollapsibleSection({ icon, title, subtitle, defaultOpen = false, children }: Props) {
+export default function CollapsibleSection({ icon, title, subtitle, defaultOpen = false, anchorIds = [], children }: Props) {
   const [open, setOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (anchorIds.length === 0) return;
+    const checkHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && anchorIds.includes(hash)) setOpen(true);
+    };
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, [anchorIds]);
 
   return (
     <section className="surface-muted overflow-hidden">

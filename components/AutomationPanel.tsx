@@ -244,7 +244,7 @@ function FlowCard({ flow, state, onTrigger }: FlowCardProps) {
 
         {!webhookConfigured && (
           <span className="px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 font-medium">
-            Webhook não configurado
+            Canal indisponível
           </span>
         )}
       </div>
@@ -334,7 +334,7 @@ export default function AutomationPanel() {
       if (!isWebhookConfigured(webhookUrl)) {
         setFlowState(key, {
           status: 'error',
-          message: 'Webhook não configurado',
+          message: 'Canal indisponível neste ambiente',
         });
         return;
       }
@@ -351,7 +351,7 @@ export default function AutomationPanel() {
       } catch {
         setFlowState(key, {
           status: 'error',
-          message: 'Erro ao acionar webhook',
+          message: 'Não foi possível iniciar o processo agora. Tente novamente.',
           lastRun: new Date(),
         });
       }
@@ -393,10 +393,8 @@ export default function AutomationPanel() {
 
       {/* Disclaimer */}
       <p className="text-gray-600 text-xs text-center pt-2">
-        Os webhooks disparam fluxos no n8n. Configure as URLs em{' '}
-        <code className="bg-white/5 px-1.5 py-0.5 rounded text-gray-500">.env.local</code>{' '}
-        via variáveis{' '}
-        <code className="bg-white/5 px-1.5 py-0.5 rounded text-gray-500">NEXT_PUBLIC_WEBHOOK_*</code>.
+        Estas ações acionam manualmente os processos de coleta e análise do PolitixOS.
+        Um canal marcado como indisponível ainda não foi configurado neste ambiente.
       </p>
     </div>
   );

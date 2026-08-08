@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Edit2, Power, PowerOff,
   ChevronDown, ChevronUp, ExternalLink, Users, Wifi, WifiOff,
+  CheckCircle, AlertCircle,
 } from 'lucide-react';
 import {
   type TargetWithAccounts,
@@ -54,6 +55,14 @@ interface Props {
 export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showFeedback = useCallback((type: 'success' | 'error', message: string) => {
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    setFeedback({ type, message });
+    feedbackTimeoutRef.current = setTimeout(() => setFeedback(null), 3000);
+  }, []);
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
@@ -71,13 +80,15 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
       if (!result.success) {
         throw new Error(result.error);
       }
+      showFeedback('success', currentActive ? 'Candidato desativado.' : 'Candidato ativado.');
       onRefresh();
     } catch (err) {
       console.error('[CandidatoList] toggleTarget error:', err);
+      showFeedback('error', 'Não foi possível atualizar o candidato agora. Tente novamente.');
     } finally {
       setTogglingIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
-  }, [onRefresh]);
+  }, [onRefresh, showFeedback]);
 
   const handleToggleAccount = useCallback(async (accountId: string, currentActive: boolean) => {
     setTogglingIds((prev) => new Set(prev).add(accountId));
@@ -86,13 +97,15 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
       if (!result.success) {
         throw new Error(result.error);
       }
+      showFeedback('success', currentActive ? 'Conta desativada.' : 'Conta ativada.');
       onRefresh();
     } catch (err) {
       console.error('[CandidatoList] toggleAccount error:', err);
+      showFeedback('error', 'Não foi possível atualizar a conta agora. Tente novamente.');
     } finally {
       setTogglingIds((prev) => { const s = new Set(prev); s.delete(accountId); return s; });
     }
-  }, [onRefresh]);
+  }, [onRefresh, showFeedback]);
 
   if (targets.length === 0) {
     return (
@@ -106,6 +119,18 @@ export default function CandidatoList({ targets, onEdit, onRefresh }: Props) {
 
   return (
     <div className="space-y-3">
+      {feedback && (
+        <div
+          role="status"
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${feedback.type === 'success'
+            ? 'bg-green-500/10 border-green-500/20 text-green-400'
+            : 'bg-red-500/10 border-red-500/20 text-red-400'
+            }`}
+        >
+          {feedback.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          {feedback.message}
+        </div>
+      )}
       {targets.map((t) => {
         const isExpanded = expandedIds.has(t.id);
         const isToggling = togglingIds.has(t.id);

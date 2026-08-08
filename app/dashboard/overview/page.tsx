@@ -344,6 +344,7 @@ export default async function OverviewPage(props: {
         icon={<Layers size={16} />}
         title="Análises Complementares"
         subtitle="Tabelas detalhadas e informações de apoio"
+        anchorIds={['oportunidades']}
       >
         <SectionBoundary label="Oportunidades prioritárias" fallback={<BlockSkeleton height={220} />} minHeight={220}>
           <OpportunitySection filters={filters} />

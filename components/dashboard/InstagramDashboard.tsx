@@ -535,8 +535,6 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                 <th className="px-4 py-3 font-medium">Data</th>
                 <th className="px-4 py-3 font-medium">Comentário</th>
                 <th className="px-4 py-3 font-medium">Post Relacionado</th>
-                <th className="px-4 py-3 font-medium">Sentimento</th>
-                <th className="px-4 py-3 font-medium">Risco</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -551,13 +549,11 @@ export default function InstagramDashboard({ kpis, charts, posts, comments }: { 
                       {c.post_caption}
                     </a>
                   </td>
-                  <td className="px-4 py-3 text-gray-600 font-mono">—</td>
-                  <td className="px-4 py-3 text-gray-600 font-mono">—</td>
                 </tr>
               ))}
               {comments.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={3} className="px-4 py-8 text-center text-gray-500">
                     Nenhum comentário encontrado.
                   </td>
                 </tr>

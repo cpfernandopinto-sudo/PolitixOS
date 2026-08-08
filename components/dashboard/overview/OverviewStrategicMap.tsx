@@ -21,7 +21,7 @@ export default function OverviewStrategicMap({ actions }: Props) {
         </div>
         <div>
           <h3 className="text-white font-bold text-base tracking-tight">Mapa de Ação Estratégica</h3>
-          <p className="text-slate-500 text-xs tracking-wide uppercase font-bold">Recomendações baseadas em IA</p>
+          <p className="text-slate-500 text-xs tracking-wide uppercase font-bold">Ações para os itens de maior risco monitorados</p>
         </div>
       </div>
 

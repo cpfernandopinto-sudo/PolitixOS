@@ -12,7 +12,7 @@ export default function AutomacoesPage() {
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Automação</h2>
         <p className="text-gray-400 text-sm mt-1">
-          Acione manualmente os fluxos de coleta e análise de dados do n8n.
+          Acione manualmente os processos de coleta e análise de dados do PolitixOS.
         </p>
       </div>
 
