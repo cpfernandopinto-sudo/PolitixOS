@@ -72,7 +72,7 @@ async function SynthesisSection({ filters }: { filters: OverviewFilters }) {
   return (
     <div className="surface-primary p-4 h-full">
       <p role="heading" aria-level={2} className="text-white font-bold text-lg tracking-tight mb-2">Síntese do Cenário</p>
-      <ExecutiveScenarioSummary synthesis={synthesis} compact />
+      <ExecutiveScenarioSummary synthesis={synthesis} compact layout="stack" />
     </div>
   );
 }
@@ -171,8 +171,10 @@ export default async function OverviewPage({ searchParams }: Props) {
   }
 
   const resolvedSearchParams = await searchParams;
-  const requestedCandidate = resolvedSearchParams.candidate;
-  const period = resolvedSearchParams.period || 'all';
+  const rawCandidate = resolvedSearchParams.candidate;
+  const requestedCandidate = Array.isArray(rawCandidate) ? rawCandidate[0] : rawCandidate;
+  const rawPeriod = resolvedSearchParams.period;
+  const period = Array.isArray(rawPeriod) ? rawPeriod[0] : (rawPeriod || 'all');
 
   const allowedTargetIds = session.role === 'admin' ? null : session.permissions;
   const filters: OverviewFilters = {
@@ -181,7 +183,7 @@ export default async function OverviewPage({ searchParams }: Props) {
     allowedTargetIds,
   };
 
-  const candidates = await getOverviewFiltersOptions(allowedTargetIds ?? []);
+  const candidates = await getOverviewFiltersOptions(allowedTargetIds);
   const generatedAt = new Date().toISOString();
 
   return (
@@ -198,17 +200,17 @@ export default async function OverviewPage({ searchParams }: Props) {
       </SectionBoundary>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <div className="lg:col-span-8 flex flex-col gap-6">
+        <div className="lg:col-span-8 flex flex-col">
           <SectionBoundary label="Leitura executiva" fallback={<BlockSkeleton height={220} />} minHeight={220}>
             <NarrativeSection filters={filters} />
           </SectionBoundary>
-          <SectionBoundary label="Síntese do cenário" fallback={<BlockSkeleton height={220} />} minHeight={220}>
-            <SynthesisSection filters={filters} />
-          </SectionBoundary>
         </div>
-        <div className="lg:col-span-4 flex flex-col">
+        <div className="lg:col-span-4 flex flex-col gap-6">
           <SectionBoundary label="Entidades em atenção" fallback={<BlockSkeleton height={220} />} minHeight={220}>
             <AttentionSection filters={filters} />
+          </SectionBoundary>
+          <SectionBoundary label="Síntese do cenário" fallback={<BlockSkeleton height={220} />} minHeight={220}>
+            <SynthesisSection filters={filters} />
           </SectionBoundary>
         </div>
       </div>

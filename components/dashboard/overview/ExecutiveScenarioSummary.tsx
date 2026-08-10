@@ -11,6 +11,7 @@ interface Props {
    * removidos do sistema — apenas ocultos nesta variante.
    */
   compact?: boolean;
+  layout?: 'grid' | 'stack';
 }
 
 const PRIMARY_FIELD_META: Array<{
@@ -151,18 +152,26 @@ function SecondaryTile({ label, icon, field }: { label: string; icon: React.Reac
  * (não usada atualmente por nenhuma página — preservada para os testes e
  * para eventual reuso).
  */
-export default function ExecutiveScenarioSummary({ synthesis, compact = false }: Props) {
+export default function ExecutiveScenarioSummary({ synthesis, compact = false, layout = 'grid' }: Props) {
   if (compact) {
+    const isStack = layout === 'stack';
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-y-0 divide-y divide-white/[0.08] -m-1">
+      <div
+        className={[
+          'grid -m-1',
+          isStack
+            ? 'grid-cols-1 divide-y divide-white/[0.08]'
+            : 'grid-cols-1 sm:grid-cols-2 sm:divide-y-0 divide-y divide-white/[0.08]',
+        ].join(' ')}
+      >
         {COMPACT_FIELD_META.map(({ key, label, icon }, i) => (
           <CompactCell
             key={key}
             label={label}
             icon={icon}
             field={synthesis[key]}
-            borderRight={i % 2 === 0}
-            borderBottom={i < 2}
+            borderRight={!isStack && i % 2 === 0}
+            borderBottom={isStack ? i < 3 : i < 2}
           />
         ))}
       </div>

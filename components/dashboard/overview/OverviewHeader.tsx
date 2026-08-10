@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
 
@@ -23,6 +23,14 @@ export default function OverviewHeader({ candidates, currentCandidate, currentPe
   const [isPending, startTransition] = useTransition();
   const [candidate, setCandidate] = useState(currentCandidate || 'todos');
   const [period, setPeriod] = useState(currentPeriod || 'all');
+
+  useEffect(() => {
+    setCandidate(currentCandidate || 'todos');
+  }, [currentCandidate]);
+
+  useEffect(() => {
+    setPeriod(currentPeriod || 'all');
+  }, [currentPeriod]);
 
   const applyFilters = (nextCandidate: string, nextPeriod: string) => {
     const params = new URLSearchParams();
