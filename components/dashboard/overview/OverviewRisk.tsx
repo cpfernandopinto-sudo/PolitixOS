@@ -21,9 +21,9 @@ export default function OverviewRisk({ risk }: Props) {
     series: [
       {
         data: [
-          { value: risk.critico, itemStyle: { color: '#FF0000' } },
-          { value: risk.alto, itemStyle: { color: '#EF4444' } },
-          { value: risk.medio, itemStyle: { color: '#EAB308' } },
+          { value: risk.critico, itemStyle: { color: '#F87171' } },
+          { value: risk.alto, itemStyle: { color: '#FB923C' } },
+          { value: risk.medio, itemStyle: { color: '#FACC15' } },
           { value: risk.baixo, itemStyle: { color: '#22C55E' } },
         ],
         type: 'bar',

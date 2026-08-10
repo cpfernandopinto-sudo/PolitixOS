@@ -11,9 +11,10 @@ import DataTable from '@/components/ui/DataTable';
 import NewsDetailModal from '@/components/news/NewsDetailModal';
 import {
   AlertTriangle, SearchX, Clock, Activity, ShieldAlert, Zap,
-  ArrowUpRight, ArrowDownRight
+  ArrowUpRight, ArrowDownRight, TrendingUp, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import clsx from 'clsx';
+import InvestigationButton from '@/components/investigations/InvestigationButton';
 
 import {
   getKPIs,
@@ -156,19 +157,84 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
   return (
     <div className="space-y-6">
       {/* 1. INDICADORES EXECUTIVOS (KPIs) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {kpis.map((kpi, idx) => (
-          <KpiCard key={idx} title={kpi.title} value={kpi.value} status={kpi.status} compact={true} />
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        {kpis.map((kpi, idx) => {
+          const isDanger = kpi.status === 'danger';
+          const isWarning = kpi.status === 'warning';
+          const isSuccess = kpi.status === 'success';
+
+          const borderHoverClass = isDanger 
+            ? 'hover:border-red-500/30' 
+            : isWarning 
+            ? 'hover:border-yellow-500/30' 
+            : isSuccess 
+            ? 'hover:border-green-500/30' 
+            : 'hover:border-cyan-400/30';
+
+          const progressColorClass = isDanger 
+            ? 'bg-red-500' 
+            : isWarning 
+            ? 'bg-yellow-500' 
+            : isSuccess 
+            ? 'bg-green-500' 
+            : 'bg-cyan-400';
+
+          const progressBgClass = isDanger 
+            ? 'bg-red-500/10' 
+            : isWarning 
+            ? 'bg-yellow-500/10' 
+            : isSuccess 
+            ? 'bg-green-500/10' 
+            : 'bg-cyan-400/10';
+
+          const labelColorClass = isDanger 
+            ? 'text-red-400/80' 
+            : isWarning 
+            ? 'text-yellow-400/80' 
+            : isSuccess 
+            ? 'text-green-400/80' 
+            : 'text-cyan-400/80';
+
+          return (
+            <div
+              key={idx}
+              className={clsx(
+                "surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group border border-white/[0.08] rounded-xl transition-all duration-300 relative overflow-hidden",
+                borderHoverClass
+              )}
+              title={kpi.title}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider truncate">
+                  {kpi.title}
+                </span>
+                <TrendingUp className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" size={16} />
+              </div>
+              <div className={clsx(
+                "text-2xl font-bold leading-none mt-1",
+                isDanger ? "text-red-500" : isWarning ? "text-yellow-500" : "text-white"
+              )}>
+                {kpi.value}
+              </div>
+              <div className={clsx("text-[9px] font-medium truncate mb-1", labelColorClass)}>
+                {isDanger ? 'Crítico / Exige mitigação' : isWarning ? 'Atenção operacional' : 'Métrica sob controle'}
+              </div>
+              <div className={clsx("absolute bottom-0 left-0 h-1 w-full", progressBgClass)}>
+                <div className={clsx("h-full transition-all duration-500", progressColorClass)} style={{ width: '100%' }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
-      {/* 2. TERMÔMETRO + STATUS + FEED (TRÊS COLUNAS IGUAIS NO DESKTOP, ALTURA UNIFORME DE 340PX) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 min-[1180px]:grid-cols-3 gap-4 items-stretch">
+
+      {/* 2. TERMÔMETRO + STATUS (DUAS COLUNAS LADO A LADO) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
 
         {/* Card 1: Termômetro de Crise */}
-        <div className="md:col-span-1 min-[1180px]:col-span-1 flex">
+        <div className="lg:col-span-5 flex">
           <ChartCard
             title="Termômetro de Crise"
-            className="flex flex-col justify-between w-full h-[340px] !p-4 relative overflow-hidden bg-[#0E1727] border border-blue-300/10 rounded-2xl"
+            className="flex flex-col justify-between w-full h-[340px] !p-4 relative overflow-hidden bg-[#161B26] border border-white/[0.08] rounded-xl"
             extra={
               <ChartFilterPopover>
                 <div className="space-y-3">
@@ -177,7 +243,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <select
                       value={gaugeConfig.base}
                       onChange={e => setGaugeConfig(prev => ({ ...prev, base: e.target.value }))}
-                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-white/[0.08] rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value="mix">Misto (Sentimento + Risco)</option>
                       <option value="sentiment">Apenas Sentimento</option>
@@ -189,7 +255,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <select
                       value={gaugeConfig.window}
                       onChange={e => setGaugeConfig(prev => ({ ...prev, window: e.target.value }))}
-                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-white/[0.08] rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value="6h">Últimas 6 horas</option>
                       <option value="24h">Últimas 24 horas</option>
@@ -254,10 +320,10 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
         </div>
 
         {/* Card 2: Status em Tempo Real */}
-        <div className="md:col-span-1 min-[1180px]:col-span-1 flex">
+        <div className="lg:col-span-7 flex">
           <ChartCard
             title="Status em Tempo Real"
-            className="flex flex-col justify-between w-full h-[340px] !p-4 bg-[#0E1727] border border-blue-300/10 rounded-2xl"
+            className="flex flex-col justify-between w-full h-[340px] !p-4 bg-[#161B26] border border-white/[0.08] rounded-xl"
             extra={
               <div className="flex items-center gap-1.5 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">
                 <span className="relative flex h-1.5 w-1.5">
@@ -295,19 +361,19 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
 
               {/* Grid de Informações 2x2 */}
               <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                <div className="p-1.5 bg-[#1E2532]/50 border border-white/[0.08] rounded-lg">
                   <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Fonte Dominante</div>
                   <div className="text-white font-black truncate mt-0.5 text-xs">{realTimeStatus?.dominantSource}</div>
                 </div>
-                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                <div className="p-1.5 bg-[#1E2532]/50 border border-white/[0.08] rounded-lg">
                   <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Tema Dominante</div>
                   <div className="text-white font-black truncate mt-0.5 text-xs">{realTimeStatus?.dominantTheme}</div>
                 </div>
-                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                <div className="p-1.5 bg-[#1E2532]/50 border border-white/[0.08] rounded-lg">
                   <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Fonte Mais Ativa</div>
                   <div className="text-white font-black truncate mt-0.5 text-xs">{realTimeStatus?.mostActiveSource}</div>
                 </div>
-                <div className="p-1.5 bg-[#16223f]/50 border border-blue-300/10 rounded-lg">
+                <div className="p-1.5 bg-[#1E2532]/50 border border-white/[0.08] rounded-lg">
                   <div className="text-slate-500 font-bold uppercase tracking-tight text-[10px]">Velocidade</div>
                   <div className="text-white font-black mt-0.5 text-xs">{realTimeStatus?.velocity}</div>
                 </div>
@@ -332,13 +398,15 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
             </div>
           </ChartCard>
         </div>
+      </div>
 
-        {/* Card 3: Feed Crítico — Últimas */}
-        <div className="md:col-span-2 min-[1180px]:col-span-1 flex">
-          <ChartCard
-            title="Feed Crítico — Últimas"
-            className="flex flex-col justify-between w-full h-[340px] !p-4 bg-[#0E1727] border border-blue-300/10 rounded-2xl"
-            extra={
+      {/* 3. FEED CRÍTICO — ÚLTIMAS MENÇÕES (LARGURA COMPLETA) */}
+      <div className="mt-6">
+        <ChartCard
+          title="Feed Crítico — Últimas Ocorrências sob Alerta"
+          className="bg-[#161B26] border border-white/[0.08] rounded-xl !p-4"
+          extra={
+            <div className="flex items-center gap-2">
               <ChartFilterPopover>
                 <div className="space-y-3">
                   <div>
@@ -346,7 +414,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <select
                       value={feedConfig.priority}
                       onChange={e => setFeedConfig(prev => ({ ...prev, priority: e.target.value }))}
-                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-white/[0.08] rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value="all">Todas as Recentes</option>
                       <option value="high">Apenas Críticas</option>
@@ -354,94 +422,100 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                   </div>
                 </div>
               </ChartFilterPopover>
-            }
-          >
-            {/* Lista do Feed Crítico */}
-            <div className="flex-1 flex flex-col justify-between my-1">
-              {feedData.slice(0, 3).map((news, index) => {
-                const isHigh = news.risco === 'alto';
-                const isMedium = news.risco === 'médio';
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-3">
+            {feedData.slice(0, 4).map((news, index) => {
+              const isHigh = news.risco === 'alto';
+              const isMedium = news.risco === 'médio';
+              const raw = filteredRows.find(r => r.id === news.id || r.hash === news.id);
 
-                return (
-                  <div
-                    key={news.id}
-                    onClick={() => {
-                      const raw = filteredRows.find(r => r.id === news.id || r.hash === news.id);
-                      setSelectedNews({ news, raw });
-                    }}
-                    className={clsx(
-                      "py-2 flex flex-col gap-1 cursor-pointer group text-left transition-colors hover:bg-white/[0.02] px-1 rounded-md",
-                      index !== 2 && "border-b border-slate-400/[0.08]"
-                    )}
-                  >
-                    <div className="flex items-center justify-between text-[10px]">
-                      <div className="flex items-center gap-1.5">
-                        <span className={clsx(
-                          "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase border",
-                          isHigh ? "bg-red-500/10 text-red-400 border-red-500/20" :
-                          isMedium ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" :
-                          "bg-green-500/10 text-green-400 border-green-500/20"
-                        )}>
-                          {isHigh ? <AlertTriangle size={10} /> : <Clock size={10} />}
-                          {isHigh ? 'Crítico' : isMedium ? 'Atenção' : 'Monitorar'}
+              return (
+                <div
+                  key={news.id}
+                  onClick={() => setSelectedNews({ news, raw })}
+                  className="p-3 bg-[#1E2532]/40 hover:bg-[#1E2532]/80 border border-white/[0.06] hover:border-cyan-500/20 rounded-xl transition-all duration-200 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  {/* Left part: Time, severity, candidate and source */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <span className={clsx(
+                        "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase border",
+                        isHigh ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                        isMedium ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" :
+                        "bg-green-500/10 text-green-400 border-green-500/20"
+                      )}>
+                        {isHigh ? <AlertTriangle size={10} /> : <Clock size={10} />}
+                        {isHigh ? 'Crítico' : isMedium ? 'Atenção' : 'Monitorar'}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded">
+                        {news.fonte}
+                      </span>
+                      {news.candidato && (
+                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-400/5 px-1.5 py-0.5 rounded">
+                          {news.candidato}
                         </span>
-                        <span className="text-slate-400 font-bold truncate max-w-[120px] text-[10px]">{news.fonte}</span>
-                      </div>
-                      <span className="text-slate-500 font-medium">{news.data.split(' ')[1] || '—'}</span>
+                      )}
+                      <span className="text-slate-500 text-[10px] font-medium ml-auto md:ml-0">
+                        {news.data}
+                      </span>
                     </div>
 
-                    <h4 className="text-xs font-bold text-white leading-tight line-clamp-2 group-hover:text-[#00FFFF] transition-colors">
+                    <h4 className="text-sm font-bold text-white leading-snug group-hover:text-cyan-400 transition-colors line-clamp-1">
                       {news.titulo}
                     </h4>
+                  </div>
 
-                    <div className="text-[10px] text-slate-500 font-medium">
-                      Impacto: {news.relevancia.toFixed(1)}/10
+                  {/* Right part: Impact badge and CTA action button */}
+                  <div className="flex items-center gap-4 shrink-0 justify-between md:justify-end" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Relevância:</span>
+                      <span className="text-sm font-black text-white">{news.relevancia.toFixed(1)}/10</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {raw && (
+                        <InvestigationButton
+                          mention={{
+                            id: raw.id,
+                            candidate_name: raw.candidate_name,
+                            candidate_id: raw.candidate_name ?? raw.id,
+                            original_title: raw.title ?? news.titulo,
+                            original_summary: raw.ai_takeaways ?? raw.summary ?? news.resumo,
+                            title: raw.title ?? news.titulo,
+                            summary: raw.ai_takeaways ?? raw.summary ?? news.resumo,
+                            url: raw.url ?? news.link,
+                            source: raw.source,
+                            published_at: raw.published_at,
+                            city: raw.city,
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Botão Ver Todos */}
-            <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-center text-center">
-              <a
-                href="#base-monitoramento"
-                onClick={handleScrollToTable}
-                className="text-cyan-400 hover:text-cyan-300 text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center"
-              >
-                Ver todos
-              </a>
-            </div>
-          </ChartCard>
-        </div>
-
+                </div>
+              );
+            })}
+          </div>
+        </ChartCard>
       </div>
 
-      {/* 3. SEÇÃO LEITURA ANALÍTICA (4 GRÁFICOS EM LINHA ÚNICA) */}
-      <div className="pt-4">
-        {/* Header da Seção */}
-        <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-blue-300/10 bg-[#0E1727] px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="rounded-lg border border-cyan-300/15 bg-cyan-400/10 p-1.5 text-cyan-300">
-              <Activity size={16} />
-            </span>
-            <div>
-              <h2 className="text-sm font-bold text-white">Leitura Analítica</h2>
-              <p className="text-[10px] text-slate-500 font-medium">Distribuição, evolução e fontes de impacto político monitorados.</p>
-            </div>
-          </div>
-          <span className="hidden sm:inline-flex rounded-full border border-blue-300/10 bg-blue-400/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-300">
-            Filtros integrados
-          </span>
-        </div>
+      {/* 4. SEÇÃO LEITURA ANALÍTICA (5 GRÁFICOS EM CAMADAS) */}
+      <div className="flex items-center gap-2 mb-4 mt-6">
+        <Activity size={16} className="text-cyan-400 shrink-0" aria-hidden="true" />
+        <p role="heading" aria-level={2} className="text-[22px] text-white font-bold tracking-tight">Leitura Analítica</p>
+        <span className="text-xs text-slate-500 hidden sm:inline">— Temas negativos, canais, sentimento e evolução do risco consolidados.</span>
+        <div className="flex-1 h-px bg-blue-500/5 ml-2" />
+      </div>
 
+      <div className="space-y-4">
         {/* PRIMEIRA LINHA — TRÊS CARDS (COMPOSIÇÃO DOS GRÁFICOS) */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 
           {/* Card 1: Principais Temas Negativos */}
           <ChartCard
             title="Principais Temas Negativos"
-            className="min-w-0 h-[300px]"
+            className="min-w-0 h-[300px] bg-[#161B26] border border-white/[0.08] rounded-xl"
             extra={
               <ChartFilterPopover>
                 <div className="space-y-3">
@@ -451,7 +525,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                       value={topicsLimit}
                       onChange={e => setTopicsLimit(Number(e.target.value) as 5 | 10)}
                       aria-label="Quantidade de temas negativos exibidos"
-                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-white/[0.08] rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value={5}>Top 5</option>
                       <option value={10}>Top 10</option>
@@ -484,7 +558,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
           {/* Card 2: Fontes com Maior Impacto */}
           <ChartCard
             title="Fontes com Maior Impacto"
-            className="min-w-0 h-[300px]"
+            className="min-w-0 h-[300px] bg-[#161B26] border border-white/[0.08] rounded-xl"
             extra={
               <ChartFilterPopover>
                 <div className="space-y-3">
@@ -493,7 +567,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                     <select
                       value={sourcesConfig.metric}
                       onChange={e => setSourcesConfig(prev => ({ ...prev, metric: e.target.value }))}
-                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-white/[0.08] rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value="impact">Impacto Calculado</option>
                       <option value="volume">Volume Bruto</option>
@@ -506,7 +580,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
                       value={sourcesLimit}
                       onChange={e => setSourcesLimit(Number(e.target.value) as 5 | 10)}
                       aria-label="Quantidade de fontes exibidas"
-                      className="w-full bg-[#0B1423] border border-blue-300/10 rounded px-2 py-1.5 text-xs text-white"
+                      className="w-full bg-[#0B1423] border border-white/[0.08] rounded px-2 py-1.5 text-xs text-white"
                     >
                       <option value={5}>Top 5</option>
                       <option value={10}>Top 10</option>
@@ -539,7 +613,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
           {/* Card 3: Distribuição do Impacto */}
           <ChartCard
             title="Distribuição do Impacto"
-            className="min-w-0 h-[300px]"
+            className="min-w-0 h-[300px] bg-[#161B26] border border-white/[0.08] rounded-xl"
           >
             <div className="flex-1 flex items-center justify-center min-h-0 w-full">
               {fontesData.categories.length > 0 ? (
@@ -569,7 +643,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
           {/* Card 1: Evolução do Risco */}
           <ChartCard
             title="Evolução do Risco"
-            className="min-w-0 h-[300px]"
+            className="min-w-0 h-[300px] bg-[#161B26] border border-white/[0.08] rounded-xl"
           >
             <div className="flex-1 flex items-center justify-center min-h-0 w-full">
               {riscoTempoData.dates.length > 0 ? (
@@ -590,7 +664,7 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
           {/* Card 2: Linha do Tempo de Crise — Últimas 24 horas */}
           <ChartCard
             title="Linha do Tempo de Crise — Últimas 24 horas"
-            className="min-w-0 h-[300px] relative overflow-hidden"
+            className="min-w-0 h-[300px] relative overflow-hidden bg-[#161B26] border border-white/[0.08] rounded-xl"
             extra={!isTimelineEmpty && (
               <ChartFilterPopover>
                 <div className="space-y-3">
@@ -642,9 +716,9 @@ export default function NoticiasDashboardClient({ initialRows }: Props) {
 
                         {/* Rich timeline tooltip */}
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                          <div className="bg-[#0E1727] border border-blue-300/10 rounded-lg p-2.5 shadow-2xl min-w-[220px] text-xs">
+                          <div className="bg-[#161B26] border border-white/[0.08] rounded-lg p-2.5 shadow-2xl min-w-[220px] text-xs">
                             <div className="flex justify-between items-center mb-1.5 font-bold border-b border-white/5 pb-1">
-                              <span className="text-[#00FFFF]">{step.hour}</span>
+                              <span className="text-cyan-400">{step.hour}</span>
                               <span className={clsx(
                                 "px-1.5 py-0.5 rounded text-[10px] uppercase",
                                 step.status === 'red' ? 'bg-red-500/10 text-red-400' :

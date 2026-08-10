@@ -29,9 +29,9 @@ export default function OverviewTopics({ topics }: Props) {
                 <span className="text-xs text-slate-300 font-medium" title={t.tema}>{t.tema}</span>
                 <span className="text-sm font-bold text-white shrink-0">{t.frequencia}</span>
               </div>
-              <div className="w-full h-2.5 bg-blue-500/5 rounded-full overflow-hidden">
+              <div className="w-full h-2 rounded bg-white/[0.04] overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${t.sentimento > 0.2 ? 'bg-green-500' : t.sentimento < -0.2 ? 'bg-red-500' : 'bg-blue-500'}`}
+                  className={`h-full rounded ${t.sentimento > 0.2 ? 'bg-green-400' : t.sentimento < -0.2 ? 'bg-red-400' : 'bg-cyan-400'}`}
                   style={{ width: `${Math.min(100, (t.frequencia / top5[0].frequencia) * 100)}%` }}
                 />
               </div>

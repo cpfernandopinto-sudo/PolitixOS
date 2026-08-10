@@ -122,12 +122,12 @@ export default function DataTable({ data, rawRows, onSelectNews }: DataTableProp
   };
 
   return (
-    <div className="w-full rounded-2xl border border-blue-300/10 bg-[#0E1727] overflow-hidden shadow-2xl flex flex-col">
+    <div className="w-full rounded-xl border border-white/[0.08] bg-[#161B26] overflow-hidden shadow-2xl flex flex-col">
       {/* Container com scroll vertical e header fixo */}
       <div className="w-full max-h-[520px] overflow-y-auto relative">
         <table className="w-full text-left border-collapse table-auto" style={{ minWidth: '1380px' }}>
           <thead>
-            <tr className="sticky top-0 z-20 bg-[#0E1727] border-b border-blue-300/15 shadow-[0_1px_0_rgba(147,197,253,0.15)]">
+            <tr className="sticky top-0 z-20 bg-[#161B26] border-b border-white/[0.1] shadow-[0_1px_0_rgba(255,255,255,0.06)]">
               <th
                 onClick={() => handleSort('data')}
                 className="p-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest cursor-pointer select-none hover:text-white transition-colors"
@@ -301,8 +301,7 @@ export default function DataTable({ data, rawRows, onSelectNews }: DataTableProp
         </table>
       </div>
 
-      {/* Footer com Paginação e Totalizadores */}
-      <div className="p-3.5 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#0B1423]">
+      <div className="p-3.5 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#0B0F19]">
         <span className="text-xs text-slate-500">
           Mostrando {sortedData.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} a{' '}
           {Math.min(currentPage * pageSize, sortedData.length)} de {sortedData.length} registros
@@ -313,7 +312,7 @@ export default function DataTable({ data, rawRows, onSelectNews }: DataTableProp
             <button
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className="px-2.5 py-1 text-xs rounded-lg bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/15 text-slate-300 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all font-semibold uppercase tracking-wider"
+              className="px-3 py-1.5 text-xs font-semibold rounded bg-cyan-400/5 border border-cyan-400/10 hover:bg-cyan-400/10 text-cyan-400 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all uppercase tracking-wider"
             >
               Anterior
             </button>
@@ -323,7 +322,7 @@ export default function DataTable({ data, rawRows, onSelectNews }: DataTableProp
             <button
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className="px-2.5 py-1 text-xs rounded-lg bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/15 text-slate-300 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all font-semibold uppercase tracking-wider"
+              className="px-3 py-1.5 text-xs font-semibold rounded bg-cyan-400/5 border border-cyan-400/10 hover:bg-cyan-400/10 text-cyan-400 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all uppercase tracking-wider"
             >
               Próxima
             </button>

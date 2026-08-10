@@ -8,10 +8,10 @@ interface Props {
 
 export default function OverviewSentiment({ sentiment }: Props) {
   const sentimentItems = [
-    { value: sentiment.positivo, name: 'Positivo', color: '#22C55E' },
-    { value: sentiment.negativo, name: 'Negativo', color: '#EF4444' },
-    { value: sentiment.neutro, name: 'Neutro', color: '#2563EB' },
-    { value: sentiment.misto, name: 'Misto', color: '#EAB308' },
+    { value: sentiment.positivo, name: 'Positivo', color: '#4edea3' },
+    { value: sentiment.negativo, name: 'Negativo', color: '#ffb4ab' },
+    { value: sentiment.neutro, name: 'Neutro', color: '#06B6D4' },
+    { value: sentiment.misto, name: 'Misto', color: '#ffb95f' },
   ];
   const sentimentTotal = sentimentItems.reduce((acc, item) => acc + item.value, 0);
   const dominant = sentimentItems.reduce((max, item) => (item.value > max.value ? item : max), sentimentItems[0]);
@@ -25,13 +25,7 @@ export default function OverviewSentiment({ sentiment }: Props) {
         type: 'pie',
         radius: ['58%', '78%'],
         avoidLabelOverlap: false,
-        // Fase 2 do refinamento visual: anel mais fino (antes ['40%','70%'],
-        // uma faixa de 30pp) e sem arredondamento nas pontas — a aparência
-        // "lúdica" apontada vinha de borderRadius: 10 + faixa muito grossa.
-        // Fase 2.1: diâmetro maior (container 192px→230px) — a Fase 2 ficou
-        // sóbria porém pequena demais; faixa do anel levemente mais grossa
-        // (20pp) para acompanhar o diâmetro maior sem perder a sobriedade.
-        itemStyle: { borderRadius: 1, borderColor: '#0E1727', borderWidth: 2 },
+        itemStyle: { borderRadius: 1, borderColor: '#161B26', borderWidth: 2 },
         label: { show: false },
         emphasis: { label: { show: true, fontSize: 15, fontWeight: 'bold' } },
         labelLine: { show: false },

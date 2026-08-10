@@ -11,6 +11,7 @@ interface Props {
    * removidos do sistema — apenas ocultos nesta variante.
    */
   compact?: boolean;
+  layout?: 'grid' | 'stack';
 }
 
 const PRIMARY_FIELD_META: Array<{
@@ -56,8 +57,8 @@ function CompactCell({ label, icon, field, borderRight, borderBottom }: { label:
     <div
       className={[
         'p-3 min-w-0',
-        borderRight ? 'sm:border-r sm:border-blue-300/10' : '',
-        borderBottom ? 'border-b border-blue-300/10' : '',
+        borderRight ? 'sm:border-r sm:border-white/[0.08]' : '',
+        borderBottom ? 'border-b border-white/[0.08]' : '',
       ].join(' ')}
     >
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -87,7 +88,7 @@ function CompactCell({ label, icon, field, borderRight, borderBottom }: { label:
 
 function PrimaryTile({ label, icon, field, compact }: { label: string; icon: React.ReactNode; field: ExecutiveSynthesisField; compact: boolean }) {
   return (
-    <div className={`bg-blue-400/[0.06] border border-blue-300/10 rounded-xl flex flex-col gap-2 min-w-0 ${compact ? 'p-4' : 'p-5 gap-2.5'}`}>
+    <div className={`bg-white/[0.02] border border-white/[0.08] rounded flex flex-col gap-2 min-w-0 ${compact ? 'p-4' : 'p-5 gap-2.5'}`}>
       <div className="flex items-center gap-2">
         {icon}
         <span className="text-label">{label}</span>
@@ -118,7 +119,7 @@ function PrimaryTile({ label, icon, field, compact }: { label: string; icon: Rea
 
 function SecondaryTile({ label, icon, field }: { label: string; icon: React.ReactNode; field: ExecutiveSynthesisField }) {
   return (
-    <div className="bg-blue-400/[0.03] border border-blue-300/10 rounded-lg p-3.5 flex flex-col gap-1.5 min-w-0">
+    <div className="bg-white/[0.01] border border-white/[0.08] rounded p-3.5 flex flex-col gap-1.5 min-w-0">
       <div className="flex items-center gap-1.5">
         {icon}
         <span className="text-label">{label}</span>
@@ -151,18 +152,26 @@ function SecondaryTile({ label, icon, field }: { label: string; icon: React.Reac
  * (não usada atualmente por nenhuma página — preservada para os testes e
  * para eventual reuso).
  */
-export default function ExecutiveScenarioSummary({ synthesis, compact = false }: Props) {
+export default function ExecutiveScenarioSummary({ synthesis, compact = false, layout = 'grid' }: Props) {
   if (compact) {
+    const isStack = layout === 'stack';
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-y-0 divide-y divide-blue-300/10 -m-1">
+      <div
+        className={[
+          'grid -m-1',
+          isStack
+            ? 'grid-cols-1 divide-y divide-white/[0.08]'
+            : 'grid-cols-1 sm:grid-cols-2 sm:divide-y-0 divide-y divide-white/[0.08]',
+        ].join(' ')}
+      >
         {COMPACT_FIELD_META.map(({ key, label, icon }, i) => (
           <CompactCell
             key={key}
             label={label}
             icon={icon}
             field={synthesis[key]}
-            borderRight={i % 2 === 0}
-            borderBottom={i < 2}
+            borderRight={!isStack && i % 2 === 0}
+            borderBottom={isStack ? i < 3 : i < 2}
           />
         ))}
       </div>

@@ -14,7 +14,7 @@ const INTERPRETATION_COLOR: Record<KeyChange['interpretacao'], string> = {
 function ChangeCard({ change }: { change: KeyChange }) {
   const Icon = change.diferencaAbsoluta > 0 ? ArrowUpRight : change.diferencaAbsoluta < 0 ? ArrowDownRight : ArrowLeftRight;
   return (
-    <div className="bg-blue-400/[0.05] border border-blue-300/10 rounded-lg p-4 space-y-2">
+    <div className="bg-white/[0.02] border border-white/[0.08] rounded p-4 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">{change.label}</span>
         <Icon size={14} className={INTERPRETATION_COLOR[change.interpretacao]} />

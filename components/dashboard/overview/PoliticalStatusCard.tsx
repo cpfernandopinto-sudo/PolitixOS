@@ -78,6 +78,7 @@ export default function PoliticalStatusCard({ status }: Props) {
           Entenda o cálculo
         </button>
       </div>
+      <p className="text-xs text-slate-500 mb-3">Detalhamento e fatores que compõem a classificação executiva.</p>
 
       {/* Abaixo de 1024px: empilhado (status/índice, depois divisória
           horizontal, depois fatores) — igual à Etapa 3. Em 1024px+: duas
@@ -87,7 +88,7 @@ export default function PoliticalStatusCard({ status }: Props) {
       <div className="flex-1 flex flex-col lg:flex-row lg:items-center min-h-0">
         {/* Zona esquerda (~42% em desktop): título já está acima; aqui só
             status, variação e índice. */}
-        <div className="lg:w-[42%] lg:pr-6 lg:border-r lg:border-blue-300/10 flex flex-col justify-center">
+        <div className="lg:w-[42%] lg:pr-6 lg:border-r lg:border-white/[0.08] flex flex-col justify-center">
           {/* Status grande — elemento de maior destaque do card. Tamanho
               reduzido ~8% (36px → 33px) para não competir tanto com o
               valor central do Termômetro ao lado. */}
@@ -106,7 +107,7 @@ export default function PoliticalStatusCard({ status }: Props) {
               <span className="text-label">Índice</span>
               <span className="text-xs font-bold text-slate-300">{status.score}/100</span>
             </div>
-            <div className="w-full h-1.5 rounded-full bg-blue-500/10 overflow-hidden" role="progressbar" aria-valuenow={status.score} aria-valuemin={0} aria-valuemax={100} aria-label="Índice do Estado Político">
+            <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden" role="progressbar" aria-valuenow={status.score} aria-valuemin={0} aria-valuemax={100} aria-label="Índice do Estado Político">
               <div className={`h-full rounded-full ${SEVERITY_BAR[status.severidade]}`} style={{ width: `${status.score}%` }} />
             </div>
           </div>
@@ -114,7 +115,7 @@ export default function PoliticalStatusCard({ status }: Props) {
 
         {/* Zona direita (~58% em desktop): fatores — lista compacta, um
             ícone por item (mesmo status.fatores de antes), nunca cards. */}
-        <ul className="mt-4 pt-3 border-t border-blue-300/10 space-y-1.5 lg:mt-0 lg:pt-0 lg:border-t-0 lg:pl-6 lg:w-[58%] lg:space-y-2.5 lg:flex lg:flex-col lg:justify-center">
+        <ul className="mt-4 pt-3 border-t border-white/[0.08] space-y-1.5 lg:mt-0 lg:pt-0 lg:border-t-0 lg:pl-6 lg:w-[58%] lg:space-y-2.5 lg:flex lg:flex-col lg:justify-center">
           {status.fatores.map((fator, i) => (
             <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
               <CheckCircle2 size={13} className="text-cyan-400/80 mt-0.5 shrink-0" aria-hidden="true" />
@@ -132,17 +133,17 @@ export default function PoliticalStatusCard({ status }: Props) {
       >
         <div>
           <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Regra</h4>
-          <p className="text-sm text-slate-200 bg-blue-500/5 border border-blue-300/10 rounded-lg p-4 leading-relaxed">
+          <p className="text-sm text-slate-200 bg-white/[0.02] border border-white/[0.08] rounded-lg p-4 leading-relaxed">
             {status.justificativa}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-blue-500/5 border border-blue-300/10 rounded-lg p-3">
+          <div className="bg-white/[0.02] border border-white/[0.08] rounded-lg p-3">
             <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Score atual</div>
             <div className="text-sm text-white font-medium">{status.score}/100</div>
           </div>
-          <div className="bg-blue-500/5 border border-blue-300/10 rounded-lg p-3">
+          <div className="bg-white/[0.02] border border-white/[0.08] rounded-lg p-3">
             <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Classificação</div>
             <div className="text-sm text-white font-medium">{status.label}</div>
           </div>
@@ -150,7 +151,7 @@ export default function PoliticalStatusCard({ status }: Props) {
 
         <div>
           <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Thresholds</h4>
-          <ul className="text-xs text-slate-400 space-y-1 bg-blue-500/5 border border-blue-300/10 rounded-lg p-4">
+          <ul className="text-xs text-slate-400 space-y-1 bg-white/[0.02] border border-white/[0.08] rounded-lg p-4">
             <li>Score &gt; 75 → Crítico</li>
             <li>Score &gt; 50 → Tensão elevada</li>
             <li>Score &gt; 25 → Atenção</li>

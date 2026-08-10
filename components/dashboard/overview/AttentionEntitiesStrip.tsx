@@ -21,12 +21,12 @@ function chipTitle(entity: EntityRankItem) {
 
 function EntityChip({ entity, onFilter }: { entity: EntityRankItem; onFilter: (targetId: string) => void }) {
   const highRisk = entity.riscoPredominante ? HIGH_RISK.has(entity.riscoPredominante.toLowerCase()) : false;
-  const border = highRisk ? 'border-red-500/25' : 'border-blue-300/10';
+  const border = highRisk ? 'border-red-500/25' : 'border-white/[0.08]';
 
   const inner = (
     <>
       <span
-        className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${getAvatarColorClass(entity.nome)}`}
+        className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${getAvatarColorClass(entity.nome)}`}
         aria-hidden="true"
       >
         {getInitials(entity.nome)}
@@ -37,8 +37,8 @@ function EntityChip({ entity, onFilter }: { entity: EntityRankItem; onFilter: (t
       </span>
       {entity.riscoPredominante && (
         <span
-          className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
-            highRisk ? 'bg-red-500/10 text-red-400' : 'bg-blue-400/10 text-slate-400'
+          className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm ${
+            highRisk ? 'bg-red-500/10 text-red-400' : 'bg-white/[0.06] text-slate-400'
           }`}
         >
           {entity.riscoPredominante}
@@ -47,12 +47,10 @@ function EntityChip({ entity, onFilter }: { entity: EntityRankItem; onFilter: (t
     </>
   );
 
-  // Sem targetId (entidade conhecida só por notícias, sem posts vinculados a
-  // um target_id) — nunca fabricamos uma ação de filtro que não existe.
   if (!entity.targetId) {
     return (
       <div
-        className={`flex items-center gap-2 rounded-full border px-3 py-1.5 bg-blue-400/[0.04] ${border}`}
+        className={`flex items-center gap-2 rounded border px-2.5 py-1 bg-white/[0.02] ${border}`}
         title={chipTitle(entity)}
       >
         {inner}
@@ -66,7 +64,7 @@ function EntityChip({ entity, onFilter }: { entity: EntityRankItem; onFilter: (t
       onClick={() => onFilter(entity.targetId!)}
       aria-label={`Filtrar por ${entity.nome}`}
       title={chipTitle(entity)}
-      className={`group flex items-center gap-2 rounded-full border px-3 py-1.5 bg-blue-400/[0.04] hover:bg-blue-400/[0.08] transition-colors ${border} ${
+      className={`group flex items-center gap-2 rounded border px-2.5 py-1 bg-white/[0.02] hover:bg-white/[0.05] transition-colors ${border} ${
         highRisk ? 'hover:border-red-500/40' : 'hover:border-cyan-400/30'
       }`}
     >

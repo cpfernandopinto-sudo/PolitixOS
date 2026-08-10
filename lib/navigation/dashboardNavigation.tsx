@@ -9,6 +9,8 @@ import {
   Users,
   UserCog,
   Settings,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 
 export type NavIconProps = { size?: number; className?: string };
@@ -95,67 +97,69 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Centro executivo consolidado',
       },
       {
-        label: 'Radar de Notícias',
+        label: 'Notícias',
         href: '/dashboard/noticias',
         icon: Newspaper,
         permission: 'noticias',
         description: 'Monitoramento e análise de risco',
       },
       {
-        label: 'Radar Instagram',
+        label: 'Instagram',
         href: '/dashboard/instagram',
         icon: InstagramNavIcon,
         permission: 'instagram',
         description: 'Análise de comentários e interações',
       },
       {
-        label: 'Radar X',
+        label: 'X',
         href: '/dashboard/x',
         icon: XNavIcon,
         permission: 'x',
         description: 'Discurso político em tempo real',
-      },
-    ],
-  },
-  {
-    label: 'Gestão Política',
-    items: [
-      {
-        label: 'Candidatos',
-        href: '/dashboard/candidatos',
-        icon: UserPlus,
-        permission: 'candidatos',
-      },
-      {
-        label: 'Automação',
-        href: '/dashboard/automacoes',
-        icon: Zap,
-        permission: 'automacoes',
       },
       {
         label: 'Investigações',
         href: '/dashboard/investigacoes',
         icon: FileSearch,
         permission: 'investigacoes',
-      },
-      {
-        label: 'Gestão de Crise',
-        href: '/dashboard/gestao-crise',
-        icon: AlertTriangle,
-        permission: 'gestao_crise',
-        pageNotYetImplemented: true,
-      },
-      {
-        label: 'Apoiadores',
-        href: '/dashboard/apoiadores',
-        icon: Users,
-        permission: 'apoiadores',
-        pageNotYetImplemented: true,
+        description: 'Dossiês e investigações profundas',
       },
     ],
   },
   {
-    label: 'Administração',
+    label: 'Monitoramento',
+    items: [
+      {
+        label: 'Candidatos/Entidades',
+        href: '/dashboard/candidatos',
+        icon: UserPlus,
+        permission: 'candidatos',
+        description: 'Perfil de candidatos monitorados',
+      },
+      {
+        label: 'Politix IA',
+        href: '/dashboard/politix-ia',
+        icon: Sparkles,
+        permission: null,
+        pageNotYetImplemented: true,
+        description: 'Insights preditivos com IA',
+      },
+    ],
+  },
+  {
+    label: 'Operação',
+    items: [
+      {
+        label: 'Automação/Operação',
+        href: '/dashboard/automacoes',
+        icon: Zap,
+        permission: 'automacoes',
+        description: 'Integrações e alertas automáticos',
+      },
+    ],
+  },
+  {
+    label: 'Sistema',
     items: [
       {
         label: 'Usuários',
@@ -163,6 +167,15 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: UserCog,
         permission: null,
         adminOnly: true,
+        description: 'Gestão de acessos',
+      },
+      {
+        label: 'Auditoria',
+        href: '/dashboard/auditoria',
+        icon: ShieldCheck,
+        permission: null,
+        pageNotYetImplemented: true,
+        description: 'Logs e conformidade',
       },
       {
         label: 'Configurações',
@@ -170,6 +183,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Settings,
         permission: 'configuracoes',
         pageNotYetImplemented: true,
+        description: 'Configurações do sistema',
       },
     ],
   },

@@ -94,13 +94,14 @@ export default async function NoticiasDashboard({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex justify-between items-end mb-6">
-        <div>
-          <h2 className="text-3xl font-bold text-white tracking-tight">Radar de Notícias</h2>
-          <p className="text-gray-400 text-base mt-1">
-            Arquitetura profissional de monitoramento e análise de risco.
-          </p>
-        </div>
+      <div className="pb-4 border-b border-white/[0.08] mb-6">
+        <h1 className="text-2xl md:text-[28px] font-bold text-white tracking-tight leading-tight">Radar de Notícias</h1>
+        <p className="text-cyan-400 text-[11px] font-semibold uppercase tracking-widest mt-1">
+          Monitoramento e análise de risco em notícias e mídia
+        </p>
+        <p className="text-slate-400 text-sm mt-1.5 leading-relaxed">
+          Arquitetura profissional de monitoramento e análise de risco.
+        </p>
       </div>
 
       <Suspense fallback={null}>
