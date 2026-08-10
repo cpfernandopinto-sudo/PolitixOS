@@ -44,34 +44,23 @@ export default function Sidebar({ permissions }: Props) {
   if (!mounted) return null;
 
   return (
+    // SIDEBAR — apenas Navigation Area.
+    // A Brand Area foi movida para o Header (full-width).
+    // Não há mais pt-[72px] porque o header está ACIMA da linha sidebar+main
+    // no layout (flex-col), não ao lado.
     <aside
-      className={`hidden md:flex flex-col relative shrink-0 transition-all duration-300 z-50 ${
+      className={`hidden md:flex flex-col shrink-0 transition-all duration-300 z-40 ${
         collapsed ? 'w-20' : 'w-60'
-      } h-screen pt-[72px] bg-[#0B0F19]`}
+      } h-full bg-[#0B0F19]`}
     >
-      {/* 1. BRAND AREA — FIXA E ESTÁVEL (Sempre com largura completa de w-60)
-          A logo PolitixOS NUNCA recolhe — permanece inteira e visível mesmo
-          quando o menu lateral está colapsado. O botão de controle foi
-          removido daqui para eliminar ambiguidade visual com a marca. */}
-      <div
-        className="absolute top-0 left-0 w-60 h-[72px] bg-[#0B0F19] border-b border-r border-white/[0.08] flex items-center px-5 z-50 select-none"
-      >
-        <Link href="/dashboard/overview" className="flex items-center">
-          <img
-            src="/brand/PolitixOS.png"
-            alt="PolitixOS"
-            className="w-auto max-w-[140px] h-6 object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.15)]"
-          />
-        </Link>
-      </div>
-
-      {/* 2. NAVIGATION AREA — RECOLHÍVEL (Acompanha a largura colapsável do menu) */}
+      {/* NAVIGATION AREA — recolhível */}
       <nav
         className={`flex-1 flex flex-col bg-[#0B0F19] border-r border-white/[0.08] overflow-y-auto px-3 py-3 space-y-4 transition-all duration-300 ${
           collapsed ? 'w-20' : 'w-60'
         }`}
       >
-        {/* Botão de controle da sidebar — pertence à Navigation Area, não à marca */}
+        {/* Botão de controle da sidebar — pertence à Navigation Area, não à marca.
+            Posicionado no topo do menu, claramente distante do logotipo. */}
         <div className={`flex ${collapsed ? 'justify-center' : 'justify-end'} pb-1`}>
           <button
             onClick={toggleSidebar}
@@ -112,7 +101,7 @@ export default function Sidebar({ permissions }: Props) {
                       }}
                     >
                       <Icon size={18} className="shrink-0" />
-                      
+
                       {/* Estado Compactado: exibe Tooltip flutuante e oculta texto */}
                       {collapsed ? (
                         <span className="absolute left-full ml-3 px-2 py-1 rounded bg-[#161B26] text-slate-200 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50 border border-white/[0.08]">

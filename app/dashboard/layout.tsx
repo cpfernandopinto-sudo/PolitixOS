@@ -30,19 +30,27 @@ export default async function DashboardLayout({
   const generatedAt = new Date().toISOString();
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)]">
-      {/* Sidebar lateral esquerda permanente */}
-      <Sidebar permissions={navPermissions} />
+    // ESTRUTURA CORRIGIDA: Header full-width acima da linha sidebar+conteúdo.
+    // Isso elimina a sobreposição da Brand Area (absolute w-60) sobre o Header.
+    // Antes: [Sidebar | [Header + Main]]
+    // Agora:  [Header (full-width)      ]
+    //         [Sidebar  | Main           ]
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[var(--background)]">
+      {/* Header full-width — contém Brand Area + Global Context Bar + User */}
+      <Header
+        permissions={navPermissions}
+        userName={session.name}
+        roleLabel={ROLE_LABEL[session.role] ?? session.role}
+        candidates={candidates}
+        generatedAt={generatedAt}
+      />
 
-      {/* Conteúdo principal à direita */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <Header
-          permissions={navPermissions}
-          userName={session.name}
-          roleLabel={ROLE_LABEL[session.role] ?? session.role}
-          candidates={candidates}
-          generatedAt={generatedAt}
-        />
+      {/* Linha de conteúdo abaixo do header: Sidebar + Main */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Sidebar lateral — apenas Navigation Area (Brand Area está no Header) */}
+        <Sidebar permissions={navPermissions} />
+
+        {/* Área de conteúdo principal */}
         <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
