@@ -87,7 +87,30 @@ Antes do início dos trabalhos, a branch local contava com os seguintes arquivos
 
 ---
 
-### 8. Confirmação de Integridade Absoluta
+### 8. Etapa 2B — Correção do Shell Global
+
+Esta sub-etapa implementou correções estruturais globais na arquitetura do shell do dashboard, garantindo um comportamento de aplicação desktop premium estável e eliminando os defeitos visuais relatados na validação.
+
+#### Causa dos Problemas Identificados
+* **Problema A (Ícone de Notícias/primeiro item cortado):** Na implementação anterior, o deslocamento da `NavigationArea` em relação à `BrandArea` absoluta era feito via margem (`mt-[72px]`) no próprio componente `nav`. No entanto, em layouts baseados em Flexbox com `flex-1` e scroll vertical nativo, a margem superior interagia de forma incorreta com o fluxo do flex container, forçando o primeiro item da navegação para baixo do z-index e limites da `BrandArea` fixa.
+* **Problema B (Elementos do Shell acompanhando a rolagem):** O layout de dashboard anterior em `app/dashboard/layout.tsx` usava `min-h-screen`, permitindo que toda a página (incluindo o wrapper global do documento) rolasse verticalmente se o conteúdo principal fosse longo. Com isso, ao rolar a tela do Radar de Notícias, o menu lateral (`Sidebar`) e o `Header` se deslocavam para cima junto com a página, perdendo suas posições fixas.
+
+#### Solução & Arquitetura Corrigida
+* **Ajuste na Sidebar (`components/Sidebar.tsx`):**
+  - Removido o offset de margem `mt-[72px]` do elemento `nav`.
+  - Aplicado o offset diretamente como padding-top (`pt-[72px]`) no container `aside` pai da Sidebar. Isso garante que a `NavigationArea` (fluxo flex) seja renderizada nativamente abaixo dos 72px ocupados pela `BrandArea` (posicionada de forma absoluta), eliminando qualquer risco de sobreposição e cortes do primeiro ícone ("Visão Geral").
+  - Adicionado fundo sólido `bg-[#0B0F19]` ao elemento `aside` para evitar qualquer transparência durante transições.
+* **Layout Fixo no Viewport (`app/dashboard/layout.tsx`):**
+  - Substituído `min-h-screen` por `h-screen w-screen overflow-hidden` no container pai do DashboardLayout.
+  - A coluna da direita (Header + Main) foi configurada com `h-screen overflow-hidden`.
+  - O container de conteúdo principal (`main` com a classe `.dashboard-main`) foi configurado como a única área com scroll vertical (`flex-1 overflow-y-auto overflow-x-hidden`).
+  - Desta forma, a **Sidebar**, a **Brand Area** e o **Header** permanecem perfeitamente travados em suas posições fixas na viewport durante qualquer scroll do conteúdo.
+* **Páginas Impactadas:**
+  - O ajuste do Shell é global e afeta automaticamente: **Visão Geral** (`/dashboard/overview`), **Radar de Notícias** (`/dashboard/noticias`), **Instagram** (`/dashboard/instagram`), **X** (`/dashboard/x`) e **Investigações** (`/dashboard/investigacoes`), sem requerer duplicações de código.
+
+---
+
+### 9. Confirmação de Integridade Absoluta
 
 ```
 SUPABASE: NÃO ALTERADO

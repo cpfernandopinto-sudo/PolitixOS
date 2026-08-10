@@ -47,7 +47,7 @@ export default function Sidebar({ permissions }: Props) {
     <aside
       className={`hidden md:flex flex-col relative shrink-0 transition-all duration-300 z-50 ${
         collapsed ? 'w-20' : 'w-60'
-      } h-screen`}
+      } h-screen pt-[72px] bg-[#0B0F19]`}
     >
       {/* 1. BRAND AREA — FIXA E ESTÁVEL (Sempre com largura completa de w-60) */}
       <div
@@ -71,7 +71,7 @@ export default function Sidebar({ permissions }: Props) {
 
       {/* 2. NAVIGATION AREA — RECOLHÍVEL (Acompanha a largura colapsável do menu) */}
       <nav
-        className={`mt-[72px] flex-1 flex flex-col bg-[#0B0F19] border-r border-white/[0.08] overflow-y-auto px-3 py-4 space-y-4 transition-all duration-300 ${
+        className={`flex-1 flex flex-col bg-[#0B0F19] border-r border-white/[0.08] overflow-y-auto px-3 py-4 space-y-4 transition-all duration-300 ${
           collapsed ? 'w-20' : 'w-60'
         }`}
       >

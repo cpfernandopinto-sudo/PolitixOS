@@ -22,18 +22,18 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-[var(--background)]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)]">
       {/* Sidebar lateral esquerda permanente */}
       <Sidebar permissions={navPermissions} />
 
       {/* Conteúdo principal à direita */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header
           permissions={navPermissions}
           userName={session.name}
           roleLabel={ROLE_LABEL[session.role] ?? session.role}
         />
-        <main className="dashboard-main flex-1 overflow-x-hidden">
+        <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>
