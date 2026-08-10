@@ -43,11 +43,6 @@ export default async function XPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6 pb-12">
-      <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Radar X</h2>
-        <p className="text-gray-400 text-sm mt-1">Monitoramento em tempo real de discurso político e reação pública no X (Twitter).</p>
-      </div>
-
       <Suspense fallback={<div className="h-14 bg-[#12192A] rounded-xl animate-pulse mb-6" />}>
         <XFilterBar options={options} />
       </Suspense>

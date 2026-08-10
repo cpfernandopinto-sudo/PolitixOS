@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
-  Calendar, Filter, Loader2, MapPin, Search, Target, Type, X, ThumbsUp,
+  Calendar, Filter, Loader2, MapPin, Search, Type, X, ThumbsUp,
   ChevronDown
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -19,7 +19,7 @@ const SELECT_CLS =
   'focus:outline-none focus:border-cyan-400/50 focus:text-white hover:border-white/[0.15] transition-all cursor-pointer ' +
   'disabled:opacity-50 disabled:cursor-not-allowed w-full lg:w-auto';
 
-export default function NewsGlobalFilters({ candidates, cities, sources }: NewsGlobalFiltersProps) {
+export default function NewsGlobalFilters({ candidates: _candidates, cities, sources }: NewsGlobalFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,13 +60,24 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
   }, [searchInput, currentSearch, updateURL]);
 
   const clearFilters = useCallback(() => {
+    // Preservar candidateId e period (filtros globais) ao limpar filtros locais
+    const globalParams = new URLSearchParams();
+    const candidateId = searchParams.get('candidateId');
+    const period = searchParams.get('period');
+    if (candidateId) globalParams.set('candidateId', candidateId);
+    if (period) globalParams.set('period', period);
     setSearchInput('');
     startTransition(() => {
-      router.push(pathname);
+      router.push(candidateId || period ? `${pathname}?${globalParams.toString()}` : pathname);
     });
-  }, [pathname, router]);
+  }, [pathname, router, searchParams]);
 
-  const hasActive = searchParams.size > 0;
+  // Filtros locais ativos (excluindo os globais candidateId/period)
+  const localParams = new URLSearchParams(searchParams.toString());
+  localParams.delete('candidateId');
+  localParams.delete('candidate');
+  localParams.delete('period');
+  const hasActive = localParams.size > 0;
 
   return (
     <div className="bg-[#0B0F19] border border-white/[0.08] rounded-xl p-3 mb-4 shadow-2xl">
@@ -78,26 +89,10 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
           ) : (
             <Filter size={16} className="text-cyan-400/60" />
           )}
-          <span className="text-[10px] font-bold uppercase tracking-wider">Filtros Globais</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider">Filtros</span>
         </div>
 
         <div className="flex-1 flex flex-wrap items-center gap-2">
-          {/* Candidato */}
-          <div className="relative group min-w-[140px] w-full lg:w-auto">
-            <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
-            <select
-              value={get('candidateId')}
-              onChange={(e) => updateURL({ candidateId: e.target.value })}
-              className={SELECT_CLS}
-            >
-              <option value="">Candidato: Todos</option>
-              {candidates.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={12} />
-          </div>
-
           {/* Cidade */}
           <div className="relative group min-w-[130px] w-full lg:w-auto">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
@@ -146,32 +141,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={12} />
           </div>
 
-          {/* Período */}
-          <div className="relative group min-w-[140px] w-full lg:w-auto">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
-            <select
-              value={get('period')}
-              onChange={(e) => {
-                const val = e.target.value;
-                setShowDates(val === 'custom');
-                updateURL({
-                  period: val,
-                  startDate: val === 'custom' ? get('startDate') : null,
-                  endDate: val === 'custom' ? get('endDate') : null
-                });
-              }}
-              className={SELECT_CLS}
-            >
-              <option value="">Período: Todo tempo</option>
-              <option value="24h">Últimas 24 horas</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="30d">Últimos 30 dias</option>
-              <option value="custom">Personalizado...</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={12} />
-          </div>
-
-          {/* Datas Customizadas */}
+          {/* Datas Customizadas — exibidas via período personalizado do contexto global */}
           {showDates && (
             <div className="flex items-center gap-2 bg-[#0E1727] border border-white/[0.08] rounded-lg px-2 py-1 animate-in slide-in-from-left-2 duration-200">
               <input

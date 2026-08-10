@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 import SectionBoundary from '@/components/ui/SectionBoundary';
 import { BlockSkeleton, KpiRowSkeleton } from '@/components/ui/BlockSkeleton';
 import CollapsibleSection from '@/components/ui/CollapsibleSection';
-import OverviewHeader from '@/components/dashboard/overview/OverviewHeader';
 import OverviewKPI from '@/components/dashboard/overview/OverviewKPI';
 import OverviewGauge from '@/components/dashboard/overview/OverviewGauge';
 import PriorityAlertsCenter from '@/components/dashboard/overview/PriorityAlertsCenter';
@@ -32,7 +31,6 @@ import {
   getRiskOverview,
   getStrategicActions,
   getExecutiveTable,
-  getOverviewFiltersOptions,
   getTimelineEvents,
   getExecutiveOverviewData,
   type OverviewFilters,
@@ -183,18 +181,8 @@ export default async function OverviewPage({ searchParams }: Props) {
     allowedTargetIds,
   };
 
-  const candidates = await getOverviewFiltersOptions(allowedTargetIds);
-  const generatedAt = new Date().toISOString();
-
   return (
     <div className="space-y-6 pb-12">
-      <OverviewHeader
-        candidates={candidates}
-        currentCandidate={filters.candidate}
-        currentPeriod={filters.period}
-        generatedAt={generatedAt}
-      />
-
       <SectionBoundary label="Indicadores executivos" fallback={<KpiRowSkeleton />} minHeight={112}>
         <KPISection filters={filters} />
       </SectionBoundary>

@@ -49,9 +49,12 @@ export default function Sidebar({ permissions }: Props) {
         collapsed ? 'w-20' : 'w-60'
       } h-screen pt-[72px] bg-[#0B0F19]`}
     >
-      {/* 1. BRAND AREA — FIXA E ESTÁVEL (Sempre com largura completa de w-60) */}
+      {/* 1. BRAND AREA — FIXA E ESTÁVEL (Sempre com largura completa de w-60)
+          A logo PolitixOS NUNCA recolhe — permanece inteira e visível mesmo
+          quando o menu lateral está colapsado. O botão de controle foi
+          removido daqui para eliminar ambiguidade visual com a marca. */}
       <div
-        className="absolute top-0 left-0 w-60 h-[72px] bg-[#0B0F19] border-b border-r border-white/[0.08] flex items-center justify-between px-5 z-50 select-none"
+        className="absolute top-0 left-0 w-60 h-[72px] bg-[#0B0F19] border-b border-r border-white/[0.08] flex items-center px-5 z-50 select-none"
       >
         <Link href="/dashboard/overview" className="flex items-center">
           <img
@@ -60,21 +63,26 @@ export default function Sidebar({ permissions }: Props) {
             className="w-auto max-w-[140px] h-6 object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.15)]"
           />
         </Link>
-        <button
-          onClick={toggleSidebar}
-          className="p-1 rounded border border-white/[0.08] bg-white/[0.02] text-slate-400 hover:text-white hover:bg-white/[0.05] transition-all"
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
       </div>
 
       {/* 2. NAVIGATION AREA — RECOLHÍVEL (Acompanha a largura colapsável do menu) */}
       <nav
-        className={`flex-1 flex flex-col bg-[#0B0F19] border-r border-white/[0.08] overflow-y-auto px-3 py-4 space-y-4 transition-all duration-300 ${
+        className={`flex-1 flex flex-col bg-[#0B0F19] border-r border-white/[0.08] overflow-y-auto px-3 py-3 space-y-4 transition-all duration-300 ${
           collapsed ? 'w-20' : 'w-60'
         }`}
       >
+        {/* Botão de controle da sidebar — pertence à Navigation Area, não à marca */}
+        <div className={`flex ${collapsed ? 'justify-center' : 'justify-end'} pb-1`}>
+          <button
+            onClick={toggleSidebar}
+            aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+            className="p-1.5 rounded border border-white/[0.08] bg-white/[0.02] text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] hover:border-white/[0.15] transition-all focus-visible:outline-cyan-400"
+          >
+            {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+          </button>
+        </div>
+
         {NAV_GROUPS.map((group) => {
           const visibleItems = group.items.filter((item) => canSeeNavItem(item, permissions));
           if (visibleItems.length === 0) return null;
