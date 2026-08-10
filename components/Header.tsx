@@ -1,55 +1,57 @@
-import { Bell, Search, ShieldCheck, UserCircle } from 'lucide-react';
-import { getSession } from '@/lib/auth/dal';
-import LogoutButton from '@/components/LogoutButton';
+'use client';
 
-export default async function Header() {
-  const session = await getSession();
+import { useState } from 'react';
+import { Menu } from 'lucide-react';
+import UserMenu from '@/components/navigation/UserMenu';
+import MobileNavigationDrawer from '@/components/navigation/MobileNavigationDrawer';
+import { NAV_GROUPS, canSeeNavItem, type NavPermissions } from '@/lib/navigation/dashboardNavigation';
 
-  const roleLabel: Record<string, string> = {
-    admin: 'Administrador',
-    gestor: 'Gestor',
-    visualizador: 'Visualizador',
-  };
+interface Props {
+  permissions: NavPermissions;
+  userName: string;
+  roleLabel: string;
+}
+
+export default function Header({ permissions, userName, roleLabel }: Props) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const filteredGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => canSeeNavItem(item, permissions)),
+  })).filter((group) => group.items.length > 0);
 
   return (
-    <header className="h-[72px] border-b border-white/[0.07] bg-[#080d17]/80 backdrop-blur-xl sticky top-0 z-40 flex items-center justify-between px-4 md:px-8">
-      <div className="flex items-center gap-4 flex-1">
-        <div className="relative hidden sm:block w-full max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
-          <input
-            type="text"
-            placeholder="Buscar notícias, candidatos ou temas..."
-            aria-label="Busca global"
-            className="w-full bg-white/[0.035] border border-white/[0.08] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/10 transition-all"
-          />
-        </div>
-        <div className="sm:hidden flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-          <ShieldCheck size={17} className="text-blue-400" />
-          Intelligence
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 md:gap-5">
-        <div className="hidden xl:flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-          Operação ativa
-        </div>
-        <button aria-label="Notificações" className="relative rounded-xl p-2.5 text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
-          <Bell size={20} />
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#FF3B3B] rounded-full border-2 border-[#0D0D0D]" />
+    <>
+      <header className="sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-white/[0.08] bg-[#0B0F19]/80 px-4 backdrop-blur-md md:px-8">
+        {/* Hamburger menu for mobile only */}
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Abrir menu de navegação"
+          className="p-2 rounded text-slate-400 hover:text-white hover:bg-white/[0.04] md:hidden"
+        >
+          <Menu size={20} />
         </button>
 
-        <div className="flex items-center gap-3 border-l border-white/[0.08] pl-3 md:pl-5">
-          {session && (
-            <div className="text-right hidden md:block">
-              <p className="text-sm font-medium text-white">{session.name}</p>
-              <p className="text-xs text-gray-500">{roleLabel[session.role] ?? session.role}</p>
-            </div>
-          )}
-          <UserCircle size={32} className="text-slate-400" />
-          <LogoutButton />
+        {/* Espaçador flexível (porque a busca global não está implementada) */}
+        <div className="flex-1" />
+
+        {/* Ações da direita */}
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="hidden items-center gap-2 rounded-sm border border-emerald-400/15 bg-emerald-400/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300 xl:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+            Operação ativa
+          </div>
+          <UserMenu name={userName} roleLabel={roleLabel} />
         </div>
-      </div>
-    </header>
+      </header>
+
+      <MobileNavigationDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        groups={filteredGroups}
+        currentHref=""
+      />
+    </>
   );
 }

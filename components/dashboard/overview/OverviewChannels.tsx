@@ -149,14 +149,14 @@ export default function OverviewChannels({ data }: Props) {
                   </div>
                 </div>
                 <div
-                  className="w-full h-2 rounded-full bg-blue-500/5 overflow-hidden"
+                  className="w-full h-2 rounded bg-white/[0.04] overflow-hidden"
                   role="progressbar"
                   aria-valuenow={pct}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-label={`Participação de ${r.label}`}
                 >
-                  <div className="h-full rounded-full transition-[width] duration-300 ease-out" style={{ width: `${pct}%`, backgroundColor: r.color }} />
+                  <div className="h-full rounded transition-[width] duration-300 ease-out" style={{ width: `${pct}%`, backgroundColor: r.color }} />
                 </div>
                 <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
                   <span>
@@ -173,7 +173,7 @@ export default function OverviewChannels({ data }: Props) {
       )}
 
       {total > 0 && (
-        <div className="pt-3 mt-1 border-t border-blue-300/10 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="pt-3 mt-1 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-slate-500">
           <span>Total consolidado</span>
           <span className="font-bold text-white">{total.toLocaleString('pt-BR')} itens</span>
         </div>

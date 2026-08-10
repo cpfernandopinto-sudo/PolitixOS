@@ -126,7 +126,7 @@ function AlertCard({ risk, activeCandidateId, period }: { risk: RiskCard; active
   const href = buildInternalHref(risk, activeCandidateId, period);
 
   return (
-    <div className={`bg-blue-400/[0.05] border border-blue-300/10 border-l-2 ${RISK_ACCENT_BORDER[risk.severidade]} rounded-lg p-3.5`}>
+    <div className={`bg-white/[0.02] border border-white/[0.08] border-l-2 ${RISK_ACCENT_BORDER[risk.severidade]} rounded p-3.5`}>
       <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           {CHANNEL_ICON[risk.origem]}
@@ -147,7 +147,7 @@ function AlertCard({ risk, activeCandidateId, period }: { risk: RiskCard; active
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-blue-300/5">
+      <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-white/[0.05]">
         <Link
           href={href}
           className="flex items-center gap-1 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400/60 rounded"

@@ -3,134 +3,22 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Newspaper,
-  AlertTriangle,
-  Users,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  UserPlus,
-  Zap,
-  UserCog,
-  FileSearch,
-} from 'lucide-react';
-
-export interface SidebarPermissions {
-  role: string;
-  permissions: string[];
-}
-
-interface NavItem {
-  href: string;
-  label: string;
-  screenKey: string;
-  icon: React.ReactNode;
-  /** Se true, só admin vê */
-  adminOnly?: boolean;
-}
-
-function XChannelIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-md border border-current/35 font-black leading-none ${className}`}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.78), lineHeight: 1 }}
-      aria-hidden="true"
-    >
-      X
-    </span>
-  );
-}
-
-function InstagramChannelIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
-  return (
-    <span
-      className={`relative inline-flex shrink-0 items-center justify-center rounded-md border-2 border-current ${className}`}
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      <span
-        className="rounded-full border-2 border-current"
-        style={{ width: Math.round(size * 0.42), height: Math.round(size * 0.42) }}
-      />
-      <span
-        className="absolute rounded-full bg-current"
-        style={{
-          width: Math.max(3, Math.round(size * 0.14)),
-          height: Math.max(3, Math.round(size * 0.14)),
-          right: Math.round(size * 0.18),
-          top: Math.round(size * 0.18)
-        }}
-      />
-    </span>
-  );
-}
-
-const NAV_ITEMS: NavItem[] = [
-  {
-    href: '/dashboard/noticias',
-    label: 'Radar de Notícias',
-    screenKey: 'noticias',
-    icon: <Newspaper size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/instagram',
-    label: 'Radar Instagram',
-    screenKey: 'instagram',
-    icon: <InstagramChannelIcon size={20} />,
-  },
-  {
-    href: '/dashboard/x',
-    label: 'Radar X',
-    screenKey: 'x',
-    icon: <XChannelIcon size={20} />,
-  },
-  {
-    href: '/dashboard/candidatos',
-    label: 'Candidatos',
-    screenKey: 'candidatos',
-    icon: <UserPlus size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/automacoes',
-    label: 'Automação',
-    screenKey: 'automacoes',
-    icon: <Zap size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/investigacoes',
-    label: 'Investigações',
-    screenKey: 'investigacoes',
-    icon: <FileSearch size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/gestao-crise',
-    label: 'Gestão de Crise',
-    screenKey: 'gestao_crise',
-    icon: <AlertTriangle size={20} className="shrink-0" />,
-  },
-  {
-    href: '/dashboard/apoiadores',
-    label: 'Apoiadores',
-    screenKey: 'apoiadores',
-    icon: <Users size={20} className="shrink-0" />,
-  },
-];
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { NAV_GROUPS, canSeeNavItem, type NavPermissions, type NavItem } from '@/lib/navigation/dashboardNavigation';
 
 interface Props {
-  permissions: SidebarPermissions;
+  permissions: NavPermissions;
 }
 
 export default function Sidebar({ permissions }: Props) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem('politixos_sidebar_collapsed');
-    setCollapsed(stored === null ? true : stored === 'true');
+    setCollapsed(stored === null ? false : stored === 'true');
   }, []);
 
   const toggleSidebar = () => {
@@ -139,98 +27,108 @@ export default function Sidebar({ permissions }: Props) {
     localStorage.setItem('politixos_sidebar_collapsed', String(newVal));
   };
 
-  const isAdmin = permissions.role === 'admin';
-
-  const canSee = (item: NavItem) => {
-    if (item.adminOnly && !isAdmin) return false;
-    if (isAdmin) return true;
-    return permissions.permissions.includes(item.screenKey);
+  const isActive = (item: NavItem) => {
+    if (item.href === '/dashboard/overview') {
+      return pathname === '/dashboard' || pathname === '/dashboard/overview';
+    }
+    return pathname.startsWith(item.href);
   };
 
-  const isActive = (href: string) => pathname.startsWith(href);
-
   const linkClass = (active: boolean) =>
-    `relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${active
-      ? 'bg-gradient-to-r from-blue-600/20 to-cyan-400/[0.07] text-blue-300 border border-blue-400/20 shadow-[inset_3px_0_0_#3b82f6]'
-      : 'text-slate-400 hover:text-white hover:bg-white/[0.045] border border-transparent'
+    `relative flex items-center gap-3 px-3 py-2 rounded transition-all duration-200 ${
+      active
+        ? 'bg-cyan-400/10 text-cyan-400 font-semibold'
+        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
     } ${collapsed ? 'justify-center' : ''}`;
 
   if (!mounted) return null;
 
   return (
     <aside
-      className={`${collapsed ? 'w-20' : 'w-64'} h-screen sticky top-0 bg-[#080d17]/95 backdrop-blur-xl border-r border-white/[0.08] flex flex-col z-50 transition-all duration-300 shadow-[12px_0_40px_rgba(0,0,0,0.18)]`}
+      className={`hidden md:flex flex-col relative shrink-0 transition-all duration-300 z-50 ${
+        collapsed ? 'w-20' : 'w-60'
+      } h-screen`}
     >
-      {/* Logo */}
-      <div className={`px-5 py-5 flex items-center min-h-[80px] border-b border-white/[0.06] ${collapsed ? 'justify-center' : 'justify-start'}`}>
-        <img
-          src="/brand/PolitixOS.png"
-          alt="PolitixOS"
-          className={`${collapsed ? 'w-10' : 'w-full max-w-[164px]'} h-auto object-contain drop-shadow-[0_0_18px_rgba(59,130,246,0.18)]`}
-        />
-      </div>
-
-      {/* Toggle */}
-      <div className={`px-4 pt-4 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
+      {/* 1. BRAND AREA — FIXA E ESTÁVEL (Sempre com largura completa de w-60) */}
+      <div
+        className="absolute top-0 left-0 w-60 h-[72px] bg-[#0B0F19] border-b border-r border-white/[0.08] flex items-center justify-between px-5 z-50 select-none"
+      >
+        <Link href="/dashboard/overview" className="flex items-center">
+          <img
+            src="/brand/PolitixOS.png"
+            alt="PolitixOS"
+            className="w-auto max-w-[140px] h-6 object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+          />
+        </Link>
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-lg border border-white/[0.08] bg-white/[0.035] text-slate-400 hover:text-white hover:bg-blue-500/10 hover:border-blue-400/20 transition-all"
+          className="p-1 rounded border border-white/[0.08] bg-white/[0.02] text-slate-400 hover:text-white hover:bg-white/[0.05] transition-all"
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 space-y-1.5 mt-4 overflow-x-hidden overflow-y-auto">
-        {/* Visão Geral — só admin ou quem tem permissão dashboard */}
-        {(isAdmin || permissions.permissions.includes('dashboard')) && (
-          <Link
-            href="/dashboard/overview"
-            className={linkClass(pathname === '/dashboard' || pathname === '/dashboard/overview')}
-            title="Visão Geral"
-          >
-            <LayoutDashboard size={20} className="shrink-0" />
-            {!collapsed && <span className="font-medium whitespace-nowrap">Visão Geral</span>}
-          </Link>
-        )}
+      {/* 2. NAVIGATION AREA — RECOLHÍVEL (Acompanha a largura colapsável do menu) */}
+      <nav
+        className={`mt-[72px] flex-1 flex flex-col bg-[#0B0F19] border-r border-white/[0.08] overflow-y-auto px-3 py-4 space-y-4 transition-all duration-300 ${
+          collapsed ? 'w-20' : 'w-60'
+        }`}
+      >
+        {NAV_GROUPS.map((group) => {
+          const visibleItems = group.items.filter((item) => canSeeNavItem(item, permissions));
+          if (visibleItems.length === 0) return null;
 
-        {NAV_ITEMS.filter(canSee).map((item) => (
-          <Link
-            key={item.screenKey}
-            href={item.href}
-            className={linkClass(isActive(item.href))}
-            title={item.label}
-          >
-            {item.icon}
-            {!collapsed && <span className="font-medium whitespace-nowrap">{item.label}</span>}
-          </Link>
-        ))}
-
-        {/* Usuários — apenas admin */}
-        {isAdmin && (
-          <Link
-            href="/dashboard/usuarios"
-            className={linkClass(pathname.startsWith('/dashboard/usuarios'))}
-            title="Usuários"
-          >
-            <UserCog size={20} className="shrink-0" />
-            {!collapsed && <span className="font-medium whitespace-nowrap">Usuários</span>}
-          </Link>
-        )}
+          return (
+            <div key={group.label} className="space-y-1">
+              {!collapsed && (
+                <div className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest select-none">
+                  {group.label}
+                </div>
+              )}
+              <div className="space-y-1">
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.pageNotYetImplemented ? '#' : item.href}
+                      className={`group ${linkClass(active)}`}
+                      title={collapsed ? undefined : item.label}
+                      onClick={(e) => {
+                        if (item.pageNotYetImplemented) {
+                          e.preventDefault();
+                          alert(`Funcionalidade "${item.label}" em desenvolvimento.`);
+                        }
+                      }}
+                    >
+                      <Icon size={18} className="shrink-0" />
+                      
+                      {/* Estado Compactado: exibe Tooltip flutuante e oculta texto */}
+                      {collapsed ? (
+                        <span className="absolute left-full ml-3 px-2 py-1 rounded bg-[#161B26] text-slate-200 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50 border border-white/[0.08]">
+                          {item.label}
+                        </span>
+                      ) : (
+                        <span className="text-xs tracking-wide whitespace-nowrap">{item.label}</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-white/[0.07] space-y-2">
-        {(isAdmin || permissions.permissions.includes('configuracoes')) && (
-          <button
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors ${collapsed ? 'justify-center' : ''}`}
-            title="Configurações"
-          >
-            <Settings size={20} className="shrink-0" />
-            {!collapsed && <span className="font-medium whitespace-nowrap">Configurações</span>}
-          </button>
-        )}
+      {/* Footer operacional discreto (oculto quando colapsado) */}
+      <div
+        className={`bg-[#0B0F19] border-r border-white/[0.08] py-3 text-center text-[10px] text-slate-600 transition-all duration-300 ${
+          collapsed ? 'w-20' : 'w-60'
+        }`}
+      >
+        {!collapsed && <span>PolitixOS Premium v1.0</span>}
       </div>
     </aside>
   );

@@ -1,4 +1,5 @@
-import TopNavigation from '@/components/navigation/TopNavigation';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 import { requireAuth } from '@/lib/auth/dal';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -21,15 +22,21 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="dashboard-shell flex min-h-screen flex-col">
-      <TopNavigation
-        permissions={navPermissions}
-        userName={session.name}
-        roleLabel={ROLE_LABEL[session.role] ?? session.role}
-      />
-      <main className="dashboard-main flex-1 overflow-x-hidden">
-        {children}
-      </main>
+    <div className="flex min-h-screen bg-[var(--background)]">
+      {/* Sidebar lateral esquerda permanente */}
+      <Sidebar permissions={navPermissions} />
+
+      {/* Conteúdo principal à direita */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header
+          permissions={navPermissions}
+          userName={session.name}
+          roleLabel={ROLE_LABEL[session.role] ?? session.role}
+        />
+        <main className="dashboard-main flex-1 overflow-x-hidden">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

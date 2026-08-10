@@ -15,10 +15,10 @@ interface GaugeProps {
 export default function OverviewGauge({ score, status, breakdown }: GaugeProps) {
   const getStatusColor = (s: string) => {
     switch (s) {
-      case 'crítico': return '#EF4444';
-      case 'quente': return '#F97316';
-      case 'morno': return '#EAB308';
-      default: return '#00FFFF';
+      case 'crítico': return '#F87171';
+      case 'quente': return '#FB923C';
+      case 'morno': return '#FACC15';
+      default: return '#06B6D4';
     }
   };
 
@@ -45,9 +45,7 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
           width: 9,
           roundCap: true,
         },
-        // Ponteiro fino e elegante — puramente visual (mesmo `score`, mesma
-        // lógica); antes o gauge não tinha nenhum indicador de agulha, só o
-        // arco de progresso. Sprint UX — Etapa 3.
+        // Ponteiro fino e elegante
         pointer: {
           show: true,
           icon: 'path://M2,0 C2,0 1,-2 0,-64 C-1,-2 -2,0 -2,0 Z',
@@ -65,7 +63,7 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
           roundCap: true,
           lineStyle: {
             width: 9,
-            color: [[1, 'rgba(148,163,184,0.12)']]
+            color: [[1, 'rgba(45, 55, 72, 0.4)']]
           }
         },
         axisTick: {
@@ -73,13 +71,13 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
           distance: -18,
           length: 3,
           splitNumber: 5,
-          lineStyle: { color: 'rgba(148,163,184,0.35)', width: 1 },
+          lineStyle: { color: 'rgba(148,163,184,0.25)', width: 1 },
         },
         splitLine: {
           show: true,
           distance: -20,
           length: 8,
-          lineStyle: { color: 'rgba(148,163,184,0.45)', width: 1.5 },
+          lineStyle: { color: 'rgba(148,163,184,0.35)', width: 1.5 },
         },
         axisLabel: { show: false },
         title: { show: false },
@@ -102,10 +100,12 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
     <div className="surface-primary p-5 h-full flex flex-col">
       <div className="flex items-center justify-between gap-3 mb-1">
         <h3 className="text-white font-bold text-base tracking-tight">Termômetro de Crise Master</h3>
-        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${status === 'crítico' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-            status === 'quente' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
-              'bg-cyan-500/10 text-cyan-500 border-cyan-500/20'
-          }`}>
+        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+          status === 'crítico' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+          status === 'quente' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+          status === 'morno' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+          'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+        }`}>
           {status}
         </span>
       </div>
@@ -123,15 +123,15 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
         </div>
 
         <div className="w-full grid grid-cols-3 gap-2">
-          <div className="bg-blue-500/5 rounded-lg px-2 py-1.5 border border-blue-300/10 text-center">
+          <div className="bg-white/[0.02] rounded px-2 py-1.5 border border-white/[0.08] text-center">
             <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Notícias (50%)</div>
             <div className="text-base font-bold text-white">{breakdown.noticias}</div>
           </div>
-          <div className="bg-blue-500/5 rounded-lg px-2 py-1.5 border border-blue-300/10 text-center">
+          <div className="bg-white/[0.02] rounded px-2 py-1.5 border border-white/[0.08] text-center">
             <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">X/Twitter (30%)</div>
             <div className="text-base font-bold text-white">{breakdown.x}</div>
           </div>
-          <div className="bg-blue-500/5 rounded-lg px-2 py-1.5 border border-blue-300/10 text-center">
+          <div className="bg-white/[0.02] rounded px-2 py-1.5 border border-white/[0.08] text-center">
             <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Instagram (20%)</div>
             <div className="text-base font-bold text-white">{breakdown.instagram}</div>
           </div>

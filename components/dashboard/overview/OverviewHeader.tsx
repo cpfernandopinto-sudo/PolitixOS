@@ -44,25 +44,17 @@ export default function OverviewHeader({ candidates, currentCandidate, currentPe
     minute: '2-digit',
   });
 
-  const selectClass = 'bg-[#0E1727] border border-blue-300/15 text-white text-sm rounded-lg px-4 h-10 focus:border-cyan-500/50 outline-none transition-all';
+  const selectClass = 'bg-[var(--surface-2)] border border-white/[0.08] text-white text-sm rounded px-4 h-10 focus:border-cyan-400/50 outline-none transition-all cursor-pointer';
 
   return (
     // Duas zonas (esquerda: identidade + período; direita: filtros + atualização)
-    // numa única fileira com borda inferior — antes eram duas fileiras
-    // empilhadas (cabeçalho+filtros, depois período+atualização em linha
-    // própria), o que ocupava mais altura antes dos KPIs sem ganho de
-    // informação. Nenhum dado/comportamento mudou — só o agrupamento visual.
-    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 pb-4 border-b border-blue-300/10">
+    // numa única fileira com borda inferior
+    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 pb-4 border-b border-white/[0.08]">
       {/* Zona esquerda — identidade da tela */}
       <div className="min-w-0">
-        {/* Não é <h1>: a regra global .dashboard-main h1 (compartilhada com o
-            Radar/demais módulos) força clamp(1.65rem,2.4vw,2.25rem), muito
-            acima da meta de 26-28px desta tela. Escapamos da tag sem tocar
-            no CSS compartilhado — role="heading" preserva a semântica de
-            acessibilidade. */}
-        <p role="heading" aria-level={1} className="text-[27px] font-bold text-white tracking-tight leading-tight">Visão Geral</p>
-        <p className="text-cyan-400/80 text-[11px] font-semibold uppercase tracking-widest mt-1">Centro Executivo de Inteligência Política</p>
-        <p className="text-slate-500 text-sm mt-1">Consolidação estratégica de inteligência política multi-canal.</p>
+        <p role="heading" aria-level={1} className="text-2xl md:text-[28px] font-bold text-white tracking-tight leading-tight">Visão Geral</p>
+        <p className="text-cyan-400 text-[11px] font-semibold uppercase tracking-widest mt-1">Centro Executivo de Inteligência Política</p>
+        <p className="text-slate-400 text-sm mt-1.5 leading-relaxed">Consolidação estratégica de inteligência política multi-canal.</p>
         <p className="text-xs text-slate-500 mt-2">
           Período analisado: <span className="text-slate-300 font-medium">{PERIOD_LABELS[period] || 'Todo período'}</span>
         </p>
