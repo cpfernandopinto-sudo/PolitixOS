@@ -15,8 +15,8 @@ interface NewsGlobalFiltersProps {
 }
 
 const SELECT_CLS =
-  'appearance-none bg-[#0B1423] border border-blue-300/10 rounded-lg py-1.5 pl-9 pr-8 text-sm text-white ' +
-  'focus:outline-none focus:border-[#00FFFF]/50 hover:border-blue-400/20 transition-all cursor-pointer ' +
+  'appearance-none bg-[#0E1727] border border-white/[0.08] rounded-lg py-1.5 pl-9 pr-8 text-xs font-semibold text-slate-300 ' +
+  'focus:outline-none focus:border-cyan-400/50 focus:text-white hover:border-white/[0.15] transition-all cursor-pointer ' +
   'disabled:opacity-50 disabled:cursor-not-allowed w-full lg:w-auto';
 
 export default function NewsGlobalFilters({ candidates, cities, sources }: NewsGlobalFiltersProps) {
@@ -69,14 +69,14 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
   const hasActive = searchParams.size > 0;
 
   return (
-    <div className="bg-[#0E1727] border border-blue-300/10 rounded-xl p-3 mb-4 shadow-2xl">
+    <div className="bg-[#0B0F19] border border-white/[0.08] rounded-xl p-3 mb-4 shadow-2xl">
       <div className="flex flex-wrap items-center gap-3">
         {/* Indicador de Status */}
-        <div className="flex items-center gap-2 text-slate-400 border-r border-blue-300/10 pr-3 shrink-0">
+        <div className="flex items-center gap-2 text-slate-400 border-r border-white/[0.08] pr-3 shrink-0">
           {isPending ? (
             <Loader2 size={16} className="animate-spin text-[#00FFFF]" />
           ) : (
-            <Filter size={16} className="text-[#00FFFF]/60" />
+            <Filter size={16} className="text-cyan-400/60" />
           )}
           <span className="text-[10px] font-bold uppercase tracking-wider">Filtros Globais</span>
         </div>
@@ -84,7 +84,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
         <div className="flex-1 flex flex-wrap items-center gap-2">
           {/* Candidato */}
           <div className="relative group min-w-[140px] w-full lg:w-auto">
-            <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-[#00FFFF] transition-colors pointer-events-none" size={14} />
+            <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
             <select
               value={get('candidateId')}
               onChange={(e) => updateURL({ candidateId: e.target.value })}
@@ -100,7 +100,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
 
           {/* Cidade */}
           <div className="relative group min-w-[130px] w-full lg:w-auto">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-[#00FFFF] transition-colors pointer-events-none" size={14} />
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
             <select
               value={get('city')}
               onChange={(e) => updateURL({ city: e.target.value })}
@@ -116,7 +116,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
 
           {/* Fonte */}
           <div className="relative group min-w-[130px] w-full lg:w-auto">
-            <Type className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-[#00FFFF] transition-colors pointer-events-none" size={14} />
+            <Type className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
             <select
               value={get('source')}
               onChange={(e) => updateURL({ source: e.target.value })}
@@ -132,7 +132,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
 
           {/* Sentimento */}
           <div className="relative group min-w-[140px] w-full lg:w-auto">
-            <ThumbsUp className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-[#00FFFF] transition-colors pointer-events-none" size={14} />
+            <ThumbsUp className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
             <select
               value={get('sentiment')}
               onChange={(e) => updateURL({ sentiment: e.target.value })}
@@ -148,7 +148,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
 
           {/* Período */}
           <div className="relative group min-w-[140px] w-full lg:w-auto">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-[#00FFFF] transition-colors pointer-events-none" size={14} />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
             <select
               value={get('period')}
               onChange={(e) => {
@@ -173,7 +173,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
 
           {/* Datas Customizadas */}
           {showDates && (
-            <div className="flex items-center gap-2 bg-[#0B1423] border border-blue-300/10 rounded-lg px-2 py-1 animate-in slide-in-from-left-2 duration-200">
+            <div className="flex items-center gap-2 bg-[#0E1727] border border-white/[0.08] rounded-lg px-2 py-1 animate-in slide-in-from-left-2 duration-200">
               <input
                 type="date"
                 value={get('startDate')}
@@ -192,16 +192,16 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
 
           {/* Busca */}
           <div className="relative group w-full lg:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-[#00FFFF] transition-colors pointer-events-none" size={14} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-cyan-400 transition-colors pointer-events-none" size={14} />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar notícia..."
               className={clsx(
-                'bg-[#0B1423] border border-blue-300/10 rounded-lg py-1.5 pl-9 pr-4 text-sm text-white',
-                'placeholder:text-slate-600 focus:outline-none focus:border-[#00FFFF]/50',
-                'hover:border-blue-400/20 transition-all w-full lg:w-48'
+                'bg-[#0E1727] border border-white/[0.08] rounded-lg py-1.5 pl-9 pr-4 text-xs font-semibold text-slate-300 focus:text-white',
+                'placeholder:text-slate-600 focus:outline-none focus:border-cyan-400/50',
+                'hover:border-white/[0.15] transition-all w-full lg:w-48'
               )}
             />
           </div>
@@ -211,7 +211,7 @@ export default function NewsGlobalFilters({ candidates, cities, sources }: NewsG
         {hasActive && (
           <button
             onClick={clearFilters}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 transition-all uppercase tracking-wider"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-450/10 border border-red-400/15 transition-all uppercase tracking-wider"
           >
             <X size={12} />
             Limpar

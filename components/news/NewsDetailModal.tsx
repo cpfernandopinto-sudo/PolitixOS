@@ -88,10 +88,10 @@ export default function NewsDetailModal({ selection, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="news-detail-title"
-        className="flex max-h-[calc(100dvh-112px)] w-full max-w-3xl flex-col overflow-y-auto rounded-2xl border border-white/10 bg-[#0e1727] shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
+        className="flex max-h-[calc(100dvh-112px)] w-full max-w-3xl flex-col overflow-y-auto rounded-xl border border-white/10 bg-[#161B26] shadow-[0_28px_90px_rgba(0,0,0,0.55)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/[0.07] bg-[#0e1727]/95 p-5 backdrop-blur-xl md:p-6">
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/[0.07] bg-[#161B26]/95 p-5 backdrop-blur-xl md:p-6">
           <div className="flex min-w-0 items-start gap-3">
             <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-2.5 text-blue-300">
               <Newspaper size={20} />
@@ -233,7 +233,7 @@ export default function NewsDetailModal({ selection, onClose }: Props) {
           </div>
         </div>
 
-        <footer className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-white/[0.07] bg-[#0e1727]/95 p-4 backdrop-blur-xl sm:flex-row sm:justify-end md:px-6">
+        <footer className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-white/[0.07] bg-[#161B26]/95 p-4 backdrop-blur-xl sm:flex-row sm:justify-end md:px-6">
           <button
             type="button"
             onClick={onClose}
@@ -245,7 +245,7 @@ export default function NewsDetailModal({ selection, onClose }: Props) {
             href={news.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue-400"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-slate-950 transition-colors hover:bg-cyan-400"
           >
             Abrir fonte original
             <ExternalLink size={14} />
