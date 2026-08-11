@@ -98,6 +98,13 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Centro executivo consolidado',
       },
       {
+        label: 'Territórios',
+        href: '/dashboard/territorios',
+        icon: MapPin,
+        permission: 'territorios',
+        description: 'Dossiês e inteligência municipal',
+      },
+      {
         label: 'Notícias',
         href: '/dashboard/noticias',
         icon: Newspaper,

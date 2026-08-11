@@ -1,3 +1,4 @@
+import React from 'react';
 import { MapPin } from 'lucide-react';
 import { getAvailableUfs } from '@/lib/queries/territories';
 import TerritoriosClient from './TerritoriosClient';
@@ -8,7 +9,7 @@ export default async function TerritoriosPage() {
   const ufs = await getAvailableUfs();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4 md:p-6 lg:p-8 animate-fade-in">
       <div className="flex items-center gap-4">
         <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
           <MapPin size={24} className="text-cyan-400" />
