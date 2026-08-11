@@ -41,6 +41,9 @@ function baseResult(overrides: Record<string, unknown> = {}) {
     unknownNatures: [],
     excludedOutOfScopeNatures: [],
     unmatchedMunicipalities: [],
+    territoryResults: [],
+    filesDownloaded: 1,
+    timings: { downloadMs: 10, parseMs: 5, normalizationMs: 1, processingMs: 1, persistenceMs: 2, totalMs: 19 },
     errors: [],
     overallStatus: 'completed',
     ...overrides,
@@ -174,5 +177,62 @@ describe('POST /api/territorios/seguranca/collect — resultado', () => {
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.code).toBe('SEGURANCA_COLLECTION_FAILED');
+  });
+});
+
+describe('POST /api/territorios/seguranca/collect — mode=batch (Bloco 4.5)', () => {
+  it('400 EMPTY_BATCH quando "territories" está ausente ou vazio', async () => {
+    const res1 = await POST(requestWith({ mode: 'batch' }));
+    expect(res1.status).toBe(400);
+    expect((await res1.json()).code).toBe('EMPTY_BATCH');
+
+    const res2 = await POST(requestWith({ mode: 'batch', territories: [] }));
+    expect(res2.status).toBe(400);
+    expect((await res2.json()).code).toBe('EMPTY_BATCH');
+    expect(mockRunSecurityCollection).not.toHaveBeenCalled();
+  });
+
+  it('400 BATCH_TOO_LARGE quando excede MAX_BATCH_SIZE', async () => {
+    const territories = Array.from({ length: 11 }, (_, i) => ({ codigo_ibge: String(3100000 + i) }));
+    const res = await POST(requestWith({ mode: 'batch', territories }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('BATCH_TOO_LARGE');
+    expect(mockRunSecurityCollection).not.toHaveBeenCalled();
+  });
+
+  it('400 INVALID_BATCH_ITEM quando um item não tem codigo_ibge válido', async () => {
+    const res = await POST(requestWith({ mode: 'batch', territories: [{ codigo_ibge: '3118601' }, { codigo_ibge: '' }] }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('INVALID_BATCH_ITEM');
+    expect(mockRunSecurityCollection).not.toHaveBeenCalled();
+  });
+
+  it('aceita um lote válido dentro do limite e repassa os codigosIbge ao coletor', async () => {
+    mockRunSecurityCollection.mockResolvedValue(baseResult({ mode: 'batch', territoriesExpected: 2, territoriesProcessed: 2 }));
+    const res = await POST(requestWith({ mode: 'batch', territories: [{ codigo_ibge: '3118601' }, { codigo_ibge: '3106200' }] }));
+    expect(res.status).toBe(200);
+    expect(mockRunSecurityCollection).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ mode: 'batch', codigosIbge: ['3118601', '3106200'] })
+    );
+  });
+
+  it('resposta inclui territories[], files_downloaded e timings', async () => {
+    mockRunSecurityCollection.mockResolvedValue(
+      baseResult({
+        mode: 'batch',
+        territoriesExpected: 1,
+        territoryResults: [{ codigoIbge: '3118601', status: 'completed', requestId: 'r1', indicatorsPersisted: 154, error: null, durationMs: 123 }],
+        filesDownloaded: 2,
+        timings: { downloadMs: 5000, parseMs: 800, normalizationMs: 50, processingMs: 10, persistenceMs: 300, totalMs: 6200 },
+      })
+    );
+    const res = await POST(requestWith({ mode: 'batch', territories: [{ codigo_ibge: '3118601' }] }));
+    const body = await res.json();
+    expect(body.territories).toEqual([
+      { codigo_ibge: '3118601', status: 'completed', request_id: 'r1', indicators_persisted: 154, error: null, duration_ms: 123 },
+    ]);
+    expect(body.files_downloaded).toBe(2);
+    expect(body.timings).toEqual({ download_ms: 5000, parse_ms: 800, normalization_ms: 50, processing_ms: 10, persistence_ms: 300, total_ms: 6200 });
   });
 });

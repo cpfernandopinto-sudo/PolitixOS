@@ -93,3 +93,35 @@ export async function resolveTerritoriesMapForUf(
 
   return { map, ambiguous };
 }
+
+/**
+ * Resolve uma LISTA explícita de `codigo_ibge` (7 dígitos, exatos — não o
+ * código SEJUSP de 6 dígitos) em UMA única query (`IN`), para o `mode=batch`
+ * (Bloco 4.5). Diferente de `resolveTerritoriesMapForUf`, não carrega toda a
+ * UF — só os territórios pedidos. Códigos que não existem em `territories`
+ * são reportados em `notFound`, nunca ignorados silenciosamente (Seção 5 do
+ * briefing do Bloco 4.5 — isolamento por município, sem invalidar o lote
+ * inteiro por um código inválido).
+ */
+export async function resolveTerritoriesByCodigosIbge(
+  client: AdminClient,
+  codigosIbge: string[]
+): Promise<{ byCod6: Map<string, ResolvedTerritory>; byCodigoIbge: Map<string, ResolvedTerritory>; notFound: string[] }> {
+  const unique = Array.from(new Set(codigosIbge));
+  const { data, error } = await client.from('territories').select('id, codigo_ibge, municipio, uf').in('codigo_ibge', unique);
+
+  if (error) {
+    throw new Error(`Falha ao resolver territórios do lote: ${error.message}`);
+  }
+
+  const byCodigoIbge = new Map<string, ResolvedTerritory>();
+  const byCod6 = new Map<string, ResolvedTerritory>();
+  for (const row of (data ?? []) as ResolvedTerritory[]) {
+    byCodigoIbge.set(row.codigo_ibge, row);
+    byCod6.set(row.codigo_ibge.slice(0, 6), row);
+  }
+
+  const notFound = unique.filter((codigo) => !byCodigoIbge.has(codigo));
+
+  return { byCod6, byCodigoIbge, notFound };
+}
