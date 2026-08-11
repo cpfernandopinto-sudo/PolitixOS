@@ -109,31 +109,31 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
           {status}
         </span>
       </div>
-      <p className="text-[11px] text-slate-500 mb-1">
-        Decomposição analítica do risco por canal — o Estado Político (acima) já resume esta mesma leitura em uma classificação executiva.
+      <p className="text-[10px] text-slate-500 mb-1 truncate">
+        Decomposição analítica do risco por canal (resumido no Estado Político).
       </p>
 
       <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-        <div className="w-full h-[188px] md:h-[200px]">
+        <div className="w-full h-[140px] md:h-[150px]">
           <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
         </div>
 
-        <div className="text-slate-400 text-[11px] font-semibold -mt-4 mb-2.5 uppercase tracking-widest opacity-70">
+        <div className="text-slate-400 text-[10px] font-semibold -mt-2 mb-1.5 uppercase tracking-widest opacity-70">
           Risco Consolidado
         </div>
 
         <div className="w-full grid grid-cols-3 gap-2">
-          <div className="bg-white/[0.02] rounded px-2 py-1.5 border border-white/[0.08] text-center">
-            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Notícias (50%)</div>
-            <div className="text-base font-bold text-white">{breakdown.noticias}</div>
+          <div className="bg-white/[0.02] rounded px-1 py-1.5 border border-white/[0.08] text-center">
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">Notícias (50%)</div>
+            <div className="text-sm font-bold text-white">{breakdown.noticias}</div>
           </div>
-          <div className="bg-white/[0.02] rounded px-2 py-1.5 border border-white/[0.08] text-center">
-            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">X/Twitter (30%)</div>
-            <div className="text-base font-bold text-white">{breakdown.x}</div>
+          <div className="bg-white/[0.02] rounded px-1 py-1.5 border border-white/[0.08] text-center">
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">X/Twitter (30%)</div>
+            <div className="text-sm font-bold text-white">{breakdown.x}</div>
           </div>
-          <div className="bg-white/[0.02] rounded px-2 py-1.5 border border-white/[0.08] text-center">
-            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight">Instagram (20%)</div>
-            <div className="text-base font-bold text-white">{breakdown.instagram}</div>
+          <div className="bg-white/[0.02] rounded px-1 py-1.5 border border-white/[0.08] text-center">
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">Instagram (20%)</div>
+            <div className="text-sm font-bold text-white">{breakdown.instagram}</div>
           </div>
         </div>
       </div>

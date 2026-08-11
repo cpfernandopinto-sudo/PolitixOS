@@ -16,8 +16,8 @@ describe('OverviewGauge — Termômetro de Crise Master (reintegração Sprint 6
     expect(screen.getByText('Instagram (20%)')).toBeInTheDocument();
   });
 
-  it('explica a diferença em relação ao Estado Político (não é uma duplicação sem contexto)', () => {
+  it('explica a diferença em relação ao Estado Político (não é uma duplicidade confusa)', () => {
     render(<OverviewGauge {...props} />);
-    expect(screen.getByText(/Estado Político.*já resume esta mesma leitura/)).toBeInTheDocument();
+    expect(screen.getByText(/resumido no Estado Político/i)).toBeInTheDocument();
   });
 });

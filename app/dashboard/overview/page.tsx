@@ -15,10 +15,8 @@ import OverviewRisk from '@/components/dashboard/overview/OverviewRisk';
 import OverviewExecutiveTable from '@/components/dashboard/overview/OverviewExecutiveTable';
 import OverviewTimeline from '@/components/dashboard/overview/OverviewTimeline';
 import ExecutiveScenarioSummary from '@/components/dashboard/overview/ExecutiveScenarioSummary';
-import PoliticalStatusCard from '@/components/dashboard/overview/PoliticalStatusCard';
 import OpportunityBoard from '@/components/dashboard/overview/OpportunityBoard';
 import KeyChanges from '@/components/dashboard/overview/KeyChanges';
-import AttentionEntitiesStrip from '@/components/dashboard/overview/AttentionEntitiesStrip';
 import AssistedInsight from '@/components/dashboard/overview/AssistedInsight';
 import ExecutiveNarrative from '@/components/dashboard/overview/ExecutiveNarrative';
 import { buildExecutiveNarrative } from '@/lib/analytics/executive-narrative';
@@ -70,14 +68,9 @@ async function SynthesisSection({ filters }: { filters: OverviewFilters }) {
   return (
     <div className="surface-primary p-4 h-full">
       <p role="heading" aria-level={2} className="text-white font-bold text-lg tracking-tight mb-2">Síntese do Cenário</p>
-      <ExecutiveScenarioSummary synthesis={synthesis} compact layout="stack" />
+      <ExecutiveScenarioSummary synthesis={synthesis} compact layout="grid" />
     </div>
   );
-}
-
-async function PoliticalStatusSection({ filters }: { filters: OverviewFilters }) {
-  const { politicalStatus } = await getExecutiveOverviewData(filters);
-  return <PoliticalStatusCard status={politicalStatus} />;
 }
 
 async function CrisisSection({ filters }: { filters: OverviewFilters }) {
@@ -110,11 +103,6 @@ async function ChannelsSection({ filters }: { filters: OverviewFilters }) {
   return <OverviewChannels data={channels} />;
 }
 
-async function AttentionSection({ filters }: { filters: OverviewFilters }) {
-  const { entities } = await getExecutiveOverviewData(filters);
-  return <AttentionEntitiesStrip entities={entities} />;
-}
-
 async function KeyChangesSection({ filters }: { filters: OverviewFilters }) {
   const { keyChanges } = await getExecutiveOverviewData(filters);
   return <KeyChanges changes={keyChanges} />;
@@ -140,17 +128,6 @@ async function TableSection({ filters }: { filters: OverviewFilters }) {
 async function TimelineSection({ filters }: { filters: OverviewFilters }) {
   const events = await getTimelineEvents(filters);
   return <OverviewTimeline events={events} />;
-}
-
-function PanoramaAnaliticoHeader() {
-  return (
-    <div className="flex items-center gap-2">
-      <BarChart3 size={16} className="text-cyan-400 shrink-0" aria-hidden="true" />
-      <p role="heading" aria-level={2} className="text-[22px] text-white font-bold tracking-tight">Panorama Analítico</p>
-      <span className="text-xs text-slate-500 hidden sm:inline">— Temas, canais, percepção e risco consolidados.</span>
-      <div className="flex-1 h-px bg-blue-500/5 ml-2" />
-    </div>
-  );
 }
 
 type Props = {
@@ -187,23 +164,33 @@ export default async function OverviewPage({ searchParams }: Props) {
         <KPISection filters={filters} />
       </SectionBoundary>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <div className="lg:col-span-8 flex flex-col">
-          <SectionBoundary label="Leitura executiva" fallback={<BlockSkeleton height={220} />} minHeight={220}>
+      {/* PRIMEIRA DOBRA EXECUTIVA UNIFICADA */}
+      <div 
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[var(--exec-cols)] gap-3 xl:gap-4 items-stretch mb-5"
+        style={{ '--exec-cols': 'minmax(0, 1.7fr) minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1.15fr)' } as React.CSSProperties}
+      >
+        <div className="flex flex-col min-w-0">
+          <SectionBoundary label="Leitura executiva" fallback={<BlockSkeleton height={240} />} minHeight={240}>
             <NarrativeSection filters={filters} />
           </SectionBoundary>
         </div>
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <SectionBoundary label="Entidades em atenção" fallback={<BlockSkeleton height={220} />} minHeight={220}>
-            <AttentionSection filters={filters} />
+        <div className="flex flex-col min-w-0">
+          <SectionBoundary label="Termômetro de crise" fallback={<BlockSkeleton height={240} />} minHeight={240}>
+            <CrisisSection filters={filters} />
           </SectionBoundary>
-          <SectionBoundary label="Síntese do cenário" fallback={<BlockSkeleton height={220} />} minHeight={220}>
+        </div>
+        <div className="flex flex-col min-w-0" id="mudancas-relevantes">
+          <SectionBoundary label="Mudanças relevantes" fallback={<BlockSkeleton height={240} />} minHeight={240}>
+            <KeyChangesSection filters={filters} />
+          </SectionBoundary>
+        </div>
+        <div className="flex flex-col min-w-0">
+          <SectionBoundary label="Síntese do cenário" fallback={<BlockSkeleton height={240} />} minHeight={240}>
             <SynthesisSection filters={filters} />
           </SectionBoundary>
         </div>
       </div>
 
-      <PanoramaAnaliticoHeader />
       <div id="analytics-grid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch scroll-mt-20">
         <SectionBoundary label="Temas dominantes" fallback={<BlockSkeleton height={300} />} minHeight={300}>
           <TopicsSection filters={filters} />
@@ -216,25 +203,6 @@ export default async function OverviewPage({ searchParams }: Props) {
         </SectionBoundary>
         <SectionBoundary label="Distribuição por canal" fallback={<BlockSkeleton height={300} />} minHeight={300}>
           <ChannelsSection filters={filters} />
-        </SectionBoundary>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 items-stretch">
-        <div className="xl:col-span-2">
-          <SectionBoundary label="Termômetro de crise" fallback={<BlockSkeleton height={280} />} minHeight={280}>
-            <CrisisSection filters={filters} />
-          </SectionBoundary>
-        </div>
-        <div className="xl:col-span-3">
-          <SectionBoundary label="Estado político" fallback={<BlockSkeleton height={280} />} minHeight={280}>
-            <PoliticalStatusSection filters={filters} />
-          </SectionBoundary>
-        </div>
-      </div>
-
-      <div id="mudancas-relevantes" className="scroll-mt-20">
-        <SectionBoundary label="Mudanças relevantes" fallback={<BlockSkeleton height={180} />} minHeight={180}>
-          <KeyChangesSection filters={filters} />
         </SectionBoundary>
       </div>
 

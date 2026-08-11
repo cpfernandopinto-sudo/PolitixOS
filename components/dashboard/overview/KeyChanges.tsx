@@ -14,10 +14,10 @@ const INTERPRETATION_COLOR: Record<KeyChange['interpretacao'], string> = {
 function ChangeCard({ change }: { change: KeyChange }) {
   const Icon = change.diferencaAbsoluta > 0 ? ArrowUpRight : change.diferencaAbsoluta < 0 ? ArrowDownRight : ArrowLeftRight;
   return (
-    <div className="bg-white/[0.02] border border-white/[0.08] rounded p-4 space-y-2">
+    <div className="bg-white/[0.02] border border-white/[0.08] rounded p-3 space-y-1.5 min-w-0">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">{change.label}</span>
-        <Icon size={14} className={INTERPRETATION_COLOR[change.interpretacao]} />
+        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide truncate pr-2">{change.label}</span>
+        <Icon size={14} className={INTERPRETATION_COLOR[change.interpretacao] + " shrink-0"} />
       </div>
       <div className="flex items-baseline gap-2">
         <span className={`text-xl font-black ${INTERPRETATION_COLOR[change.interpretacao]}`}>
@@ -50,7 +50,7 @@ export default function KeyChanges({ changes }: Props) {
           Sem comparação temporal real disponível para o período e filtros selecionados.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="flex flex-col gap-3 h-full">
           {changes.map((c) => <ChangeCard key={c.id} change={c} />)}
         </div>
       )}

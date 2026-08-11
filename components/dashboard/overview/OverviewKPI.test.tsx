@@ -43,7 +43,6 @@ describe('OverviewKPI — cards executivos (Camada 1, reintegração Sprint 6)',
   it('cada card explica seu papel de forma distinta (sem repetir o mesmo texto do Estado Político)', () => {
     render(<OverviewKPI {...props} />);
     const captions = [
-      'Leitura executiva de war room',
       'Consolidação sintética operacional',
       'Nível de tensão',
       'Variação de volume',

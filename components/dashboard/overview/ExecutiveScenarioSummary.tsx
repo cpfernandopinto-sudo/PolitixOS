@@ -56,7 +56,7 @@ function CompactCell({ label, icon, field, borderRight, borderBottom }: { label:
   return (
     <div
       className={[
-        'p-3 min-w-0',
+        'p-2.5 min-w-0 flex flex-col justify-center',
         borderRight ? 'sm:border-r sm:border-white/[0.08]' : '',
         borderBottom ? 'border-b border-white/[0.08]' : '',
       ].join(' ')}

@@ -39,11 +39,11 @@ export default function ExecutiveNarrative({ narrative }: Props) {
   }
 
   return (
-    <div className="surface-hero border-l-2 border-l-cyan-400 p-6 h-full flex flex-col">
-      <div className="flex items-start gap-4">
-        <Compass size={22} className="text-cyan-400 shrink-0 mt-0.5" aria-hidden="true" />
-        <div className="min-w-0 space-y-2">
-          <p role="heading" aria-level={2} className="text-white font-bold text-lg tracking-tight">Leitura Executiva</p>
+    <div className="surface-hero border-l-2 border-l-cyan-400 p-4 xl:p-5 h-full flex flex-col">
+      <div className="flex items-start gap-3">
+        <Compass size={20} className="text-cyan-400 shrink-0 mt-0.5" aria-hidden="true" />
+        <div className="min-w-0 space-y-1.5">
+          <p role="heading" aria-level={2} className="text-white font-bold text-base tracking-tight">Leitura Executiva</p>
           {/* A. Frase principal */}
           <p className="text-narrative text-white font-semibold">{narrative.fraseGeral}</p>
           {/* B. Contexto */}
@@ -57,7 +57,7 @@ export default function ExecutiveNarrative({ narrative }: Props) {
 
       {/* D. Ações — só destinos funcionais reais (âncoras/filtros existentes). */}
       {narrative.acoes.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/[0.08]">
+        <div className="flex flex-wrap gap-2 mt-auto pt-3 border-t border-white/[0.08]">
           {narrative.acoes.map((acao) => (
             <Link
               key={`${acao.label}:${acao.href}`}
