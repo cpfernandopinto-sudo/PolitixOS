@@ -41,7 +41,7 @@ interface Props {
 
 // ─── Screen labels ────────────────────────────────────────────────────────────
 
-const SCREEN_LABELS: Record<string, string> = {
+export const SCREEN_LABELS: Record<string, string> = {
   dashboard: 'Visão Geral',
   noticias: 'Radar de Notícias',
   instagram: 'Radar Instagram',
@@ -51,6 +51,7 @@ const SCREEN_LABELS: Record<string, string> = {
   investigacoes: 'Investigações',
   gestao_crise: 'Gestão de Crise',
   apoiadores: 'Apoiadores',
+  territorios: 'Territórios',
   configuracoes: 'Configurações',
 };
 

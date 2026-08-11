@@ -13,6 +13,7 @@ const SCREEN_MAP: Record<string, string> = {
   '/dashboard/investigacoes': 'investigacoes',
   '/dashboard/gestao-crise': 'gestao_crise',
   '/dashboard/apoiadores': 'apoiadores',
+  '/dashboard/territorios': 'territorios',
   '/dashboard/configuracoes': 'configuracoes',
   '/dashboard/usuarios': 'usuarios', // apenas admin
 };

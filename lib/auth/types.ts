@@ -26,6 +26,7 @@ export const ALL_SCREENS: string[] = [
   'investigacoes',
   'gestao_crise',
   'apoiadores',
+  'territorios',
   'configuracoes',
 ];
 // force deploy
