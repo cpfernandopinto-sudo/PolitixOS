@@ -13,6 +13,13 @@ import {
 } from '@/lib/territorios/seguranca-collector';
 import { SegurancaSourceError } from '@/lib/territorios/seguranca-mg-client';
 
+// Sem isto, a rota herda o timeout padrão da Vercel (10s no Hobby, 15s no Pro
+// sem config) — a homologação real do Bloco 4.6 mediu 12,8s para um lote de 5
+// municípios em primeira coleta (caminho INSERT), já acima do default do
+// Hobby. 60s cobre esse caminho com folga confortável; um lote que caia no
+// caminho de UPDATE (reprocessamento) pode ultrapassar isso — ver relatório.
+export const maxDuration = 60;
+
 // ---------------------------------------------------------------------------
 // Endpoint máquina-a-máquina do Motor Segurança Pública (MG/SEJUSP) —
 // Politix Territórios (Bloco 4.2). Endpoint PRÓPRIO, não reutiliza
