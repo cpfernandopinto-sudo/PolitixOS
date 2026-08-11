@@ -1,14 +1,21 @@
 // ---------------------------------------------------------------------------
-// SecurityCollector — Motor Segurança Pública / MG (Bloco 4.2).
+// SecurityCollector — Motor Segurança Pública / MG (Bloco 4.2, batch Bloco 4.5).
 // ---------------------------------------------------------------------------
-// Orquestra o pipeline completo, mantendo cada etapa separada e testável
-// (Seção 9 do briefing): fetch/parse ficam em `seguranca-mg-client.ts`,
-// resolução de território em `seguranca-territory-resolver.ts`, normalização
-// de natureza em `seguranca-nature-map.ts`. Este arquivo cuida de:
-// determinar a janela temporal, filtrar/agregar mensalmente, resolver
-// território por linha e persistir em `territory_indicators` +
-// `territory_collection_runs`, reaproveitando exatamente o schema já
-// homologado no Motor IBGE — nenhuma tabela nova.
+// Orquestra o pipeline completo, mantendo cada etapa separada e testável:
+// fetch/parse ficam em `seguranca-mg-client.ts`, resolução de território em
+// `seguranca-territory-resolver.ts`, normalização de natureza em
+// `seguranca-nature-map.ts`. Este arquivo cuida de: determinar a janela
+// temporal, baixar/parsear os CSVs UMA VEZ por chamada (Bloco 4.5 — nunca em
+// loop por município), filtrar/agregar mensalmente, resolver território por
+// linha e persistir em `territory_indicators` + `territory_collection_runs`,
+// reaproveitando exatamente o schema já homologado no Motor IBGE — nenhuma
+// tabela nova.
+//
+// `mode=batch` (Bloco 4.5): mesma fonte de dados e mesmas etapas de
+// single/mg, mas processando uma LISTA explícita de municípios (até
+// MAX_BATCH_SIZE) na MESMA chamada, compartilhando o único download/parse
+// entre todos eles — elimina o redownload redundante que `mode=single`
+// chamado repetidamente (via orquestrador externo) causava.
 // ---------------------------------------------------------------------------
 
 import { randomUUID } from 'node:crypto';
@@ -23,10 +30,14 @@ import {
   type CrimeViolentoRow,
 } from './seguranca-mg-client';
 import { resolveNatureza, CORE_INDICATOR_KEYS, INDICE_CRIMES_VIOLENTOS_KEY } from './seguranca-nature-map';
-import { resolveTerritoriesMapForUf, type ResolvedTerritory } from './seguranca-territory-resolver';
+import {
+  resolveTerritoriesMapForUf,
+  resolveTerritoriesByCodigosIbge,
+  type ResolvedTerritory,
+} from './seguranca-territory-resolver';
 
 export const WORKFLOW_NAME = 'politix-territorios-seguranca-mg';
-export const WORKFLOW_VERSION = '1.0.0';
+export const WORKFLOW_VERSION = '1.1.0';
 export const COLLECTION_RUN_SOURCE = 'sejusp_mg';
 export const CATEGORIA = 'seguranca_publica';
 export const FONTE = CRIMES_VIOLENTOS_SOURCE;
@@ -37,7 +48,10 @@ export const MIN_MONTHS = 1;
 export const MAX_MONTHS = 24;
 export const DEFAULT_MONTHS = 12;
 
-export type SecurityCollectionMode = 'single' | 'mg';
+/** Limite de municípios por chamada `mode=batch` — centralizado, não espalhar magic numbers (Bloco 4.5, Fase 3). */
+export const MAX_BATCH_SIZE = 10;
+
+export type SecurityCollectionMode = 'single' | 'mg' | 'batch';
 
 export type SecurityCollectionErrorKind = 'invalid_input' | 'territory_not_found';
 
@@ -53,6 +67,8 @@ export class SecurityCollectionError extends Error {
 export interface RunSecurityCollectionInput {
   mode: SecurityCollectionMode;
   codigoIbge?: string | null;
+  /** Só para mode=batch — lista de codigo_ibge (7 dígitos) a processar nesta chamada, até MAX_BATCH_SIZE. */
+  codigosIbge?: string[] | null;
   months?: number | null;
   requestId?: string | null;
   /** Injeção para testes — data de referência para o cálculo da janela. Default: `new Date()`. */
@@ -62,6 +78,25 @@ export interface RunSecurityCollectionInput {
 export interface YearMonth {
   year: number;
   month: number;
+}
+
+/** Resultado por território — obrigatório para mode=batch (isolamento, Bloco 4.5 Fase 5), também preenchido para single/mg. */
+export interface TerritoryOutcome {
+  codigoIbge: string;
+  status: 'completed' | 'partial' | 'failed';
+  requestId: string;
+  indicatorsPersisted: number;
+  error: string | null;
+  durationMs: number;
+}
+
+export interface SecurityCollectionTimings {
+  downloadMs: number;
+  parseMs: number;
+  normalizationMs: number;
+  processingMs: number;
+  persistenceMs: number;
+  totalMs: number;
 }
 
 export interface SecurityCollectionResult {
@@ -79,6 +114,9 @@ export interface SecurityCollectionResult {
   unknownNatures: string[];
   excludedOutOfScopeNatures: string[];
   unmatchedMunicipalities: string[];
+  territoryResults: TerritoryOutcome[];
+  filesDownloaded: number;
+  timings: SecurityCollectionTimings;
   errors: string[];
   overallStatus: 'completed' | 'partial' | 'failed';
 }
@@ -239,60 +277,118 @@ function normalizeAndAggregate(
 }
 
 // ─── Persistência (mesma semântica de idempotência do Motor IBGE) ─────────
+//
+// Bloco 4.5, Fase 6: a homologação do single1 mediu persistenceMs=79785 de
+// um totalMs=83847 (~95%) — o gargalo real não é o download (2017ms), é a
+// sequência de 2 round trips (select + insert/update) POR INDICADOR. Aqui
+// trocamos isso por, POR TERRITÓRIO: 1 SELECT em lote (busca todos os
+// indicadores já persistidos no escopo do Motor Segurança para aquele
+// território) + 1 INSERT em lote (todas as linhas novas) + updates
+// individuais só para as linhas que já existiam (reprocessamento do mesmo
+// período — o caminho menos comum). Mesma chave natural, mesma semântica de
+// idempotência do `upsertSecurityIndicator` anterior — só agrupada. Não
+// usa upsert nativo do PostgREST porque a chave natural do índice único é
+// uma expressão com COALESCE, que `onConflict` não consegue endereçar.
 
-async function upsertSecurityIndicator(
+async function persistTerritoryIndicators(
   client: AdminClient,
-  entry: AggregatedIndicator,
-  sourceResourceName: string
-): Promise<{ error?: string }> {
-  const { periodo_inicio, periodo_fim } = monthBounds(entry.year, entry.month);
+  territoryId: string,
+  entries: AggregatedIndicator[],
+  resourceNameByYear: Map<number, string>
+): Promise<{ processed: number; failed: number; errors: string[] }> {
+  if (entries.length === 0) return { processed: 0, failed: 0, errors: [] };
 
-  const { data: existing, error: selectError } = await client
+  const { data: existingRows, error: selectError } = await client
     .from('territory_indicators')
-    .select('id')
-    .eq('territory_id', entry.territory_id)
+    .select('id, indicador, periodo_inicio, periodo_fim')
+    .eq('territory_id', territoryId)
     .eq('categoria', CATEGORIA)
-    .eq('indicador', entry.indicatorKey)
     .eq('fonte', FONTE)
-    .eq('source_dataset', SOURCE_DATASET)
-    .eq('periodo_inicio', periodo_inicio)
-    .eq('periodo_fim', periodo_fim)
-    .maybeSingle();
+    .eq('source_dataset', SOURCE_DATASET);
 
-  if (selectError) return { error: selectError.message };
+  if (selectError) {
+    return {
+      processed: 0,
+      failed: entries.length,
+      errors: entries.map(
+        (e) => `territory_id=${territoryId} indicador=${e.indicatorKey} ${e.year}-${e.month}: ${selectError.message}`
+      ),
+    };
+  }
 
-  const metadata = {
+  const existingIdByKey = new Map<string, string>();
+  for (const r of (existingRows ?? []) as { id: string; indicador: string; periodo_inicio: string; periodo_fim: string }[]) {
+    existingIdByKey.set(`${r.indicador}|${r.periodo_inicio}|${r.periodo_fim}`, r.id);
+  }
+
+  const nowIso = new Date().toISOString();
+  const buildMetadata = (entry: AggregatedIndicator) => ({
     risp: entry.risp,
     rmbh: entry.rmbh,
     natureza_original: entry.naturezaOriginal,
     source_year: entry.sourceYear,
-    source_resource: sourceResourceName,
-    collected_at: new Date().toISOString(),
-  };
+    source_resource: resourceNameByYear.get(entry.sourceYear) ?? `crimes_violentos_${entry.sourceYear}`,
+    collected_at: nowIso,
+  });
 
-  const payload = {
-    valor: entry.valor,
-    unidade: UNIDADE,
-    metadata,
-    updated_at: new Date().toISOString(),
-  };
+  const toInsert: Record<string, unknown>[] = [];
+  const toUpdate: { id: string; entry: AggregatedIndicator }[] = [];
 
-  if (existing) {
-    const { error } = await client.from('territory_indicators').update(payload).eq('id', existing.id);
-    return { error: error?.message };
+  for (const entry of entries) {
+    const { periodo_inicio, periodo_fim } = monthBounds(entry.year, entry.month);
+    const key = `${entry.indicatorKey}|${periodo_inicio}|${periodo_fim}`;
+    const existingId = existingIdByKey.get(key);
+    if (existingId) {
+      toUpdate.push({ id: existingId, entry });
+    } else {
+      toInsert.push({
+        territory_id: territoryId,
+        categoria: CATEGORIA,
+        indicador: entry.indicatorKey,
+        fonte: FONTE,
+        source_dataset: SOURCE_DATASET,
+        periodo_inicio,
+        periodo_fim,
+        valor: entry.valor,
+        unidade: UNIDADE,
+        metadata: buildMetadata(entry),
+        updated_at: nowIso,
+      });
+    }
   }
 
-  const { error } = await client.from('territory_indicators').insert({
-    territory_id: entry.territory_id,
-    categoria: CATEGORIA,
-    indicador: entry.indicatorKey,
-    fonte: FONTE,
-    source_dataset: SOURCE_DATASET,
-    periodo_inicio,
-    periodo_fim,
-    ...payload,
-  });
-  return { error: error?.message };
+  let processed = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  if (toInsert.length > 0) {
+    const { error } = await client.from('territory_indicators').insert(toInsert);
+    if (error) {
+      failed += toInsert.length;
+      errors.push(`territory_id=${territoryId}: falha ao inserir ${toInsert.length} indicador(es) em lote: ${error.message}`);
+    } else {
+      processed += toInsert.length;
+    }
+  }
+
+  // Updates seguem individuais — PostgREST não suporta update condicional em
+  // lote sem RPC. É o caminho menos comum (só ocorre ao reprocessar um
+  // período já coletado); o SELECT em lote acima já eliminou o maior custo
+  // (N selects → 1).
+  for (const { id, entry } of toUpdate) {
+    const { error } = await client
+      .from('territory_indicators')
+      .update({ valor: entry.valor, unidade: UNIDADE, metadata: buildMetadata(entry), updated_at: nowIso })
+      .eq('id', id);
+    if (error) {
+      failed++;
+      errors.push(`territory_id=${territoryId} indicador=${entry.indicatorKey} ${entry.year}-${entry.month}: ${error.message}`);
+    } else {
+      processed++;
+    }
+  }
+
+  return { processed, failed, errors };
 }
 
 // ─── Orquestração ──────────────────────────────────────────────────────────
@@ -301,6 +397,7 @@ export async function runSecurityCollection(
   client: AdminClient,
   input: RunSecurityCollectionInput
 ): Promise<SecurityCollectionResult> {
+  const totalStart = Date.now();
   const requestId = input.requestId ?? randomUUID();
   const months = input.months ?? DEFAULT_MONTHS;
 
@@ -310,20 +407,43 @@ export async function runSecurityCollection(
   if (input.mode === 'single' && !input.codigoIbge) {
     throw new SecurityCollectionError('invalid_input', 'mode=single requer codigoIbge.');
   }
+  if (input.mode === 'batch') {
+    if (!Array.isArray(input.codigosIbge) || input.codigosIbge.length === 0) {
+      throw new SecurityCollectionError('invalid_input', 'mode=batch requer "codigosIbge" com ao menos 1 território.');
+    }
+    if (input.codigosIbge.length > MAX_BATCH_SIZE) {
+      throw new SecurityCollectionError(
+        'invalid_input',
+        `mode=batch aceita no máximo ${MAX_BATCH_SIZE} territórios por chamada (recebido: ${input.codigosIbge.length}).`
+      );
+    }
+  }
 
   const referenceDate = input.referenceDate ?? new Date();
   const windowMonths = computeWindow(months, referenceDate);
   const windowSet = new Set(windowMonths.map(windowKey));
   const years = Array.from(new Set(windowMonths.map((wm) => wm.year))).sort();
 
-  // 1 download por ano necessário (nunca por município) — Seção 2.
+  // ─── Download — UMA VEZ por chamada, nunca em loop por município
+  // (Bloco 4.5, Fase 4). O mesmo código já servia mode=single/mg dessa
+  // forma; mode=batch reaproveita exatamente este trecho, compartilhando o
+  // download entre todos os municípios do lote.
+  const downloadStart = Date.now();
   const resources = await discoverResources(CRIMES_VIOLENTOS_DATASET_ID);
-  const allRows: CrimeViolentoRow[] = [];
+  const csvTexts: string[] = [];
   const resourceNameByYear = new Map<number, string>();
   for (const year of years) {
     const resource = selectResourceForYear(resources, year);
     resourceNameByYear.set(year, resource.name);
-    const csvText = await fetchAnnualCsv(resource.url);
+    csvTexts.push(await fetchAnnualCsv(resource.url));
+  }
+  const downloadMs = Date.now() - downloadStart;
+  const filesDownloaded = csvTexts.length;
+
+  // ─── Parse — UMA VEZ por chamada.
+  const parseStart = Date.now();
+  const allRows: CrimeViolentoRow[] = [];
+  for (const csvText of csvTexts) {
     // Nunca usar `push(...array)` aqui: os CSVs anuais têm ~80-150 mil
     // linhas, e espalhar um array desse tamanho como argumentos de função
     // estoura a call stack do V8 (limite de argumentos por chamada).
@@ -331,16 +451,16 @@ export async function runSecurityCollection(
       allRows.push(row);
     }
   }
+  const parseMs = Date.now() - parseStart;
 
   const windowRows = allRows.filter((row) => windowSet.has(`${row.ano}-${row.mes}`));
 
-  // Resolução de território — direção "cod SEJUSP → territory" (Seção 5).
-  // Só carrega o mapa completo da UF quando realmente precisa dele
-  // (mode=mg) — mode=single resolve o único território direto por
-  // codigo_ibge, sem precisar buscar os 853 territórios de MG à toa.
+  // ─── Resolução de território — direção "cod SEJUSP → territory".
+  const processingStart = Date.now();
   let scopedRows: CrimeViolentoRow[];
   let territoriesByCod6: Map<string, ResolvedTerritory>;
   let territoriesExpected: number;
+  const notFoundCodigosIbge: string[] = [];
 
   if (input.mode === 'single') {
     const codigoIbge = input.codigoIbge as string;
@@ -362,18 +482,43 @@ export async function runSecurityCollection(
     scopedRows = windowRows.filter((row) => row.cod_municipio === cod6);
     territoriesByCod6 = new Map([[cod6, territory]]);
     territoriesExpected = 1;
+  } else if (input.mode === 'batch') {
+    const codigosIbge = input.codigosIbge as string[];
+    const { byCod6, notFound } = await resolveTerritoriesByCodigosIbge(client, codigosIbge);
+    notFoundCodigosIbge.push(...notFound);
+    // Não filtra scopedRows por código — normalizeAndAggregate já descarta
+    // linhas cujo cod_municipio não está no mapa (mesma lógica do mode=mg).
+    // O custo de varrer windowRows inteiro (dezenas de milhares de linhas,
+    // não centenas de milhares) é desprezível frente ao download/parse.
+    scopedRows = windowRows;
+    territoriesByCod6 = byCod6;
+    // territoriesExpected reflete o TAMANHO DO LOTE pedido (não só os
+    // encontrados) — um código não encontrado ainda conta como "esperado",
+    // só que termina como falha isolada (Fase 5), não invalida o lote.
+    territoriesExpected = codigosIbge.length;
   } else {
     const { map: mgTerritoriesByCod6 } = await resolveTerritoriesMapForUf(client, 'MG');
     scopedRows = windowRows;
     territoriesByCod6 = mgTerritoriesByCod6;
     territoriesExpected = mgTerritoriesByCod6.size;
   }
+  const processingMs = Date.now() - processingStart;
 
+  const normalizationStart = Date.now();
   const normalized = normalizeAndAggregate(scopedRows, territoriesByCod6);
+  const normalizationMs = Date.now() - normalizationStart;
+
+  // Mapa reverso território_id → codigo_ibge, para os resultados por
+  // território (TerritoryOutcome) exigidos pela Fase 5 do Bloco 4.5.
+  const codigoIbgeByTerritoryId = new Map<string, string>();
+  for (const territory of territoriesByCod6.values()) {
+    codigoIbgeByTerritoryId.set(territory.id, territory.codigo_ibge);
+  }
 
   // Agrupa entradas agregadas por território para persistir + abrir 1
   // collection_run por território (mesmo padrão do Motor IBGE mode=uf —
-  // territory_id é NOT NULL, nunca um valor fictício/agregado).
+  // territory_id é NOT NULL, nunca um valor fictício/agregado). Válido para
+  // single/mg/batch por igual.
   const entriesByTerritory = new Map<string, AggregatedIndicator[]>();
   for (const entry of normalized.aggregation.values()) {
     const list = entriesByTerritory.get(entry.territory_id) ?? [];
@@ -381,27 +526,25 @@ export async function runSecurityCollection(
     entriesByTerritory.set(entry.territory_id, list);
   }
 
+  const persistenceStart = Date.now();
   let indicatorsPersisted = 0;
   let territoriesProcessed = 0;
   const errors: string[] = [];
+  const territoryResults: TerritoryOutcome[] = [];
   const windowFrom = windowMonths[0];
   const windowTo = windowMonths[windowMonths.length - 1];
 
   for (const [territoryId, entries] of entriesByTerritory) {
+    const territoryStart = Date.now();
     const startedAt = new Date().toISOString();
-    let processed = 0;
-    let failed = 0;
 
-    for (const entry of entries) {
-      const sourceResourceName = resourceNameByYear.get(entry.sourceYear) ?? `crimes_violentos_${entry.sourceYear}`;
-      const { error } = await upsertSecurityIndicator(client, entry, sourceResourceName);
-      if (error) {
-        failed++;
-        errors.push(`territory_id=${territoryId} indicador=${entry.indicatorKey} ${entry.year}-${entry.month}: ${error}`);
-      } else {
-        processed++;
-      }
-    }
+    const { processed, failed, errors: territoryErrors } = await persistTerritoryIndicators(
+      client,
+      territoryId,
+      entries,
+      resourceNameByYear
+    );
+    errors.push(...territoryErrors);
 
     const finishedAt = new Date().toISOString();
     const rawCount = normalized.perTerritoryRawCount.get(territoryId) ?? 0;
@@ -430,7 +573,32 @@ export async function runSecurityCollection(
 
     indicatorsPersisted += processed;
     if (processed > 0) territoriesProcessed++;
+
+    territoryResults.push({
+      codigoIbge: codigoIbgeByTerritoryId.get(territoryId) ?? territoryId,
+      status,
+      requestId,
+      indicatorsPersisted: processed,
+      error: failed > 0 ? `${failed} indicador(es) falharam ao persistir.` : null,
+      durationMs: Date.now() - territoryStart,
+    });
   }
+
+  // Códigos do lote que não existem em `territories` — isolados como falha
+  // individual, sem invalidar os demais municípios do lote (Fase 5).
+  for (const codigo of notFoundCodigosIbge) {
+    const message = `Território com codigo_ibge="${codigo}" não encontrado.`;
+    errors.push(message);
+    territoryResults.push({
+      codigoIbge: codigo,
+      status: 'failed',
+      requestId,
+      indicatorsPersisted: 0,
+      error: message,
+      durationMs: 0,
+    });
+  }
+  const persistenceMs = Date.now() - persistenceStart;
 
   const rowsDiscarded =
     normalized.unknownNatureRowCount + normalized.outOfScopeRowCount + normalized.unmatchedMunicipioRowCount;
@@ -443,6 +611,8 @@ export async function runSecurityCollection(
       : hasFailures || hasUnmatched || territoriesProcessed < territoriesExpected
         ? 'partial'
         : 'completed';
+
+  const totalMs = Date.now() - totalStart;
 
   return {
     requestId,
@@ -459,6 +629,16 @@ export async function runSecurityCollection(
     unknownNatures: Array.from(normalized.unknownNatures),
     excludedOutOfScopeNatures: Array.from(normalized.excludedOutOfScopeNatures),
     unmatchedMunicipalities: Array.from(normalized.unmatchedMunicipalities),
+    territoryResults,
+    filesDownloaded,
+    timings: {
+      downloadMs,
+      parseMs,
+      normalizationMs,
+      processingMs,
+      persistenceMs,
+      totalMs,
+    },
     errors,
     overallStatus,
   };

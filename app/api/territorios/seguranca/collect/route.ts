@@ -7,10 +7,18 @@ import {
   MIN_MONTHS,
   MAX_MONTHS,
   DEFAULT_MONTHS,
+  MAX_BATCH_SIZE,
   type SecurityCollectionMode,
   type RunSecurityCollectionInput,
 } from '@/lib/territorios/seguranca-collector';
 import { SegurancaSourceError } from '@/lib/territorios/seguranca-mg-client';
+
+// Sem isto, a rota herda o timeout padrão da Vercel (10s no Hobby, 15s no Pro
+// sem config) — a homologação real do Bloco 4.6 mediu 12,8s para um lote de 5
+// municípios em primeira coleta (caminho INSERT), já acima do default do
+// Hobby. 60s cobre esse caminho com folga confortável; um lote que caia no
+// caminho de UPDATE (reprocessamento) pode ultrapassar isso — ver relatório.
+export const maxDuration = 60;
 
 // ---------------------------------------------------------------------------
 // Endpoint máquina-a-máquina do Motor Segurança Pública (MG/SEJUSP) —
@@ -25,10 +33,16 @@ import { SegurancaSourceError } from '@/lib/territorios/seguranca-mg-client';
 // reaproveita `TERRITORIOS_IBGE_CALLBACK_SECRET`.
 // ---------------------------------------------------------------------------
 
+interface BatchTerritoryInput {
+  codigo_ibge?: string;
+}
+
 interface CollectPayload {
   request_id?: string;
   mode?: SecurityCollectionMode;
   codigo_ibge?: string;
+  /** Só para mode=batch — até MAX_BATCH_SIZE itens, ex.: [{ "codigo_ibge": "3118601" }]. */
+  territories?: BatchTerritoryInput[];
   months?: number;
 }
 
@@ -65,7 +79,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Payload inválido.', code: 'INVALID_PAYLOAD' }, { status: 400 });
   }
 
-  const VALID_MODES: SecurityCollectionMode[] = ['single', 'mg'];
+  const VALID_MODES: SecurityCollectionMode[] = ['single', 'mg', 'batch'];
   if (!payload.mode || !VALID_MODES.includes(payload.mode)) {
     return NextResponse.json(
       { success: false, error: `Campo "mode" ausente ou inválido. Use um de: ${VALID_MODES.join(', ')}.`, code: 'INVALID_MODE' },
@@ -79,6 +93,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let codigosIbge: string[] | null = null;
+  if (payload.mode === 'batch') {
+    const territories = payload.territories;
+    if (!Array.isArray(territories) || territories.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'mode=batch requer "territories" com ao menos 1 item (ex.: [{ "codigo_ibge": "3118601" }]).', code: 'EMPTY_BATCH' },
+        { status: 400 }
+      );
+    }
+    if (territories.length > MAX_BATCH_SIZE) {
+      return NextResponse.json(
+        { success: false, error: `mode=batch aceita no máximo ${MAX_BATCH_SIZE} territórios por chamada (recebido: ${territories.length}).`, code: 'BATCH_TOO_LARGE' },
+        { status: 400 }
+      );
+    }
+    const invalidIndex = territories.findIndex((t) => !t || typeof t.codigo_ibge !== 'string' || t.codigo_ibge.trim() === '');
+    if (invalidIndex !== -1) {
+      return NextResponse.json(
+        { success: false, error: `territories[${invalidIndex}] precisa de um "codigo_ibge" (string não vazia).`, code: 'INVALID_BATCH_ITEM' },
+        { status: 400 }
+      );
+    }
+    codigosIbge = territories.map((t) => (t.codigo_ibge as string).trim());
+  }
+
   const months = payload.months ?? DEFAULT_MONTHS;
   if (!Number.isInteger(months) || months < MIN_MONTHS || months > MAX_MONTHS) {
     return NextResponse.json(
@@ -90,11 +129,18 @@ export async function POST(req: NextRequest) {
   const input: RunSecurityCollectionInput = {
     mode: payload.mode,
     codigoIbge: payload.codigo_ibge ?? null,
+    codigosIbge,
     months,
     requestId: payload.request_id ?? null,
   };
 
-  console.info('[territorios/seguranca/collect] Coleta iniciada:', { mode: input.mode, codigoIbge: input.codigoIbge, months, requestId: input.requestId });
+  console.info('[territorios/seguranca/collect] Coleta iniciada:', {
+    mode: input.mode,
+    codigoIbge: input.codigoIbge,
+    batchSize: codigosIbge?.length,
+    months,
+    requestId: input.requestId,
+  });
 
   try {
     const client = createAdminClient();
@@ -124,6 +170,23 @@ export async function POST(req: NextRequest) {
         unknown_natures: result.unknownNatures,
         excluded_out_of_scope_natures: result.excludedOutOfScopeNatures,
         unmatched_municipalities: result.unmatchedMunicipalities,
+        territories: result.territoryResults.map((t) => ({
+          codigo_ibge: t.codigoIbge,
+          status: t.status,
+          request_id: t.requestId,
+          indicators_persisted: t.indicatorsPersisted,
+          error: t.error,
+          duration_ms: t.durationMs,
+        })),
+        files_downloaded: result.filesDownloaded,
+        timings: {
+          download_ms: result.timings.downloadMs,
+          parse_ms: result.timings.parseMs,
+          normalization_ms: result.timings.normalizationMs,
+          processing_ms: result.timings.processingMs,
+          persistence_ms: result.timings.persistenceMs,
+          total_ms: result.timings.totalMs,
+        },
         overall_status: result.overallStatus,
       },
       { status: 200 }
