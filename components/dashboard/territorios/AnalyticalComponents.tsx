@@ -8,13 +8,13 @@ import { ObservationTypeBadge, ConfidenceBadge } from './EditorialComponents';
 // ---------------------------------------------------------
 export function NotebookHeader({ title, summary }: { title: string; summary?: string }) {
   return (
-    <div className="bg-[#0f172a]/50 border border-white/5 rounded-xl p-6 md:p-8 mb-8 relative overflow-hidden">
+    <div className="bg-[#0f172a]/50 border border-white/5 rounded-xl p-4 md:p-6 mb-6 relative overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500" />
-      <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2">
+      <h2 className="text-lg md:text-xl font-bold text-white mb-2 flex items-center gap-2">
         {title}
       </h2>
       {summary && (
-        <div className="space-y-4 text-sm md:text-[15px] font-medium text-slate-300 leading-relaxed max-w-4xl">
+        <div className="space-y-4 text-[13px] md:text-sm font-medium text-slate-300 leading-relaxed max-w-4xl">
           <p>{summary}</p>
         </div>
       )}
@@ -35,11 +35,13 @@ export function ContextualKPI({ label, indicator, icon: Icon }: { label: string;
         {Icon && <Icon size={16} className="text-slate-500" />}
       </div>
       
-      <div className="flex items-end gap-3 mb-4 mt-auto">
-        <span className="text-2xl md:text-3xl font-bold text-white">{indicator.value}</span>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 mb-4 mt-auto">
+        <span className="font-bold text-white leading-none break-words" style={{ fontSize: 'clamp(20px, 2.5vw, 30px)' }}>
+          {indicator.value}
+        </span>
         
         {indicator.trend && (
-          <div className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded ${
+          <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded shrink-0 ${
             indicator.trend === 'up' ? 'text-emerald-400 bg-emerald-500/10' :
             indicator.trend === 'down' ? 'text-rose-400 bg-rose-500/10' :
             'text-slate-400 bg-slate-500/10'
@@ -79,9 +81,9 @@ export function PolitixInsight({ insight }: { insight?: TerritoryTopicInsight })
   if (!insight) return null;
 
   return (
-    <div className="bg-[#0f172a] border border-cyan-500/30 rounded-xl p-6 relative overflow-hidden mt-8">
+    <div className="bg-[#0f172a] border border-cyan-500/30 rounded-xl p-5 relative overflow-hidden mt-6">
       <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-        <BrainCircuit size={120} />
+        <BrainCircuit size={64} />
       </div>
       
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">

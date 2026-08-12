@@ -1,7 +1,7 @@
 import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
-import DossierHeader from '@/components/dashboard/territorios/DossierHeader';
-import DossierNavigation from '@/components/dashboard/territorios/DossierNavigation';
+
+import TerritorySidebar from '@/components/dashboard/territorios/TerritorySidebar';
 
 export const metadata = {
   title: 'Dossiê Territorial | PolitixOS',
@@ -29,18 +29,17 @@ export default async function DossierLayout({ children, params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#060911] relative">
-      {/* 1. CABEÇALHO GLOBAL DO TERRITÓRIO */}
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 py-6">
-        <DossierHeader dossier={dossier} />
-      </div>
+    <div className="dossier-layout flex items-start h-full w-full bg-[var(--background)] relative overflow-hidden">
+      {/* 1. SIDEBAR DOS CADERNOS */}
+      <TerritorySidebar ibge={ibge} />
 
-      {/* 2. NAVEGAÇÃO DOS CADERNOS */}
-      <DossierNavigation ibge={ibge} />
-
-      {/* 3. CONTEÚDO DO CADERNO ATIVO */}
-      <div className="max-w-[1600px] mx-auto pb-24 relative">
-        {children}
+      <div className="flex-1 flex flex-col min-w-0 max-w-full relative h-full overflow-y-auto custom-scrollbar">
+        {/* 2. CONTEÚDO DO CADERNO ATIVO */}
+        <div className="flex-1 w-full pb-24 relative mt-4">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8">
+            {children}
+          </div>
+        </div>
       </div>
     </div>
   );

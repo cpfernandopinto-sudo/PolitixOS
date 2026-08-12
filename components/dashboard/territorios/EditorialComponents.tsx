@@ -36,12 +36,13 @@ export function ConfidenceBadge({ level, reasoning }: { level: 'ALTA' | 'MÉDIA'
 }
 
 export function ObservationTypeBadge({ type }: { type: InsightObservationType }) {
-  const config = {
+  const configs: Record<string, { icon: typeof Target; color: string }> = {
     'FATO': { icon: Target, color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
     'INTERPRETAÇÃO': { icon: BrainCircuit, color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
     'HIPÓTESE': { icon: FlaskConical, color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  }[type];
-
+    'MÉTRICA DERIVADA': { icon: Target, color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10' },
+  };
+  const config = configs[type] ?? configs['INTERPRETAÇÃO'];
   const Icon = config.icon;
 
   return (

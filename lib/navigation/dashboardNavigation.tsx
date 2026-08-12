@@ -132,13 +132,6 @@ export const NAV_GROUPS: NavGroup[] = [
         permission: 'investigacoes',
         description: 'Dossiês e investigações profundas',
       },
-      {
-        label: 'Territórios',
-        href: '/dashboard/territorios',
-        icon: MapPin,
-        permission: 'territorios',
-        description: 'Briefing territorial para visitas',
-      },
     ],
   },
   {
