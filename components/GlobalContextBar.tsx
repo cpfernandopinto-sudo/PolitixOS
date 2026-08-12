@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { RefreshCw, ChevronDown, Database, Sparkles } from 'lucide-react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
@@ -98,11 +98,18 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   const [candidate, setCandidate] = useState(rawCandidate);
   const [period, setPeriod] = useState(rawPeriod);
 
-  // Sync com URL quando pathname muda (navegação entre módulos)
-  useEffect(() => {
+  // Sync com URL quando pathname/searchParams mudam (navegação entre módulos).
+  // Ajuste de estado durante a renderização (não em useEffect) para evitar
+  // o double-render de "setState síncrono dentro de efeito" — mesmo padrão
+  // documentado em https://react.dev/learn/you-might-not-need-an-effect
+  // ("Adjusting some state when a prop changes").
+  const [syncKey, setSyncKey] = useState(`${pathname}?${searchParams.toString()}`);
+  const currentSyncKey = `${pathname}?${searchParams.toString()}`;
+  if (syncKey !== currentSyncKey) {
+    setSyncKey(currentSyncKey);
     setCandidate(searchParams.get('candidate') ?? searchParams.get('candidateId') ?? '');
     setPeriod(normalizeIncomingPeriod(searchParams.get('period') ?? null));
-  }, [pathname, searchParams]);
+  }
 
   const formattedTime = new Date(generatedAt).toLocaleTimeString('pt-BR', {
     hour: '2-digit',

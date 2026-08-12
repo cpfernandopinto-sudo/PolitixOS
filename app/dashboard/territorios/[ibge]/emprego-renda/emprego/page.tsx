@@ -1,7 +1,7 @@
 import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
-import { NotebookHeader, ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
-import { Briefcase, TrendingUp, TrendingDown, DollarSign, Users, AlertTriangle } from 'lucide-react';
+import { NotebookHeader, ContextualKPI } from '@/components/dashboard/territorios/AnalyticalComponents';
+import { Briefcase, TrendingUp, TrendingDown, DollarSign, AlertTriangle } from 'lucide-react';
 import { LineChart, BarChart, HorizontalBarChart } from '@/components/dashboard/territorios/PolitixCharts';
 
 export default async function EmpregoRendaPage({ params }: { params: Promise<{ ibge: string }> }) {

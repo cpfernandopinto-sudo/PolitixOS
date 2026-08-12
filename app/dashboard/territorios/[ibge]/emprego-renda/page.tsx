@@ -38,7 +38,7 @@ export default async function EmpregoRendaPage({ params }: { params: Promise<{ i
         <h3 className="text-base font-semibold text-white dark:text-white mb-4">Saldo Mensal de Empregos</h3>
         <div className="h-[250px]">
           <BarChart
-            data={(data.monthlyBalance ?? []) as any[]}
+            data={data.monthlyBalance ?? []}
             xAxisKey="period"
             barKey="balance"
             name="Saldo"
@@ -53,7 +53,7 @@ export default async function EmpregoRendaPage({ params }: { params: Promise<{ i
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Admissões vs Desligamentos</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.monthlyBalance ?? []) as any[]}
+              data={data.monthlyBalance ?? []}
               xAxisKey="period"
               lineKeys={[
                 { key: 'admissions', name: 'Admissões', color: '#10b981' },
@@ -67,7 +67,7 @@ export default async function EmpregoRendaPage({ params }: { params: Promise<{ i
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Saldo por Setor</h3>
           <div className="h-[220px]">
             <HorizontalBarChart
-              data={(data.sectorBalance ?? []) as any[]}
+              data={data.sectorBalance ?? []}
               yAxisKey="sector"
               barKey="balance"
               name="Saldo"
@@ -83,7 +83,7 @@ export default async function EmpregoRendaPage({ params }: { params: Promise<{ i
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução da Remuneração</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalSalary ?? []) as any[]}
+              data={data.historicalSalary ?? []}
               xAxisKey="period"
               lineKeys={[{ key: 'value', name: 'Remuneração (R$)', color: '#8b5cf6' }]}
               height={220}
@@ -94,7 +94,7 @@ export default async function EmpregoRendaPage({ params }: { params: Promise<{ i
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução do Estoque Formal</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalFormalJobs ?? []) as any[]}
+              data={data.historicalFormalJobs ?? []}
               xAxisKey="period"
               lineKeys={[{ key: 'value', name: 'Estoque Formal', color: '#0ea5e9' }]}
               height={220}

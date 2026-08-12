@@ -286,16 +286,16 @@ export default function FontesMetodologiaPage() {
         <h2 className="text-xl font-semibold text-slate-100 mb-6">Metodologia de Classificação</h2>
         <div className="space-y-4 text-slate-300">
           <p>
-            <strong className="text-slate-100">FATO:</strong> Informação bruta e direta extraída das fontes de dados, sem processamento analítico (ex: "População de 603 mil habitantes").
+            <strong className="text-slate-100">FATO:</strong> Informação bruta e direta extraída das fontes de dados, sem processamento analítico (ex: &quot;População de 603 mil habitantes&quot;).
           </p>
           <p>
-            <strong className="text-slate-100">MÉTRICA DERIVADA:</strong> Cálculo ou índice criado a partir do cruzamento de dois ou mais fatos (ex: "Densidade demográfica", "Renda per capita").
+            <strong className="text-slate-100">MÉTRICA DERIVADA:</strong> Cálculo ou índice criado a partir do cruzamento de dois ou mais fatos (ex: &quot;Densidade demográfica&quot;, &quot;Renda per capita&quot;).
           </p>
           <p>
-            <strong className="text-slate-100">INTERPRETAÇÃO:</strong> Análise de tendência ou contexto sobre uma métrica ou fato (ex: "Crescimento populacional abaixo da média estadual").
+            <strong className="text-slate-100">INTERPRETAÇÃO:</strong> Análise de tendência ou contexto sobre uma métrica ou fato (ex: &quot;Crescimento populacional abaixo da média estadual&quot;).
           </p>
           <p>
-            <strong className="text-slate-100">HIPÓTESE:</strong> Projeção ou recomendação gerada pela IA com base no conjunto de dados (ex: "Potencial demanda por vagas em creches na região X").
+            <strong className="text-slate-100">HIPÓTESE:</strong> Projeção ou recomendação gerada pela IA com base no conjunto de dados (ex: &quot;Potencial demanda por vagas em creches na região X&quot;).
           </p>
         </div>
       </div>

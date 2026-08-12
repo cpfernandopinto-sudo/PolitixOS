@@ -39,7 +39,7 @@ export default async function InfraestruturaPage({ params }: { params: Promise<{
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução: Água</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalWater ?? []) as any[]}
+              data={data.historicalWater ?? []}
               xAxisKey="period"
               lineKeys={[{ key: 'value', name: 'Cobertura %', color: '#22d3ee' }]}
               height={220}
@@ -50,7 +50,7 @@ export default async function InfraestruturaPage({ params }: { params: Promise<{
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução: Esgoto</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalSewage ?? []) as any[]}
+              data={data.historicalSewage ?? []}
               xAxisKey="period"
               lineKeys={[{ key: 'value', name: 'Cobertura %', color: '#a3e635' }]}
               height={220}
@@ -64,7 +64,7 @@ export default async function InfraestruturaPage({ params }: { params: Promise<{
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Gap de Infraestrutura (Déficit %)</h3>
           <div className="h-[220px]">
             <HorizontalBarChart
-              data={(data.infrastructureGap ?? []) as any[]}
+              data={data.infrastructureGap ?? []}
               yAxisKey="area"
               barKey="gap"
               name="Gap %"

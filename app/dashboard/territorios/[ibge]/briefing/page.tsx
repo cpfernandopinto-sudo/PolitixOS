@@ -2,12 +2,12 @@ import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
 import { 
   AlertTriangle, ShieldAlert, Target, Headphones, Calendar, MessageCircle, 
-  BrainCircuit, Search, CheckCircle2, XCircle, FileText, ChevronRight, MapPin
+  BrainCircuit, Search, CheckCircle2, XCircle, ChevronRight, MapPin
 } from 'lucide-react';
 import { NotebookHeader } from '@/components/dashboard/territorios/AnalyticalComponents';
 
 export default async function BriefingPage({ params }: { params: Promise<{ ibge: string }> }) {
-  const { ibge } = await params;
+  await params;
   const data = CONTAGEM_DEMO.aiRecommendation;
 
   return (
@@ -68,7 +68,7 @@ export default async function BriefingPage({ params }: { params: Promise<{ ibge:
             </div>
             
             <p className="text-[15px] text-white font-medium mb-4 leading-relaxed bg-black/20 p-3 rounded-md border border-white/5">
-              "Dar prioridade à segurança urbana e prevenção patrimonial, principalmente nos eixos de mobilidade e áreas comerciais."
+              &ldquo;Dar prioridade à segurança urbana e prevenção patrimonial, principalmente nos eixos de mobilidade e áreas comerciais.&rdquo;
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -83,7 +83,7 @@ export default async function BriefingPage({ params }: { params: Promise<{ ibge:
               <div>
                 <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5">Interpretação</span>
                 <p className="text-xs text-slate-300 leading-relaxed border-l-2 border-purple-500/30 pl-3">
-                  A pressão eleitoral e a percepção de insegurança estão fortemente concentradas em crimes patrimoniais, mascarando a estabilidade da violência letal. Prometer "redução de homicídios" não dialoga com a dor diária do eleitorado mediano.
+                  A pressão eleitoral e a percepção de insegurança estão fortemente concentradas em crimes patrimoniais, mascarando a estabilidade da violência letal. Prometer &ldquo;redução de homicídios&rdquo; não dialoga com a dor diária do eleitorado mediano.
                 </p>
               </div>
             </div>
@@ -107,7 +107,7 @@ export default async function BriefingPage({ params }: { params: Promise<{ ibge:
             </div>
             
             <p className="text-[15px] text-white font-medium mb-4 leading-relaxed bg-black/20 p-3 rounded-md border border-white/5">
-              "A expansão da Atenção Básica deve ser acompanhada de uma estratégia explícita para atração de médicos especialistas e redução de filas cirúrgicas."
+              &ldquo;A expansão da Atenção Básica deve ser acompanhada de uma estratégia explícita para atração de médicos especialistas e redução de filas cirúrgicas.&rdquo;
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -146,7 +146,7 @@ export default async function BriefingPage({ params }: { params: Promise<{ ibge:
             </div>
             
             <p className="text-[15px] text-white font-medium mb-4 leading-relaxed bg-black/20 p-3 rounded-md border border-white/5">
-              "O avanço logístico e do emprego precisa ser imediatamente amparado por uma forte agenda de infraestrutura de mobilidade, sob risco de colapso viário."
+              &ldquo;O avanço logístico e do emprego precisa ser imediatamente amparado por uma forte agenda de infraestrutura de mobilidade, sob risco de colapso viário.&rdquo;
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

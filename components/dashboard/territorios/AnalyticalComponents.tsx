@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus, Info, BrainCircuit, Activity, BarChart3, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, BrainCircuit, Activity, AlertCircle } from 'lucide-react';
 import { TerritoryIndicator, TerritoryTopicInsight } from '@/lib/territorios/types';
 import { ObservationTypeBadge, ConfidenceBadge } from './EditorialComponents';
 
@@ -159,8 +159,7 @@ export function TrendChart({ data, title }: { data: Array<{ period: string; valu
           if (max === min) heightPct = 50;
 
           const isLast = idx === data.length - 1;
-          const isFirst = idx === 0;
-          
+
           const trendColor = "bg-blue-500/20 hover:bg-blue-400/40";
           
           return (

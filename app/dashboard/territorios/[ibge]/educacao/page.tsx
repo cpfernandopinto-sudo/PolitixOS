@@ -39,7 +39,7 @@ export default async function EducacaoPage({ params }: { params: Promise<{ ibge:
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução: IDEB (Anos Finais)</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalIdeb ?? []) as any[]}
+              data={data.historicalIdeb ?? []}
               xAxisKey="period"
               lineKeys={[
                 { key: 'value', name: 'Contagem', color: '#8b5cf6' },
@@ -53,7 +53,7 @@ export default async function EducacaoPage({ params }: { params: Promise<{ ibge:
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução: Matrículas</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalEnrollments ?? []) as any[]}
+              data={data.historicalEnrollments ?? []}
               xAxisKey="period"
               lineKeys={[{ key: 'value', name: 'Matrículas', color: '#10b981' }]}
               height={220}
@@ -67,7 +67,7 @@ export default async function EducacaoPage({ params }: { params: Promise<{ ibge:
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Matrículas por Etapa</h3>
           <div className="h-[200px]">
             <HorizontalBarChart
-              data={(data.enrollmentsByLevel ?? []) as any[]}
+              data={data.enrollmentsByLevel ?? []}
               yAxisKey="level"
               barKey="value"
               name="Alunos"

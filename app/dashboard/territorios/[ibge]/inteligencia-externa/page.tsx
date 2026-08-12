@@ -1,14 +1,14 @@
 import { NotebookHeader } from '@/components/dashboard/territorios/AnalyticalComponents';
-import { 
-  Search, Globe, ChevronRight, FileText, Sparkles, AlertTriangle, 
-  MapPin, Clock, Newspaper, Camera, MessageCircle, Activity, 
-  TrendingUp, TrendingDown, Minus, CheckCircle2, ShieldAlert, BrainCircuit
+import {
+  Search, Globe, ChevronRight, FileText, Sparkles, AlertTriangle,
+  MapPin, Newspaper, Camera, MessageCircle, Activity,
+  TrendingUp, Minus, ShieldAlert, BrainCircuit
 } from 'lucide-react';
 import React from 'react';
 
 export default async function InteligenciaExternaPage({ params }: { params: Promise<{ ibge: string }> }) {
-  const { ibge } = await params;
-  
+  await params;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">

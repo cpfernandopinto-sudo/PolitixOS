@@ -13,9 +13,6 @@ export default async function InteligenciaIAPage({ params }: { params: Promise<{
 
   if (!dossier) return null;
 
-  const { diagnostic, integratedAnalysis, radar } = dossier;
-  const quickRead = integratedAnalysis?.quickRead || { mood: 'Cauteloso', pressure: 'Infraestrutura', asset: 'Economia', opportunity: 'Logística' };
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <NotebookHeader 
@@ -36,7 +33,7 @@ export default async function InteligenciaIAPage({ params }: { params: Promise<{
           <div className="space-y-4 text-slate-300 text-sm leading-relaxed">
             <p>O território apresenta crescimento econômico consistente impulsionado pelo setor de serviços e logística, gerando forte saldo de empregos formais (+3.000 no ano). Este dinamismo, contudo, mascara gargalos estruturais críticos que começam a afetar a avaliação da gestão pública.</p>
             <p>A atenção primária de saúde não acompanhou o crescimento populacional recente e a expansão imobiliária. Observa-se um descolamento entre a percepção pública de pujança econômica (positiva) e a experiência de uso da zeladoria e mobilidade nos bairros (negativa).</p>
-            <p>A estabilidade política local depende majoritariamente da capacidade de traduzir a tração do polo industrial em melhorias rápidas de infraestrutura urbana, especialmente nas áreas limítrofes, evitando a fadiga eleitoral do discurso de 'cidade do emprego'.</p>
+            <p>A estabilidade política local depende majoritariamente da capacidade de traduzir a tração do polo industrial em melhorias rápidas de infraestrutura urbana, especialmente nas áreas limítrofes, evitando a fadiga eleitoral do discurso de &lsquo;cidade do emprego&rsquo;.</p>
           </div>
         </div>
 
@@ -251,8 +248,8 @@ export default async function InteligenciaIAPage({ params }: { params: Promise<{
           Implicações Estratégicas
         </h2>
         <div className="space-y-4 text-slate-300 text-sm md:text-[15px] leading-relaxed max-w-5xl">
-          <p>As métricas macroeconômicas formam um "colchão" político invejável para o território. Com o emprego em alta, a propensão ao radicalismo eleitoral tende a ser menor. No entanto, o eleitorado que tem emprego passa a exigir mais "qualidade de vida": asfalto, consultas rápidas, menos tempo no trânsito.</p>
-          <p>Se a gestão continuar focada em vender "A Cidade do Emprego" enquanto o cidadão torce a roda do carro no buraco a caminho da UPA lotada, haverá um curto-circuito na comunicação política. O momento exige transição de narrativa: do desenvolvimento econômico para a zeladoria inteligente de bairro.</p>
+          <p>As métricas macroeconômicas formam um &ldquo;colchão&rdquo; político invejável para o território. Com o emprego em alta, a propensão ao radicalismo eleitoral tende a ser menor. No entanto, o eleitorado que tem emprego passa a exigir mais &ldquo;qualidade de vida&rdquo;: asfalto, consultas rápidas, menos tempo no trânsito.</p>
+          <p>Se a gestão continuar focada em vender &ldquo;A Cidade do Emprego&rdquo; enquanto o cidadão torce a roda do carro no buraco a caminho da UPA lotada, haverá um curto-circuito na comunicação política. O momento exige transição de narrativa: do desenvolvimento econômico para a zeladoria inteligente de bairro.</p>
         </div>
       </section>
     </div>

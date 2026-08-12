@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { TERRITORY_GROUPS, getActiveGroup } from './navigation';
+import { getActiveGroup } from './navigation';
 
 export default function TerritorySubmenu({ ibge }: { ibge: string }) {
   const pathname = usePathname();

@@ -11,7 +11,12 @@ export default function TerritorySidebar({ ibge }: { ibge: string }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // localStorage não existe durante SSR/primeira renderização — não é
+  // possível derivar este estado durante o render (causaria erro de
+  // hydration). Ler o valor uma única vez após o mount é o uso legítimo
+  // de efeito para sincronizar com um sistema externo (browser storage).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const stored = localStorage.getItem('politixos_territory_sidebar_collapsed');
     if (stored) {

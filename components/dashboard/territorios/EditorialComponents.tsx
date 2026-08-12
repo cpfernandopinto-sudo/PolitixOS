@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { EvidenceTrace, InsightObservationType } from '@/lib/territorios/types';
-import { 
-  Database, AlertCircle, FileSearch, CheckCircle2,
-  CalendarDays, Tag, ShieldCheck, HelpCircle, 
+import {
+  Database, FileSearch, CheckCircle2,
+  CalendarDays, Tag, ShieldCheck, HelpCircle,
   ChevronRight, X, FlaskConical, Target, BrainCircuit
 } from 'lucide-react';
 

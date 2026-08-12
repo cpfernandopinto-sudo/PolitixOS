@@ -41,7 +41,7 @@ export default async function RadarPage({ params }: { params: Promise<{ ibge: st
         <div className="lg:col-span-2 space-y-4">
           <h3 className="text-lg font-semibold text-white mb-2">Linha do Tempo</h3>
           <div className="space-y-4">
-            {data.events?.map((event: any, idx: number) => {
+            {data.events?.map((event, idx: number) => {
               let catColor = "bg-white/50/10 text-slate-400 border-slate-500/30";
               if (event.category === "SEGURANÇA") catColor = "bg-rose-500/10 text-rose-400 border-rose-500/30";
               else if (event.category === "SAÚDE") catColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";

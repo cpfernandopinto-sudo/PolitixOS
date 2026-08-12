@@ -5,10 +5,17 @@ import ReactECharts from 'echarts-for-react';
 import { type EChartsOption } from 'echarts';
 
 interface ChartProps {
-  data: any[];
+  data: Record<string, string | number>[];
   height?: number;
   className?: string;
   theme?: string;
+}
+
+interface TooltipParam {
+  name: string;
+  marker: string;
+  seriesName: string;
+  value: number;
 }
 
 const DEFAULT_HEIGHT = 300;
@@ -85,7 +92,7 @@ const applyAdaptiveDomain = (option: EChartsOption): EChartsOption => {
   return {
     ...option,
     yAxis: {
-      ...((option.yAxis as any) || {}),
+      ...((option.yAxis as Record<string, unknown>) || {}),
       min: (value: { min: number; max: number }) => {
         const range = value.max - value.min;
         const padding = Math.max(range * 0.15, 1);
@@ -189,7 +196,7 @@ export function AreaChart({ data, xAxisKey, areaKey, name, color, height = DEFAU
   const option: EChartsOption = {
     ...defaultOptions,
     xAxis: {
-      ...(defaultOptions.xAxis as any),
+      ...(defaultOptions.xAxis as Record<string, unknown>),
       boundaryGap: false,
       data: data.map(d => d[xAxisKey]),
     },
@@ -256,9 +263,10 @@ export function PopulationPyramid({ data, ageKey, maleKey, femaleKey, height = 4
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      formatter: (params: any) => {
+      formatter: (rawParams: unknown) => {
+        const params = rawParams as TooltipParam[];
         let html = `<b>${params[0].name}</b><br/>`;
-        params.forEach((p: any) => {
+        params.forEach((p: TooltipParam) => {
           html += `${p.marker} ${p.seriesName}: ${Math.abs(p.value)}<br/>`;
         });
         return html;
@@ -288,14 +296,14 @@ export function PopulationPyramid({ data, ageKey, maleKey, femaleKey, height = 4
         type: 'bar',
         stack: 'Total',
         itemStyle: { color: CHART_COLORS[1], borderRadius: [4, 0, 0, 4] },
-        data: data.map(d => -d[maleKey]) // negative for left side
+        data: data.map(d => -(d[maleKey] as number)) // negative for left side
       },
       {
         name: 'Mulheres',
         type: 'bar',
         stack: 'Total',
         itemStyle: { color: CHART_COLORS[3], borderRadius: [0, 4, 4, 0] },
-        data: data.map(d => d[femaleKey])
+        data: data.map(d => d[femaleKey] as number)
       }
     ],
   };

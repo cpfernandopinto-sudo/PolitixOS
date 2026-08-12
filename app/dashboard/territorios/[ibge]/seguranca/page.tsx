@@ -2,7 +2,7 @@ import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
 import { NotebookHeader, ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
 import { ShieldAlert, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
-import { LineChart, HorizontalBarChart, BarChart } from '@/components/dashboard/territorios/PolitixCharts';
+import { LineChart, HorizontalBarChart } from '@/components/dashboard/territorios/PolitixCharts';
 
 export default async function SegurancaPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
@@ -126,7 +126,7 @@ export default async function SegurancaPage({ params }: { params: Promise<{ ibge
           <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Sazonalidade Mensal</h3>
           <p className="text-[11px] text-slate-500 mb-5 uppercase tracking-widest">Índice de ocorrências (média = 100)</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-1.5">
-            {data.seasonality?.map((s, i) => {
+            {data.seasonality?.map((s) => {
               const pct = Math.min(100, Math.max(0, s.index));
               const color = s.index > 105 ? '#f43f5e' : s.index > 95 ? '#eab308' : '#10b981';
               return (

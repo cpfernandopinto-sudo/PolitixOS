@@ -62,7 +62,7 @@ export default async function AmbientePoliticoPage({ params }: { params: Promise
           <p className="text-[11px] text-slate-500 uppercase tracking-widest mb-6">Distribuição Demonstrativa (Vagas)</p>
           <div className="h-[220px]">
             <BarChart
-              data={(data.chamberComposition ?? []) as any[]}
+              data={data.chamberComposition ?? []}
               xAxisKey="party"
               barKey="seats"
               name="Vagas"

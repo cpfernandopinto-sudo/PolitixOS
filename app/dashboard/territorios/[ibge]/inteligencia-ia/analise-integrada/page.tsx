@@ -1,8 +1,6 @@
 import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
-import { NotebookHeader } from '@/components/dashboard/territorios/AnalyticalComponents';
 import { BrainCircuit, AlertTriangle, Zap, Target, ArrowUpRight, ArrowDownRight, Lightbulb, FileSearch } from 'lucide-react';
-import { LineChart, BarChart } from '@/components/dashboard/territorios/PolitixCharts';
 
 export default async function AnaliseIntegradaPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
@@ -103,8 +101,8 @@ export default async function AnaliseIntegradaPage({ params }: { params: Promise
         <div className="space-y-6">
            <div className="surface-primary border border-white/5 p-6 rounded-xl relative overflow-hidden">
              <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
-             <h4 className="text-sm font-bold text-white mb-2">Hipótese H1: A "Fadiga Metropolitana"</h4>
-             <p className="text-sm text-slate-300 leading-relaxed mb-4">A análise sugere que a insatisfação com serviços de saúde e mobilidade não deriva da falta de investimento local, mas sim do uso destes serviços por populações de municípios menores no entorno, criando uma "fadiga" no núcleo logístico.</p>
+             <h4 className="text-sm font-bold text-white mb-2">Hipótese H1: A &ldquo;Fadiga Metropolitana&rdquo;</h4>
+             <p className="text-sm text-slate-300 leading-relaxed mb-4">A análise sugere que a insatisfação com serviços de saúde e mobilidade não deriva da falta de investimento local, mas sim do uso destes serviços por populações de municípios menores no entorno, criando uma &ldquo;fadiga&rdquo; no núcleo logístico.</p>
              <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-4">Questões a validar em campo:</h5>
              <ul className="list-disc pl-5 space-y-1 text-xs text-slate-400">
                <li>O hospital municipal comporta a triagem pendular?</li>

@@ -50,7 +50,7 @@ export default async function MobilidadePage({ params }: { params: Promise<{ ibg
         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
           <h3 className="text-sm font-medium text-slate-300 mb-4">Corredores Estratégicos</h3>
           <div className="space-y-3">
-            {data.strategicCorridors?.map((corridor: any, idx: number) => {
+            {data.strategicCorridors?.map((corridor, idx: number) => {
               let colorClass = "bg-white/50/10 text-slate-400 border-slate-500/20";
               if (corridor.status === "CONGESTIONADO") colorClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
               else if (corridor.status === "INTENSO") colorClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";

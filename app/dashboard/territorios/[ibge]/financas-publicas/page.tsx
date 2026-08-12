@@ -2,7 +2,7 @@ import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
 import { NotebookHeader, ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
 import { LineChart, HorizontalBarChart, BarChart } from '@/components/dashboard/territorios/PolitixCharts';
-import { AlertTriangle, Landmark, TrendingUp, TrendingDown, PiggyBank, Briefcase, ActivitySquare } from 'lucide-react';
+import { AlertTriangle, Landmark, PiggyBank, Briefcase, ActivitySquare } from 'lucide-react';
 
 export default async function FinancasPublicasPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
@@ -41,7 +41,7 @@ export default async function FinancasPublicasPage({ params }: { params: Promise
         </h3>
         <div className="h-[300px]">
           <LineChart
-            data={(data.historicalRevenue ?? []) as any[]}
+            data={data.historicalRevenue ?? []}
             xAxisKey="period"
             lineKeys={[
               { key: 'revenue', name: 'Receita', color: '#10b981' },
@@ -66,7 +66,7 @@ export default async function FinancasPublicasPage({ params }: { params: Promise
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Investimento (R$ Mi)</h3>
           <div className="h-[220px]">
             <BarChart
-              data={(data.historicalInvestment ?? []) as any[]}
+              data={data.historicalInvestment ?? []}
               xAxisKey="period"
               barKey="value"
               name="Investimento"
@@ -80,7 +80,7 @@ export default async function FinancasPublicasPage({ params }: { params: Promise
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Despesas por Função</h3>
           <div className="h-[260px]">
             <HorizontalBarChart
-              data={(data.spendingByFunction ?? []) as any[]}
+              data={data.spendingByFunction ?? []}
               yAxisKey="function"
               barKey="value"
               name="R$ Mi"

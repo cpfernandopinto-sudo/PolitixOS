@@ -2,7 +2,7 @@ import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
 import { NotebookHeader, ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
 import { LineChart, HorizontalBarChart } from '@/components/dashboard/territorios/PolitixCharts';
-import { AlertTriangle, TrendingDown, Users, Coins, Percent, ArrowRight } from 'lucide-react';
+import { AlertTriangle, TrendingDown, Users, Coins, Percent } from 'lucide-react';
 
 export default async function DesenvolvimentoSocialPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
@@ -39,7 +39,7 @@ export default async function DesenvolvimentoSocialPage({ params }: { params: Pr
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução: Taxa de Pobreza (%)</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalPoverty ?? []) as any[]}
+              data={data.historicalPoverty ?? []}
               xAxisKey="period"
               lineKeys={[{ key: 'value', name: 'Pobreza %', color: '#f43f5e' }]}
               height={220}
@@ -50,7 +50,7 @@ export default async function DesenvolvimentoSocialPage({ params }: { params: Pr
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução: CadÚnico (Famílias)</h3>
           <div className="h-[220px]">
             <LineChart
-              data={(data.historicalCadUnico ?? []) as any[]}
+              data={data.historicalCadUnico ?? []}
               xAxisKey="period"
               lineKeys={[{ key: 'value', name: 'Famílias', color: '#f97316' }]}
               height={220}
@@ -64,7 +64,7 @@ export default async function DesenvolvimentoSocialPage({ params }: { params: Pr
           <h3 className="text-base font-semibold text-white dark:text-white mb-4">Distribuição de Renda (SM)</h3>
           <div className="h-[200px]">
             <HorizontalBarChart
-              data={(data.incomeDistribution ?? []) as any[]}
+              data={data.incomeDistribution ?? []}
               yAxisKey="bracket"
               barKey="percentage"
               name="% Famílias"

@@ -64,11 +64,11 @@ export default async function CockpitPage({ params }: { params: Promise<{ ibge: 
       <section className="bg-[#111726] border border-white/5 rounded-xl p-6 md:p-8">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">O Que Mudou Recentemente</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(dossier.diagnostic?.whatChanged || [
+          {(dossier.diagnostic?.whatChanged ?? ([
             { description: "Aumento de 12% no saldo de empregos formais na construção civil.", trend: 'up' },
             { description: "Piora de 5% no índice de criminalidade na região metropolitana.", trend: 'down' },
             { description: "Manutenção da frota de ônibus sem alterações estruturais.", trend: 'stable' }
-          ] as any[]).map((item, idx) => (
+          ] as Array<{ description: string; trend: 'up' | 'down' | 'stable' }>)).map((item, idx) => (
             <div key={idx} className="flex gap-3 items-start bg-white/5 p-4 rounded-lg border border-white/5">
               {item.trend === 'up' ? <TrendingUp size={16} className="text-emerald-400 mt-0.5 shrink-0" /> :
                item.trend === 'down' ? <TrendingDown size={16} className="text-rose-400 mt-0.5 shrink-0" /> :

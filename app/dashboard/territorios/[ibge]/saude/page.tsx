@@ -121,7 +121,7 @@ export default async function SaudePage({ params }: { params: Promise<{ ibge: st
             <div className="text-xs text-slate-400 mb-4">Gráfico comparativo ilustrando o gargalo assistencial por nível de atenção.</div>
             {data.capacityVsDemand && data.capacityVsDemand.length > 0 ? (
               <div className="space-y-4 pt-2">
-                {data.capacityVsDemand.map((item: any, idx: number) => {
+                {data.capacityVsDemand.map((item, idx: number) => {
                   const capacityPct = Math.min(item.capacity, 100);
                   const demandPct = Math.min(item.demand, 100);
                   const overload = demandPct > capacityPct;

@@ -5,8 +5,6 @@ import {
   UserPlus,
   Zap,
   FileSearch,
-  AlertTriangle,
-  Users,
   UserCog,
   Settings,
   Sparkles,
