@@ -28,11 +28,11 @@ export interface TerritoryIndicator {
   trend?: 'up' | 'down' | 'stable';
   variation?: string;
   historicalSeries?: Array<{ period: string; value: number }>;
-  comparison?: { rmbh?: string; mg?: string; similar?: string };
+  comparison?: { rmbh?: string; mg?: string; similar?: string; contagem?: string };
   evidence?: EvidenceTrace;
 }
 
-export type InsightObservationType = 'FATO' | 'INTERPRETAÇÃO' | 'HIPÓTESE';
+export type InsightObservationType = 'FATO' | 'INTERPRETAÇÃO' | 'HIPÓTESE' | 'MÉTRICA DERIVADA';
 
 export interface TerritoryTopicInsight {
   title: string;
@@ -56,31 +56,89 @@ export interface DemographyNotebook extends BaseNotebook {
   population: TerritoryIndicator;
   density: TerritoryIndicator;
   urbanization: TerritoryIndicator;
-  ageGroupDistrib: Array<{ group: string; percentage: number }>;
+  ageGroupDistrib: Array<{ group: string; percentage: number, male: number, female: number }>;
+  historicalPopulation: Array<{ period: string; value: number }>;
+  intercensalGrowth?: string;
+  agingIndex?: TerritoryIndicator;
+  dependencyRatio?: TerritoryIndicator;
+  medianAge?: TerritoryIndicator;
+  benchmarks?: {
+    population?: { contagem: number; rmbh: number; mg: number };
+    density?: { contagem: number; rmbh: number; mg: number };
+    agingIndex?: { contagem: number; rmbh: number; mg: number };
+  };
 }
 
 export interface SecurityNotebook extends BaseNotebook {
   generalIndicator: TerritoryIndicator;
   monthlyEvolution: Array<{ period: string; value: number }>;
+  historicalSeries: Array<{ period: string; violentos: number; patrimoniais: number; homicidios: number; roubos: number; furtos: number; veiculos: number }>;
   topNatureRanking: Array<{ nature: string; count: number; variation: string; trend: 'up' | 'down' | 'stable' }>;
+  growingCrimes: Array<{ nature: string; count: number; variation: string }>;
+  fallingCrimes: Array<{ nature: string; count: number; variation: string }>;
   strategicReading: string;
   violentCrimes?: TerritoryIndicator;
   propertyCrimes?: TerritoryIndicator;
+  homicides?: TerritoryIndicator;
+  thefts?: TerritoryIndicator;
+  robberies?: TerritoryIndicator;
+  vehicles?: TerritoryIndicator;
+  seasonality?: Array<{ month: string; index: number }>;
+  benchmarks?: {
+    violentCrimesPer100k?: { contagem: number; rmbh: number; mg: number };
+    homicidesPer100k?: { contagem: number; rmbh: number; mg: number };
+  };
 }
 
 export interface HealthNotebook extends BaseNotebook {
   basicCoverage: TerritoryIndicator;
+  historicalBasicCoverage: Array<{ period: string; value: number }>;
+  establishments: number;
+  ubs: number;
+  hospitals: number;
+  beds: TerritoryIndicator;
+  historicalBeds: Array<{ period: string; value: number }>;
+  utiBeds: TerritoryIndicator;
+  doctors: TerritoryIndicator;
+  historicalDoctors: Array<{ period: string; value: number }>;
+  nurses: number;
+  specialists: number;
+  internations: TerritoryIndicator;
+  historicalInternations: Array<{ period: string; value: number }>;
+  topInternationCauses: Array<{ cause: string; value: number }>;
+  mortality: TerritoryIndicator;
+  historicalMortality: Array<{ period: string; value: number }>;
+  vaccination?: TerritoryIndicator;
+  capacityVsDemand: Array<{ category: string; capacity: number; demand: number }>;
   hospitalDemand: 'CRÍTICA' | 'ALTA' | 'MODERADA' | 'BAIXA';
   mainPressurePoints: string[];
   statusQualitative: string;
+  benchmarks?: {
+    doctorsPer10k?: { contagem: number; rmbh: number; mg: number };
+    bedsPer1k?: { contagem: number; rmbh: number; mg: number };
+    esfCoverage?: { contagem: number; rmbh: number; mg: number };
+  };
 }
 
 export interface ElectoralNotebook extends BaseNotebook {
   electorate: TerritoryIndicator;
+  historicalElectorate: Array<{ period: string; value: number }>;
   participation: TerritoryIndicator;
+  historicalParticipation: Array<{ period: string; value: number }>;
   abstention: TerritoryIndicator;
+  historicalAbstention: Array<{ period: string; value: number }>;
+  validVotes?: TerritoryIndicator;
+  blankVotes?: TerritoryIndicator;
+  nullVotes?: TerritoryIndicator;
+  margin?: TerritoryIndicator;
+  concentration?: 'CONCENTRADO' | 'MODERADO' | 'FRAGMENTADO';
+  fragmentation?: string;
   historicalTrend: string;
   competitiveness?: string;
+  candidateResults: Array<{ name: string; party: string; votes: number; percentage: number }>;
+  partyEvolution: Array<{ party: string; data: Array<{ period: string; votes: number }> }>;
+  topParties?: Array<{ party: string; seats: number; percentage: number }>;
+  whatChangedInElectorate?: string;
 }
 
 export interface EconomyNotebook extends BaseNotebook {
@@ -88,38 +146,115 @@ export interface EconomyNotebook extends BaseNotebook {
   employmentTrend: string;
   dependencyOnPublicServices: 'ALTA' | 'MODERADA' | 'BAIXA';
   predominantSectors: string[];
+  gdp: TerritoryIndicator;
+  gdpPerCapita: TerritoryIndicator;
+  valueAdded: TerritoryIndicator;
+  historicalGdp: Array<{ period: string; value: number }>;
+  historicalGdpPerCapita: Array<{ period: string; value: number }>;
+  sectorComposition: Array<{ sector: string; value: number }>;
+  historicalSectorComposition: Array<{ period: string; industry: number; services: number; agro: number; public: number }>;
+  benchmarks?: {
+    gdpPerCapita?: { contagem: number; rmbh: number; mg: number };
+    growthRate?: { contagem: string; rmbh: string; mg: string };
+  };
 }
 
 export interface EmploymentNotebook extends BaseNotebook {
   formalJobs?: TerritoryIndicator;
-  unemploymentRate?: TerritoryIndicator;
-  expandingSectors?: string[];
+  admissions?: number;
+  dismissals?: number;
+  balance?: TerritoryIndicator;
+  averageSalary?: TerritoryIndicator;
+  incomePerCapita?: TerritoryIndicator;
+  monthlyBalance: Array<{ period: string; admissions: number; dismissals: number; balance: number }>;
+  sectorBalance: Array<{ sector: string; balance: number }>;
+  topHiringSector?: string;
+  topFiringSector?: string;
+  historicalSalary: Array<{ period: string; value: number }>;
+  historicalFormalJobs?: Array<{ period: string; value: number }>;
+  benchmarks?: {
+    averageSalary?: { contagem: number; rmbh: number; mg: number };
+  };
 }
 
 export interface EducationNotebook extends BaseNotebook {
   ideb?: TerritoryIndicator;
   municipalSchools?: TerritoryIndicator;
   enrollments?: TerritoryIndicator;
+  idebElementary?: TerritoryIndicator;
+  idebHighSchool?: TerritoryIndicator;
+  enrollmentsByLevel?: Array<{ level: string; value: number }>;
+  historicalIdeb?: Array<{ period: string; value: number; mg?: number }>;
+  historicalEnrollments?: Array<{ period: string; value: number }>;
+  approvalRate?: TerritoryIndicator;
+  dropoutRate?: TerritoryIndicator;
+  ageDistortionRate?: TerritoryIndicator;
+  daycares?: number;
+  publicSchools?: number;
+  benchmarks?: {
+    ideb?: { contagem: number; rmbh: number; mg: number; brazil: number };
+  };
 }
 
 export interface InfrastructureNotebook extends BaseNotebook {
   waterCoverage?: TerritoryIndicator;
   sewageCoverage?: TerritoryIndicator;
+  garbageCollection?: TerritoryIndicator;
+  pavement?: TerritoryIndicator;
+  streetLighting?: TerritoryIndicator;
+  internetCoverage?: TerritoryIndicator;
+  historicalWater?: Array<{ period: string; value: number }>;
+  historicalSewage?: Array<{ period: string; value: number }>;
+  infrastructureGap?: Array<{ area: string; covered: number; gap: number }>;
+  benchmarks?: {
+    water?: { contagem: number; rmbh: number; mg: number };
+    sewage?: { contagem: number; rmbh: number; mg: number };
+  };
 }
 
 export interface MobilityNotebook extends BaseNotebook {
   fleet?: TerritoryIndicator;
   motorizationRate?: TerritoryIndicator;
+  accidents?: TerritoryIndicator;
+  pendularFlow?: TerritoryIndicator;
+  publicTransport?: TerritoryIndicator;
+  avgCommute?: TerritoryIndicator;
+  historicalFleet?: Array<{ period: string; value: number }>;
+  historicalAccidents?: Array<{ period: string; value: number }>;
+  pendularInOut?: Array<{ direction: string; value: number }>;
+  strategicCorridors?: Array<{ name: string; status: string; flow: string }>;
 }
 
 export interface SocialDevelopmentNotebook extends BaseNotebook {
   povertyRate?: TerritoryIndicator;
+  extremePovertyRate?: TerritoryIndicator;
   cadUnico?: TerritoryIndicator;
+  transfers?: TerritoryIndicator;
+  giniIndex?: TerritoryIndicator;
+  socialVulnerability?: TerritoryIndicator;
+  historicalPoverty?: Array<{ period: string; value: number }>;
+  historicalCadUnico?: Array<{ period: string; value: number }>;
+  incomeDistribution?: Array<{ bracket: string; percentage: number }>;
+  benchmarks?: {
+    poverty?: { contagem: number; rmbh: number; mg: number };
+    gini?: { contagem: number; rmbh: number; mg: number };
+  };
 }
 
 export interface PublicFinancesNotebook extends BaseNotebook {
   revenue?: TerritoryIndicator;
-  investmentCapacity?: TerritoryIndicator;
+  ownRevenue?: TerritoryIndicator;
+  transfers?: TerritoryIndicator;
+  expenditure?: TerritoryIndicator;
+  investment?: TerritoryIndicator;
+  personnelExpenditure?: TerritoryIndicator;
+  debt?: TerritoryIndicator;
+  fiscalAutonomy?: TerritoryIndicator;
+  historicalRevenue?: Array<{ period: string; revenue: number; expenditure: number }>;
+  historicalInvestment?: Array<{ period: string; value: number }>;
+  revenueComposition?: Array<{ source: string; value: number }>;
+  expenditureComposition?: Array<{ area: string; value: number }>;
+  spendingByFunction?: Array<{ function: string; value: number; percentage: number }>;
 }
 
 export interface TerritoryUrbanizationNotebook extends BaseNotebook {
@@ -131,6 +266,27 @@ export interface PoliticalEnvironmentNotebook extends BaseNotebook {
   dominantThemes: string[];
   recentEvents: string[];
   politicalRisks: string[];
+  executiveName?: string;
+  executiveParty?: string;
+  executiveTerm?: string;
+  chamberComposition?: Array<{ party: string; seats: number; percentage: number }>;
+  institutionalTimeline?: Array<{ year: string; event: string; impact: string }>;
+  agendaPriorities?: string[];
+}
+
+export interface RadarNotebook extends BaseNotebook {
+  events?: Array<{
+    id: string;
+    date: string;
+    category: string;
+    title: string;
+    summary: string;
+    source: string;
+    impact: 'ALTO' | 'MÉDIO' | 'BAIXO';
+    tags: string[];
+  }>;
+  intensityByTheme?: Array<{ theme: string; count: number; avgImpact: number }>;
+  emergingSignals?: string[];
 }
 
 // ---------------------------------------------------------
@@ -158,6 +314,7 @@ export interface TerritoryDiagnostic extends BaseSource {
     theme: string;
     trend: 'up' | 'down' | 'stable';
     description: string;
+    period?: string;
   }>;
   improving?: string[];
   worsening?: string[];
@@ -290,6 +447,7 @@ export interface TerritoryDossier {
   publicFinances?: PublicFinancesNotebook;
   territoryUrbanization?: TerritoryUrbanizationNotebook;
   politicalEnvironment?: PoliticalEnvironmentNotebook;
+  radar?: RadarNotebook;
   
   // Inteligência
   integratedAnalysis: IntegratedTerritoryAnalysis;

@@ -115,6 +115,15 @@ button, a {
   padding: clamp(1.25rem, 2.1vw, 2.5rem);
 }
 
+/* Quando DossierLayout (.dossier-layout) estiver ativo no dashboard-main,
+   remover o padding e o overflow-y do container genérico para que
+   exista APENAS 1 BARRA DE SCROLL VERTICAL (a barra interna do conteúdo). */
+.dashboard-main:has(.dossier-layout) {
+  padding: 0 !important;
+  overflow: hidden !important;
+  max-width: none !important;
+}
+
 .dashboard-main > * {
   animation: dashboard-enter 360ms ease-out both;
 }

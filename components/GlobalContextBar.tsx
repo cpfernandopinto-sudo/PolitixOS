@@ -1,8 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { RefreshCw, ChevronDown } from 'lucide-react';
+import { RefreshCw, ChevronDown, Database, Sparkles } from 'lucide-react';
+import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
+import { DataSourceMode } from '@/lib/territorios/types';
 import { findCurrentNavItem } from '@/lib/navigation/dashboardNavigation';
 
 interface Candidate {
@@ -81,6 +83,12 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   const supportsCandidate = PAGES_WITH_CANDIDATE.some((p) => pathname.startsWith(p));
   const supportsPeriod = PAGES_WITH_PERIOD.some((p) => pathname.startsWith(p));
 
+  const isTerritory = pathname.startsWith('/dashboard/territorios');
+  const ibgeMatch = pathname.match(/\/territorios\/(\d+)/);
+  const ibgeCode = ibgeMatch ? ibgeMatch[1] : null;
+  const dossier = isTerritory && ibgeCode === '3118601' ? CONTAGEM_DEMO : null;
+
+
   // Ler candidato atual da URL (normalizar formatos)
   const rawCandidate = searchParams.get('candidate') ?? searchParams.get('candidateId') ?? '';
   const rawPeriod = normalizeIncomingPeriod(
@@ -90,11 +98,18 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   const [candidate, setCandidate] = useState(rawCandidate);
   const [period, setPeriod] = useState(rawPeriod);
 
-  // Sync com URL quando pathname muda (navegação entre módulos)
-  useEffect(() => {
+  // Sync com URL quando pathname/searchParams mudam (navegação entre módulos).
+  // Ajuste de estado durante a renderização (não em useEffect) para evitar
+  // o double-render de "setState síncrono dentro de efeito" — mesmo padrão
+  // documentado em https://react.dev/learn/you-might-not-need-an-effect
+  // ("Adjusting some state when a prop changes").
+  const [syncKey, setSyncKey] = useState(`${pathname}?${searchParams.toString()}`);
+  const currentSyncKey = `${pathname}?${searchParams.toString()}`;
+  if (syncKey !== currentSyncKey) {
+    setSyncKey(currentSyncKey);
     setCandidate(searchParams.get('candidate') ?? searchParams.get('candidateId') ?? '');
     setPeriod(normalizeIncomingPeriod(searchParams.get('period') ?? null));
-  }, [pathname, searchParams]);
+  }
 
   const formattedTime = new Date(generatedAt).toLocaleTimeString('pt-BR', {
     hour: '2-digit',
@@ -150,6 +165,21 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
         >
           {currentModule.label}
         </span>
+      )}
+
+      {/* DETALHES DO TERRITÓRIO */}
+      {dossier && (
+        <>
+          <span className="text-white/[0.12] select-none hidden lg:inline mx-1">|</span>
+          <span className="text-[12px] font-bold text-white tracking-tight whitespace-nowrap hidden lg:inline">
+            {dossier.cityName} <span className="text-slate-500 font-medium">— {dossier.uf}</span>
+          </span>
+          <span className="text-white/[0.10] select-none hidden xl:inline mx-1">·</span>
+          <span className="hidden xl:flex items-center gap-2 text-[10px] font-medium text-slate-400">
+            <span>IBGE: {dossier.ibgeCode}</span>
+            <span>Atualizado: {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(dossier.lastUpdated))}</span>
+          </span>
+        </>
       )}
 
       {/* Filtros globais — só aparecem em páginas que os suportam */}
@@ -215,24 +245,67 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Botão de refresh compacto com timestamp */}
-      <button
-        type="button"
-        onClick={handleRefresh}
-        disabled={isPending}
-        aria-label={`Última atualização às ${formattedTime}. Clique para atualizar.`}
-        title={`Última atualização: ${formattedTime}`}
-        className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-300 disabled:opacity-40 transition-colors shrink-0 hidden md:flex"
-      >
-        <RefreshCw
-          size={11}
-          className={isPending ? 'animate-spin text-cyan-400' : ''}
-          aria-hidden="true"
-        />
-        <span className={isPending ? 'text-cyan-400' : ''}>
-          {isPending ? 'Atualizando…' : formattedTime}
-        </span>
-      </button>
+      {dossier ? (
+        <div className="hidden lg:flex items-center gap-3 shrink-0">
+          {Object.values(dossier.coverage).some(v => v === 'demo') && (
+            <span className="px-1.5 py-0.5 rounded-sm bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
+              <Sparkles size={9} /> DEMO
+            </span>
+          )}
+          <div className="flex items-center gap-1 border-l border-white/10 pl-3">
+            <CoverageBadge label="IBGE" status={dossier.coverage.ibge} />
+            <CoverageBadge label="Seg." status={dossier.coverage.security} />
+            <CoverageBadge label="Saúde" status={dossier.coverage.health} />
+            <CoverageBadge label="TSE" status={dossier.coverage.electoral} />
+            <CoverageBadge label="Econ." status={dossier.coverage.economy} />
+          </div>
+          <button 
+            onClick={handleRefresh}
+            disabled={isPending}
+            className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm text-[10px] font-semibold text-slate-300 transition-colors uppercase tracking-widest ml-1 disabled:opacity-40"
+          >
+            <RefreshCw size={10} className={`${isPending ? 'animate-spin text-cyan-400' : 'text-slate-400'}`} />
+            <span className={isPending ? 'text-cyan-400' : ''}>{isPending ? 'Atualizando...' : 'Atualizar'}</span>
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={isPending}
+          aria-label={`Última atualização às ${formattedTime}. Clique para atualizar.`}
+          title={`Última atualização: ${formattedTime}`}
+          className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-300 disabled:opacity-40 transition-colors shrink-0 hidden md:flex"
+        >
+          <RefreshCw
+            size={11}
+            className={isPending ? 'animate-spin text-cyan-400' : ''}
+            aria-hidden="true"
+          />
+          <span className={isPending ? 'text-cyan-400' : ''}>
+            {isPending ? 'Atualizando…' : formattedTime}
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CoverageBadge({ label, status }: { label: string; status: DataSourceMode }) {
+  const isDemo = status === 'demo';
+  const isAvailable = status === 'real';
+
+  return (
+    <div 
+      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-bold tracking-widest uppercase border ${
+        isAvailable ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+        isDemo ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+        'bg-slate-500/10 text-slate-400 border-white/5'
+      }`}
+      title={isDemo ? 'Fonte Demonstrativa' : isAvailable ? 'Fonte Real' : 'Indisponível'}
+    >
+      <Database size={8} className="opacity-70" />
+      {label}
     </div>
   );
 }

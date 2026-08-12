@@ -1,153 +1,117 @@
-import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
-import TerritoryKPIs from '@/components/dashboard/territorios/TerritoryKPIs';
-import { Sparkles, BarChart2, ShieldAlert } from 'lucide-react';
-import Link from 'next/link';
-import { ChangeAnalysis, TerritoryHeader } from '@/components/dashboard/territorios/CockpitComponents';
-import { ConfidenceBadge } from '@/components/dashboard/territorios/EditorialComponents';
+import { Sparkline } from '@/components/dashboard/territorios/PolitixCharts';
+import { Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import React from 'react';
 
-export default async function VisaoGeralPage({ params }: { params: Promise<{ ibge: string }> }) {
+export default async function CockpitPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
   const dossier = ibge === '3118601' ? CONTAGEM_DEMO : null;
+
   if (!dossier) return null;
 
-  const { integratedAnalysis } = dossier;
-
   return (
-    <div className="p-4 md:p-6 lg:p-8 animate-fade-in">
-      
-      <TerritoryHeader 
-        cityName={dossier.cityName}
-        uf={dossier.uf}
-        ibgeCode={dossier.ibgeCode}
-        population={dossier.kpis.population}
-        lastUpdated={dossier.lastUpdated}
-      />
-      
-      {/* 01 - RESUMO EXECUTIVO */}
-      <div className="bg-[#0f172a] border border-cyan-500/30 rounded-xl p-6 md:p-8 mb-8 relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500" />
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <h2 className="text-lg md:text-xl font-bold text-white uppercase tracking-widest flex items-center gap-2">
-            <Sparkles size={20} className="text-cyan-400" />
-            Resumo Executivo
-          </h2>
-          <ConfidenceBadge level="ALTA" reasoning="Análise baseada na convergência de dados consolidados do IBGE, TSE e Segurança." />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+          <Zap className="w-5 h-5 text-blue-400" />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-white/5 pb-2">Síntese Estratégica</h3>
-            <div className="space-y-4 text-[15px] font-medium text-slate-200 leading-relaxed">
-              {integratedAnalysis.executiveSummary.map((p, pIdx) => (
-                <p key={pIdx}>{p}</p>
-              ))}
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-white/5 pb-2">Diagnóstico Rápido</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <QuickPill label="Humor" value={integratedAnalysis.quickRead.mood} color="text-amber-400 border-amber-500/20 bg-amber-500/10" />
-              <QuickPill label="Maior Pressão" value={integratedAnalysis.quickRead.pressure} color="text-rose-400 border-rose-500/20 bg-rose-500/10" />
-              <QuickPill label="Maior Ativo" value={integratedAnalysis.quickRead.asset} color="text-emerald-400 border-emerald-500/20 bg-emerald-500/10" />
-              <QuickPill label="Oportunidade" value={integratedAnalysis.quickRead.opportunity} color="text-cyan-400 border-cyan-500/20 bg-cyan-500/10" />
-            </div>
-            
-            <div className="pt-4 mt-4 border-t border-white/5">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                <ShieldAlert size={12} />
-                Implicações Políticas
-              </h4>
-              <p className="text-sm font-medium text-slate-400 leading-relaxed">
-                {integratedAnalysis.politicalImplications.paragraphs[1]}
-              </p>
-            </div>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-white">Cockpit de Inteligência Territorial</h1>
       </div>
 
-      {/* 02 - O QUE MUDOU */}
-      <ChangeAnalysis 
-        whatChanged={dossier.diagnostic.whatChanged}
-        improving={dossier.diagnostic.improving}
-        worsening={dossier.diagnostic.worsening}
-      />
-
-      {/* 03 - NAVEGAÇÃO DOS CADERNOS */}
-      <div className="mb-8">
-        <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-          <BarChart2 size={16} className="text-cyan-400" />
-          Aprofundar nos Cadernos Temáticos
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
-          <DeepLink href={`/dashboard/territorios/${ibge}/demografia`} label="Demografia" active />
-          <DeepLink href={`/dashboard/territorios/${ibge}/eleicoes`} label="Eleições" active />
-          <DeepLink href={`/dashboard/territorios/${ibge}/seguranca`} label="Segurança" active />
-          <DeepLink href={`/dashboard/territorios/${ibge}/saude`} label="Saúde" active />
-          <DeepLink href={`/dashboard/territorios/${ibge}/economia`} label="Economia" active />
-          <DeepLink href={`/dashboard/territorios/${ibge}/inteligencia-ia`} label="Briefing IA" highlight />
-        </div>
-      </div>
-      
-      {/* 04 - METRICS & STATUS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <TerritoryKPIs data={dossier.kpis} />
-        
-        {/* Painel de Cobertura */}
-        <div className="bg-[#111726] border border-white/5 rounded-xl p-5 md:p-6 h-full flex flex-col">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Cobertura de Dados</h3>
-          <div className="space-y-3 flex-1">
-            <CoverageItem name="Censo IBGE" status={dossier.coverage.ibge} />
-            <CoverageItem name="TSE" status={dossier.coverage.electoral} />
-            <CoverageItem name="Segurança (SEJUSP)" status={dossier.coverage.security} />
-            <CoverageItem name="Saúde (DATASUS)" status={dossier.coverage.health} />
-            <CoverageItem name="Economia (CAGED)" status={dossier.coverage.economy} />
+      {/* 6 MINI KPIs */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {[
+          { label: 'População', value: '621.865', data: [600, 610, 615, 621], color: '#3b82f6' },
+          { label: 'Crime (Ocorrências)', value: '1.240', data: [1500, 1300, 1250, 1240], color: '#f43f5e' },
+          { label: 'Saúde (Cobertura)', value: '72%', data: [55, 60, 65, 72], color: '#10b981' },
+          { label: 'PIB (R$ Bi)', value: '34.5', data: [24, 28, 30, 34], color: '#8b5cf6' },
+          { label: 'Emprego (Saldo)', value: '2.140', data: [200, 205, 210, 215], color: '#06b6d4' },
+          { label: 'Comparecimento', value: '78%', data: [82, 75, 79, 78], color: '#f59e0b' },
+        ].map((kpi, idx) => (
+          <div key={idx} className="bg-[#111726] border border-white/5 rounded-xl p-4 flex flex-col hover:border-white/10 transition-colors">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</span>
+            <span className="text-xl font-bold text-white mb-3">{kpi.value}</span>
+            <div className="h-10 mt-auto">
+              <Sparkline data={kpi.data} color={kpi.color} />
+            </div>
           </div>
-          <p className="text-[10px] font-medium text-slate-500 mt-6 text-center border-t border-white/5 pt-4">
-            Dados sinalizados como "Demonstrativo" não representam a realidade e servem apenas para validação de interface.
+        ))}
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="bg-[#111726] border border-white/5 rounded-xl p-6 md:p-8">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">O Território em 60 Segundos</h2>
+          <p className="text-slate-300 text-sm leading-relaxed">
+            {dossier.diagnostic?.diagnosis || "Contagem apresenta forte expansão no setor logístico e industrial, gerando saldos positivos de emprego. Contudo, há uma pressão significativa sobre os serviços de saúde na região central e demandas urgentes de pavimentação nas zonas limítrofes com Belo Horizonte. O cenário político aponta para uma eleição focada em infraestrutura e eficiência administrativa."}
           </p>
-        </div>
+        </section>
+        
+        <section className="bg-[#111726] border border-white/5 rounded-xl p-6 md:p-8">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Pressões e Ativos</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-4">
+              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block mb-2">Ponto de Risco</span>
+              <p className="text-xs text-slate-300 font-medium leading-relaxed">Sobrecarga no atendimento de urgência (UPAs) com tempo de espera 30% acima da média da RMBH.</p>
+            </div>
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block mb-2">Ativo Estratégico</span>
+              <p className="text-xs text-slate-300 font-medium leading-relaxed">Polo industrial revitalizado atraindo 3 novas multinacionais no último semestre.</p>
+            </div>
+          </div>
+        </section>
       </div>
-    </div>
-  );
-}
 
-function QuickPill({ label, value, color }: { label: string; value: string; color: string }) {
-  if (!value) return null;
-  return (
-    <div className="flex flex-col gap-1.5 p-3 rounded-lg bg-[#0B0F19] border border-white/5">
-      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</span>
-      <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded border ${color} truncate`}>
-        {value}
-      </span>
+      <section className="bg-[#111726] border border-white/5 rounded-xl p-6 md:p-8">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">O Que Mudou Recentemente</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(dossier.diagnostic?.whatChanged ?? ([
+            { description: "Aumento de 12% no saldo de empregos formais na construção civil.", trend: 'up' },
+            { description: "Piora de 5% no índice de criminalidade na região metropolitana.", trend: 'down' },
+            { description: "Manutenção da frota de ônibus sem alterações estruturais.", trend: 'stable' }
+          ] as Array<{ description: string; trend: 'up' | 'down' | 'stable' }>)).map((item, idx) => (
+            <div key={idx} className="flex gap-3 items-start bg-white/5 p-4 rounded-lg border border-white/5">
+              {item.trend === 'up' ? <TrendingUp size={16} className="text-emerald-400 mt-0.5 shrink-0" /> :
+               item.trend === 'down' ? <TrendingDown size={16} className="text-rose-400 mt-0.5 shrink-0" /> :
+               <Minus size={16} className="text-slate-400 mt-0.5 shrink-0" />}
+              <span className="text-xs text-slate-300 leading-relaxed">{item.description}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      
+      <section className="bg-[#111726] border border-white/5 rounded-xl p-6 md:p-8 overflow-x-auto">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Benchmark Metropolitano</h2>
+        <table className="w-full text-left text-sm whitespace-nowrap">
+          <thead>
+            <tr className="border-b border-white/10 text-slate-400">
+              <th className="pb-3 font-semibold">Indicador</th>
+              <th className="pb-3 font-semibold text-cyan-400">Contagem</th>
+              <th className="pb-3 font-semibold">RMBH (Média)</th>
+              <th className="pb-3 font-semibold">MG (Média)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            <tr className="text-slate-200">
+              <td className="py-3 font-medium text-slate-400">PIB per Capita</td>
+              <td className="py-3 font-bold text-white">R$ 55.400</td>
+              <td className="py-3">R$ 48.200</td>
+              <td className="py-3">R$ 42.100</td>
+            </tr>
+            <tr className="text-slate-200">
+              <td className="py-3 font-medium text-slate-400">Homicídios / 100k</td>
+              <td className="py-3 font-bold text-white">14.2</td>
+              <td className="py-3">18.5</td>
+              <td className="py-3">22.4</td>
+            </tr>
+            <tr className="text-slate-200">
+              <td className="py-3 font-medium text-slate-400">Cobertura ESF</td>
+              <td className="py-3 font-bold text-white">72%</td>
+              <td className="py-3">68%</td>
+              <td className="py-3">75%</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </div>
-  );
-}
-
-function CoverageItem({ name, status }: { name: string; status: string }) {
-  const isReal = status === 'real';
-  return (
-    <div className="flex items-center justify-between p-2.5 rounded-lg border border-white/5 bg-white/[0.02]">
-      <span className="text-xs font-medium text-slate-300">{name}</span>
-      <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-        isReal ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' : 'text-amber-400 border-amber-500/20 bg-amber-500/10'
-      }`}>
-        {isReal ? 'Real' : 'Demonstrativo'}
-      </span>
-    </div>
-  );
-}
-
-function DeepLink({ href, label, active = false, highlight = false }: { href: string; label: string; active?: boolean; highlight?: boolean }) {
-  return (
-    <Link href={href} className={`px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all text-center border ${
-      highlight ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' : 
-      active ? 'bg-white/5 text-white border-white/10 hover:bg-white/10 hover:border-white/20' : 
-      'bg-transparent text-slate-500 border-white/5 hover:text-slate-300 cursor-not-allowed opacity-50'
-    }`}>
-      {label}
-    </Link>
   );
 }
