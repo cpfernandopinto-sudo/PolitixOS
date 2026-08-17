@@ -1,109 +1,60 @@
 import React from 'react';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
+import DossierNotebookContainer from '@/components/dashboard/territorios/DossierNotebookContainer';
 import { NotebookHeader, ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
+import AnalyticalEmptyState from '@/components/dashboard/territorios/analytical/AnalyticalEmptyState';
 import { LineChart, HorizontalBarChart, BarChart } from '@/components/dashboard/territorios/PolitixCharts';
 import { AlertTriangle, Briefcase, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
+import { getTerritoryByIbgeCode } from '@/lib/queries/territories';
 
 export default async function EmpregoRendaPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
+  const territory = await getTerritoryByIbgeCode(ibge);
+
   const dossier = ibge === '3118601' ? CONTAGEM_DEMO : null;
-  if (!dossier) return null;
-  const data = dossier.employment;
-  if (!data) return null;
+  const data = dossier?.employment;
+  const isDemo = Boolean(dossier && data);
+  const cityName = territory?.municipio ?? (ibge === '3118601' ? 'Contagem' : 'Município');
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-center">
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20 gap-1.5">
-          <AlertTriangle size={14} />
-          MVP • DADOS DEMONSTRATIVOS
-        </span>
-      </div>
+    <DossierNotebookContainer
+      title={`Emprego e Renda — ${cityName}`}
+      description="Saldo de empregos formais, movimentação do Novo CAGED e remuneração média."
+      engineName="Motor Economia / CAGED"
+      status={data ? 'PARCIAL' : 'SEM_DADOS'}
+      sourceName={isDemo ? 'MTE / CAGED (Demonstrativo — Fixture Contagem)' : 'MTE / Novo CAGED'}
+    >
+      {isDemo && data ? (
+        <div className="space-y-6">
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-mono flex items-center justify-between">
+            <span>Selo de Transparência: Dados de emprego demonstrativos pré-carregados (Fixture Contagem).</span>
+            <span className="px-2 py-0.5 bg-amber-500/20 rounded font-bold uppercase">DEMONSTRATIVO</span>
+          </div>
 
-      <NotebookHeader
-        title="Emprego e Renda"
-        summary={data.executiveSummary}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4">
-        <ContextualKPI label="Empregos Formais" indicator={data.formalJobs} icon={Briefcase} />
-        <ContextualKPI label="Saldo 12m" indicator={data.balance} icon={TrendingUp} />
-        <ContextualKPI label="Admissões" indicator={{ value: data.admissions ?? 0 }} icon={TrendingUp} />
-        <ContextualKPI label="Desligamentos" indicator={{ value: data.dismissals ?? 0 }} icon={TrendingDown} />
-        <ContextualKPI label="Remuneração Média" indicator={data.averageSalary} icon={DollarSign} />
-        <ContextualKPI label="Renda per Capita" indicator={data.incomePerCapita} icon={Wallet} />
-      </div>
-
-      <div className="surface-primary rounded-xl p-5 border border-white/5">
-        <h3 className="text-base font-semibold text-white dark:text-white mb-4">Saldo Mensal de Empregos</h3>
-        <div className="h-[250px]">
-          <BarChart
-            data={data.monthlyBalance ?? []}
-            xAxisKey="period"
-            barKey="balance"
-            name="Saldo"
-            color="#10b981"
-            height={250}
+          <NotebookHeader
+            title="Emprego e Renda"
+            summary={data.executiveSummary}
           />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="surface-primary rounded-xl p-5 border border-white/5">
-          <h3 className="text-base font-semibold text-white dark:text-white mb-4">Admissões vs Desligamentos</h3>
-          <div className="h-[220px]">
-            <LineChart
-              data={data.monthlyBalance ?? []}
-              xAxisKey="period"
-              lineKeys={[
-                { key: 'admissions', name: 'Admissões', color: '#10b981' },
-                { key: 'dismissals', name: 'Desligamentos', color: '#f43f5e' }
-              ]}
-              height={220}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4">
+            <ContextualKPI label="Empregos Formais" indicator={data.formalJobs} icon={Briefcase} />
+            <ContextualKPI label="Saldo 12m" indicator={data.balance} icon={TrendingUp} />
+            <ContextualKPI label="Admissões" indicator={{ value: data.admissions ?? 0 }} icon={TrendingUp} />
+            <ContextualKPI label="Desligamentos" indicator={{ value: data.dismissals ?? 0 }} icon={TrendingDown} />
+            <ContextualKPI label="Remuneração Média" indicator={data.averageSalary} icon={DollarSign} />
+            <ContextualKPI label="Renda per Capita" indicator={data.incomePerCapita} icon={Wallet} />
           </div>
-        </div>
-        <div className="surface-primary rounded-xl p-5 border border-white/5">
-          <h3 className="text-base font-semibold text-white dark:text-white mb-4">Saldo por Setor</h3>
-          <div className="h-[220px]">
-            <HorizontalBarChart
-              data={data.sectorBalance ?? []}
-              yAxisKey="sector"
-              barKey="balance"
-              name="Saldo"
-              color="#3b82f6"
-              height={220}
-            />
-          </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="surface-primary rounded-xl p-5 border border-white/5">
-          <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução da Remuneração</h3>
-          <div className="h-[220px]">
-            <LineChart
-              data={data.historicalSalary ?? []}
-              xAxisKey="period"
-              lineKeys={[{ key: 'value', name: 'Remuneração (R$)', color: '#8b5cf6' }]}
-              height={220}
-            />
-          </div>
+          <PolitixInsight insight={data.insight} />
         </div>
-        <div className="surface-primary rounded-xl p-5 border border-white/5">
-          <h3 className="text-base font-semibold text-white dark:text-white mb-4">Evolução do Estoque Formal</h3>
-          <div className="h-[220px]">
-            <LineChart
-              data={data.historicalFormalJobs ?? []}
-              xAxisKey="period"
-              lineKeys={[{ key: 'value', name: 'Estoque Formal', color: '#0ea5e9' }]}
-              height={220}
-            />
-          </div>
-        </div>
-      </div>
-
-      <PolitixInsight insight={data.insight} />
-    </div>
+      ) : (
+        <AnalyticalEmptyState
+          reason="nao_coletado"
+          engineName="Motor Economia / CAGED"
+          title="Dados de Emprego e Renda Ainda Não Consolidados"
+          description={`As informações de emprego e renda para ${cityName} (IBGE: ${ibge}) ainda não estão disponíveis no catálogo territorial.`}
+        />
+      )}
+    </DossierNotebookContainer>
   );
 }

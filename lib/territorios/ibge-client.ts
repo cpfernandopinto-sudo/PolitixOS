@@ -65,7 +65,7 @@ function sleep(ms: number): Promise<void> {
  * 429 (UF/codigo inexistente, por exemplo, é erro definitivo do chamador).
  * Retry é limitado a MAX_RETRIES — nunca infinito (Seção 14 do briefing).
  */
-async function fetchIbgeJson<T>(url: string): Promise<T> {
+export async function fetchIbgeJson<T>(url: string, fetcher: typeof fetch = fetch): Promise<T> {
   let lastError: IbgeApiError | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -73,7 +73,7 @@ async function fetchIbgeJson<T>(url: string): Promise<T> {
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     try {
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetcher(url, { signal: controller.signal });
 
       if (res.status === 429) {
         lastError = new IbgeApiError('rate_limited', `IBGE respondeu 429 (rate limit) em ${url}`, 429);

@@ -1,0 +1,2987 @@
+{
+  "generatedAt": "2026-08-17T02:06:32.167Z",
+  "rows": [
+    {
+      "id": "f81d210e-81ea-467f-a16a-408b5ccaa57c",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "8172f82f670479f801d383b5090d4fb44af032de862c067f41ad31e275c10df6",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8172f82f670479f801d383b5090d4fb44af032de862c067f41ad31e275c10df6",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "a765dd57-6d5c-45fc-aefb-b5a378f175a1",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "1d736f503587943a950c8b8712a0bd36ad4e3887437af7518610763ed8ed30f4",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "1d736f503587943a950c8b8712a0bd36ad4e3887437af7518610763ed8ed30f4",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "eb65c7de-6cdd-4945-9186-dcb01b586a78",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "8ac11adc183a1318c678faea3112a923099543b863d6da7597dc133717f8c1a9",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8ac11adc183a1318c678faea3112a923099543b863d6da7597dc133717f8c1a9",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f82bb656-5217-48e7-be26-1b97c17454ea",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "f6e9fd130b6b7d01f24ea800b36b784ff22147d4d5bb6db7029aacdf39f5b0cb",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f6e9fd130b6b7d01f24ea800b36b784ff22147d4d5bb6db7029aacdf39f5b0cb",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4bfa6a2d-9dc2-4af2-a41f-922ba2284709",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "8a08bab79929926ec48c82244126e6d6c4840cad19f681b0941514384a06385f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8a08bab79929926ec48c82244126e6d6c4840cad19f681b0941514384a06385f",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "005b45b1-83a4-4354-971e-01f478f511c7",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "bd5d2b074a950c71d41300bd4c341abbaefe1bdc7ccbb5af17ebe4702363a84a",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "bd5d2b074a950c71d41300bd4c341abbaefe1bdc7ccbb5af17ebe4702363a84a",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "176dfbeb-abda-4a85-a03d-65dc24ca1fec",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "b2ff3da7663769f09d5cce27e953498ed2fb952cbd7489980497f882cdc3227c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "b2ff3da7663769f09d5cce27e953498ed2fb952cbd7489980497f882cdc3227c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "d6b67f92-aec3-43da-a078-b183e0029ee4",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "b9b7fa95822fef23246c59d89480e7e73c11257698f986c71ac59c0bb8cb8355",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "b9b7fa95822fef23246c59d89480e7e73c11257698f986c71ac59c0bb8cb8355",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "9d011053-c44c-49f8-9520-a7860d390a76",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "1d771e901f1e651ff8dd5cd45aad6a6c83be5200797e5ea93f9b145ac60121ea",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "1d771e901f1e651ff8dd5cd45aad6a6c83be5200797e5ea93f9b145ac60121ea",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "ef16c4fd-6c70-49e5-aa7d-4506e868c6c9",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "d3886748f89479cad940f667faf177649413366d1d1b714fe7b958c7779da9a0",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d3886748f89479cad940f667faf177649413366d1d1b714fe7b958c7779da9a0",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2d4f0368-46bd-45ad-aed7-b9b3074a7ad6",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "989d0e7a665bcfa86e2c0e9c2751da073fa198c7bdc2d2c66955f9b406131d72",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "989d0e7a665bcfa86e2c0e9c2751da073fa198c7bdc2d2c66955f9b406131d72",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "8cb970e9-c804-434d-8c39-7d1748222e57",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "746c19f62487263ab53b693244bd96a423bfd5fbaa8d83f440faecc27209d8b0",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "746c19f62487263ab53b693244bd96a423bfd5fbaa8d83f440faecc27209d8b0",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1a121d24-b1fa-4909-9cec-01a6066cb9db",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "03e4c421966cdd759bf6e62abb6a22cf2fedba7a97116fe4ebcd4299b05a4227",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "03e4c421966cdd759bf6e62abb6a22cf2fedba7a97116fe4ebcd4299b05a4227",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "59bfe2bd-9caa-42f9-a021-00ac2b20d3a5",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "5a4616042227c9c033ea95878331519cab69b497f0ab61496b2a4b9e73b8717b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "5a4616042227c9c033ea95878331519cab69b497f0ab61496b2a4b9e73b8717b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2e0bdff6-211c-4ffe-84fe-ae2bd143ae5e",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "4e6bff00b801e9907d24f1857aaf750f4f8d7527308c4938ae1b2772bd4bc288",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "4e6bff00b801e9907d24f1857aaf750f4f8d7527308c4938ae1b2772bd4bc288",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c74a642b-21d9-41f7-bd71-4b7a65de33b3",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "3f6849cecc107789f3f17e8fed5721bcbe7b356fc234b090533851955a7c52fd",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3f6849cecc107789f3f17e8fed5721bcbe7b356fc234b090533851955a7c52fd",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "62984974-629d-4369-9176-74f1c795f956",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "5a6da99045c7178334b7afecafe49871347e1fce855d9d2df650d7b790f45689",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "5a6da99045c7178334b7afecafe49871347e1fce855d9d2df650d7b790f45689",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "f4417942-72b0-4589-8a97-73e006ae6598",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "a73d20bf618b2fcf0a8e0cc252290e6bafebc832496831b4ecc5dfb77973659c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a73d20bf618b2fcf0a8e0cc252290e6bafebc832496831b4ecc5dfb77973659c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "e5d300c5-7661-4b71-8469-c163061be81c",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "78c10f0d0f2eb03a541986a61c9002c9e826e13bd5861e52f161c56414a10b72",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "78c10f0d0f2eb03a541986a61c9002c9e826e13bd5861e52f161c56414a10b72",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "54b8daf3-7ae2-49d2-9e01-6556512e0385",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "38820ae072fc4efcd77dcc075c14e2173a202dc5efc64e183ceeadff9cc6b9cf",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "38820ae072fc4efcd77dcc075c14e2173a202dc5efc64e183ceeadff9cc6b9cf",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "77f21d96-a16e-47c6-9df4-ddef9cbb0624",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "cf00fd4872839bd03fc3a32a35846df9da1ad147c7100eb784d3da46e5e45737",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cf00fd4872839bd03fc3a32a35846df9da1ad147c7100eb784d3da46e5e45737",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f83555f9-0815-482e-9dbd-ed78b2c764ec",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "689aa9c894a43dd6c8ff05f590ee92844f0dfe7626fd76a0fb1aa6862885181f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "689aa9c894a43dd6c8ff05f590ee92844f0dfe7626fd76a0fb1aa6862885181f",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "05c762d4-d3bf-4525-8b74-b0f4dbcd721e",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "41e3e1ebe3f6c0e0e568ded647e81cf8f87351fca8ed3eb502055c794962a410",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "41e3e1ebe3f6c0e0e568ded647e81cf8f87351fca8ed3eb502055c794962a410",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5b6855f4-3286-45d0-8313-572519478964",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "1a66d1a9cf9b7ac8d1b94bff7a2d219882e798855fa852c7bfb65b3f9334c562",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "1a66d1a9cf9b7ac8d1b94bff7a2d219882e798855fa852c7bfb65b3f9334c562",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "f011d4f7-acf3-453f-ba67-e3cadcb2aadf",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "01ab68511a5f621a546a47d32460365a1968a804491ecb3daa4c9cd569b3b8ab",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "01ab68511a5f621a546a47d32460365a1968a804491ecb3daa4c9cd569b3b8ab",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3789c3d0-d19d-4e2d-85f5-0e115015bcba",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "2316709a412586ef43aa579c9137f6c0008c2fcbd10e07099e6d25f3ea85f8fe",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2316709a412586ef43aa579c9137f6c0008c2fcbd10e07099e6d25f3ea85f8fe",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c1901580-8752-4bb4-bf2b-b66dd34da94c",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "040eef9388b3b0ee7e807084283cc2589cf41cf8278854026811eb5a670644a4",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "040eef9388b3b0ee7e807084283cc2589cf41cf8278854026811eb5a670644a4",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f49e3755-840d-4ecf-8407-2f5d96c721df",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "dac27fd3f36231f2a38456067623bb434d6c3711e9b91371a4fcaa7d42589832",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "dac27fd3f36231f2a38456067623bb434d6c3711e9b91371a4fcaa7d42589832",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5d3a0e2e-742d-4ceb-b0f7-f9bdeca8a22d",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "2ba03aeba19be19c5d9b4248d30827241f3bd4066cd6f1dbeaf5eaa5d969835b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2ba03aeba19be19c5d9b4248d30827241f3bd4066cd6f1dbeaf5eaa5d969835b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "64a4f81e-ea35-4dd7-9fcc-114f9bcb7b8e",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "f3c7fe697eb1a2706d5888938bdfc7d6db9f372ea71dbb45ca81613e9b142765",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f3c7fe697eb1a2706d5888938bdfc7d6db9f372ea71dbb45ca81613e9b142765",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "3b80815e-4afe-41ca-b564-da93e5300377",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "75730c8c5f10a8453d89a1ed13ff59e7eb09415e0dc9b49dba25a2a553994a93",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "75730c8c5f10a8453d89a1ed13ff59e7eb09415e0dc9b49dba25a2a553994a93",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "24f86bc0-63f9-4a80-9728-99d27d56c09f",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "6dcfd641ea8bec153c6811b540c97fe46b87d06d829e4f959e5ca4f44f2f0475",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "6dcfd641ea8bec153c6811b540c97fe46b87d06d829e4f959e5ca4f44f2f0475",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "616db827-9005-4253-9fb3-2d0fb836931c",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "2395f42dfdae952477e1ec0be763b566cbde1c1ad61580d05a43d75dc52033dd",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2395f42dfdae952477e1ec0be763b566cbde1c1ad61580d05a43d75dc52033dd",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "55ad064e-96b8-4673-a72d-2c0fdafb5060",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "c0902a6e3385898cfcc57128a1334f8fc8d645c1cce31f011bb43d598dd81260",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "c0902a6e3385898cfcc57128a1334f8fc8d645c1cce31f011bb43d598dd81260",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "7f136af0-ae76-4ef9-b0f8-f48170389bcf",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "615ba73cf202af5d5712185821a049fb7cddf9bc846e8d034d4980f8cd984c1b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "615ba73cf202af5d5712185821a049fb7cddf9bc846e8d034d4980f8cd984c1b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "649c1a89-158f-43b8-be5d-981b934f45e3",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "9a5745c478b7a36b84e811a3950407a300e7feb71708bcc52af9f10e00fb0dc2",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9a5745c478b7a36b84e811a3950407a300e7feb71708bcc52af9f10e00fb0dc2",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c65c2869-f381-45a7-94bd-519b311c58a3",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "458f170c2efa007fb9d670e11832203fbbc25ca611d0245eedfa56ab9e01bc18",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "458f170c2efa007fb9d670e11832203fbbc25ca611d0245eedfa56ab9e01bc18",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c85b01be-10e4-4cab-9f34-d8b3c114b9a2",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "cad681493a7bb5b26c945de3cccacf1cf3782bbf78bed13d06363bcb5ca89a52",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cad681493a7bb5b26c945de3cccacf1cf3782bbf78bed13d06363bcb5ca89a52",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b97ee9a9-874b-4f6b-a711-95d1bb94b983",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "f80a985353f3af936a2eee8642ae64c482661a8ac39a13f65233f043f766fb60",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f80a985353f3af936a2eee8642ae64c482661a8ac39a13f65233f043f766fb60",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "3f122ecc-c2f1-44cb-81ee-b72a28066912",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "25356e4b82c90055518e35f28edef3b6d5621f7426af8352922f355e00c3167b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "25356e4b82c90055518e35f28edef3b6d5621f7426af8352922f355e00c3167b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "125153cf-4707-4726-bd70-05597d9f1dcf",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "a092818d382713d3ee7eced4f2c480ac4789418b136043193d7a101f768fc353",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a092818d382713d3ee7eced4f2c480ac4789418b136043193d7a101f768fc353",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "ff647740-e354-40ed-b66b-acf8bfe7d7d6",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "cf958a7ac53d274dc51e4cbb509c03d4b354d995c04e0fdb7e12936999b03582",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cf958a7ac53d274dc51e4cbb509c03d4b354d995c04e0fdb7e12936999b03582",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "0356e553-d084-4e62-8d37-1f4b4b2ab0a4",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "a6d4bb0b4fa299f2bf4613054f34b81507ae9aff4cfb193229c011951bae9276",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a6d4bb0b4fa299f2bf4613054f34b81507ae9aff4cfb193229c011951bae9276",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "d7fc1dfb-8513-4d98-8290-9f0a362c5989",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "50e632551124ec7015e3737c22755de277793c8d3abf405313bff0d8d056b2b0",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "50e632551124ec7015e3737c22755de277793c8d3abf405313bff0d8d056b2b0",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "769d3c1c-13b5-4634-9302-2969e5df3cdc",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "7fd93331c2e80b60e67605525d354f4b30c6f2f4699fdc8e4417f41a9a348802",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "7fd93331c2e80b60e67605525d354f4b30c6f2f4699fdc8e4417f41a9a348802",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "4878e00f-15f4-4453-a31f-17ac8c210a31",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "e464c2676f34bba3a495476e9c467c350af5df951524b51ef03c953eca89fe9f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e464c2676f34bba3a495476e9c467c350af5df951524b51ef03c953eca89fe9f",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "f54b9bd8-a721-4357-ba87-07f71aa6cbfd",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "39c40894e0479195754113b33ffad6a1260eca99bff0f3ad7c308e6eb1f6fcd2",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "39c40894e0479195754113b33ffad6a1260eca99bff0f3ad7c308e6eb1f6fcd2",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "9c8e1079-191f-4f0a-8295-fc0792eef316",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "73c3e6251a6fd9efbf9202ccb471bcdb4574062c668fc7dbcf415fa9b6a3dc23",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "73c3e6251a6fd9efbf9202ccb471bcdb4574062c668fc7dbcf415fa9b6a3dc23",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "40d8682a-0faf-47bf-ac6f-8ed075cf8b61",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "f1eaa4cc4996cce8a45fd1e4d80c600398ecac92c4895c7ed7c3e533cdfff15a",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f1eaa4cc4996cce8a45fd1e4d80c600398ecac92c4895c7ed7c3e533cdfff15a",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "6f48084c-0eab-4d14-b68c-396428216d7e",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "cdf0d6f51392feec3db6642f381b86f87d2412a67353af23d3084a8653f2a7c3",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cdf0d6f51392feec3db6642f381b86f87d2412a67353af23d3084a8653f2a7c3",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4a0faee0-565a-4c56-8a65-2e207ee5aac8",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "f32eb2eb8b0eb7f3428e1b62ada6195ca21a5267cbb46d479aa042d8dfb30855",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f32eb2eb8b0eb7f3428e1b62ada6195ca21a5267cbb46d479aa042d8dfb30855",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1b354cce-92f6-4121-b583-293c2f603154",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "a88a66b6cd8a5aa288d399bd3f28d917cf90d1f23fbebb6b56486ce0e7985f08",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a88a66b6cd8a5aa288d399bd3f28d917cf90d1f23fbebb6b56486ce0e7985f08",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1943c558-1dae-46a2-a07b-44ed1438c6a3",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "578ca1f0f8a03cbf9b7f4e65234bec1d22b2741cd68ad4da05e7210b76e7371e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "578ca1f0f8a03cbf9b7f4e65234bec1d22b2741cd68ad4da05e7210b76e7371e",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "387e7d91-902d-4ba8-ad89-e70383b6ba36",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "5019642e4da8b452c590ab1d9b4bda4f979f8c8eaf2cc2a906b386ff0272112b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "5019642e4da8b452c590ab1d9b4bda4f979f8c8eaf2cc2a906b386ff0272112b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8dda6268-30a9-45ee-804f-c80d49af2752",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "668e980ef0c8adbe41c2e99fa7ee1389575fcb479a1ae412c8086c5c6f982901",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "668e980ef0c8adbe41c2e99fa7ee1389575fcb479a1ae412c8086c5c6f982901",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5eb0cda1-3807-43d0-8c66-e65252064085",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "a446ad267c2c1200b23895259e29a232f4df2aeb7991806930f32c1fa0f104f5",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a446ad267c2c1200b23895259e29a232f4df2aeb7991806930f32c1fa0f104f5",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3f1c12ef-69a9-4dba-ba62-b33bd2317451",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "9f9c19b1ee4e0116160dcf0844960f91ba5436155720426d4891d80a44224ba6",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9f9c19b1ee4e0116160dcf0844960f91ba5436155720426d4891d80a44224ba6",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2bc8ed2c-91d1-4966-9548-3f3938a2aac1",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "3ecf2766ddf14baac84d224ca4486afbf4e6ca33069a7975fceeafbc09b4dd3e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3ecf2766ddf14baac84d224ca4486afbf4e6ca33069a7975fceeafbc09b4dd3e",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "c06acae1-6591-4af0-a1c1-bd3a3147179a",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "f884371b21f9332132d823abe96a600751a0cae8faee407ba846f3f35f9d5681",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f884371b21f9332132d823abe96a600751a0cae8faee407ba846f3f35f9d5681",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "283a458e-2ff1-431a-b91b-7679db0857e1",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "7ba8ee4dd13b0605e6056a0f9548aae168b48d2af2728a79b4c0456863b3708d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "7ba8ee4dd13b0605e6056a0f9548aae168b48d2af2728a79b4c0456863b3708d",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f786d482-d46c-4669-af59-ce55ce472d97",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "ee72c2ddc476d1c8f4881fb1838b9f61656f91ea2e6be45118c227ec2778056a",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ee72c2ddc476d1c8f4881fb1838b9f61656f91ea2e6be45118c227ec2778056a",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "bc2f7120-2a86-4b2e-a5f2-1ab0e1db3209",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "52d2cb13c876002ece0de45f893da4e30fe06bb90096afdb3822126d29b2fb4c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "52d2cb13c876002ece0de45f893da4e30fe06bb90096afdb3822126d29b2fb4c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4e5bf045-fd0a-4b34-b458-d72a56e112e0",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "6e5a4aaeaa0465c94be5d5672137bca9c391d48c63f6bf8cb14e263d489ee713",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "6e5a4aaeaa0465c94be5d5672137bca9c391d48c63f6bf8cb14e263d489ee713",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2631792f-47e7-42fa-9c11-90d71b19be6a",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "91032c2764b8f319306e02d54924f2b558d96902f473a293c12b973b48867aeb",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "91032c2764b8f319306e02d54924f2b558d96902f473a293c12b973b48867aeb",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "22b3ae9b-0b28-4fe7-8b2c-a8f1a77da636",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "f2d3e45ba03900b64b979d54deea38bf7f3ca98c1034ae018b44888dc0295f65",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f2d3e45ba03900b64b979d54deea38bf7f3ca98c1034ae018b44888dc0295f65",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "fc0bec6b-dbc1-45e2-bef8-9d08fe9236d4",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "33f31d3e6b29391046f259162c559c9ca0ecb03983fd2ea03a80f06cde9d7661",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "33f31d3e6b29391046f259162c559c9ca0ecb03983fd2ea03a80f06cde9d7661",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "095678ec-f215-4343-a3b2-f3c120e4b4ae",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "773e957625379a5a91aff4d25aea9b67507ea4713d9c3703e1de38bcfc032a1b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "773e957625379a5a91aff4d25aea9b67507ea4713d9c3703e1de38bcfc032a1b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "0b07005a-661c-4e42-ae4a-b829a8337b3a",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "9f6daccbeb763cc1eff0a7d1d77a483747d21cedc668a1bffdf558d42eaeac76",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9f6daccbeb763cc1eff0a7d1d77a483747d21cedc668a1bffdf558d42eaeac76",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "3efb6a34-c58c-47e6-9e5b-d27c59f11739",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "ccb3c9ca9e9ba3cf5294a543ee4607973d30e93c0c254e74c395adf4e47ce257",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ccb3c9ca9e9ba3cf5294a543ee4607973d30e93c0c254e74c395adf4e47ce257",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b56ea396-b2ce-4675-afb2-aec7dd493045",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "0f8b35b6bd3c7d881704940dab838e4477d02443c2b5ee26fc80f33d7400728d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0f8b35b6bd3c7d881704940dab838e4477d02443c2b5ee26fc80f33d7400728d",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "879981c4-b3db-45ed-8a2e-b4c19cf20186",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "314b9cfe48a0efcb0a152344c96cf80d2f4adb194693e5b7f82c6e75c6b66002",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "314b9cfe48a0efcb0a152344c96cf80d2f4adb194693e5b7f82c6e75c6b66002",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8da4b87c-7664-4b9b-a103-878a927bae97",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "2f99b60a423ccbbf5020577179521b283a2b3e3bd8d14bcf5f93efe9fc7385de",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2f99b60a423ccbbf5020577179521b283a2b3e3bd8d14bcf5f93efe9fc7385de",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5e436a27-3f1a-4367-b45e-c03f64026ecf",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "ea662df7829cdec7fb43550d57ad736ac258002e62fd4f94ad7247f9767f6f63",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ea662df7829cdec7fb43550d57ad736ac258002e62fd4f94ad7247f9767f6f63",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4b9f1016-6ab1-450d-8a25-a498c87507b4",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "cc7a912e3f7ea99522746e35b98b8c30af7f33029c81d1156327241e009320a5",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cc7a912e3f7ea99522746e35b98b8c30af7f33029c81d1156327241e009320a5",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1c63b06e-35d8-4232-ad5e-ae6a4c94f48a",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "db969bda054d205569415d73904bd99f222bb6dfb7c4fe7a832b8a1cfb4ff218",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "db969bda054d205569415d73904bd99f222bb6dfb7c4fe7a832b8a1cfb4ff218",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "90cb43e0-a0e4-4185-9438-1caeecf794ce",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "de72bfae83d67935da64a978f76fe0394eac31b1eb14b36e1539d3281067b874",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "de72bfae83d67935da64a978f76fe0394eac31b1eb14b36e1539d3281067b874",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "14ee92af-f926-445c-bca4-e13c8556bf67",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "9720ce4202b2710d0a2a83802ca78160a0e8cd034c04c02a7b46d8253e673acb",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9720ce4202b2710d0a2a83802ca78160a0e8cd034c04c02a7b46d8253e673acb",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "a4cc2b2f-1aa9-4b06-bd33-8680d4e0d5ce",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "feeba5a11865a5d2c4268363332b0e0b9aeb364f0c2365ed62c983f9433c3e4c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "feeba5a11865a5d2c4268363332b0e0b9aeb364f0c2365ed62c983f9433c3e4c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "07926197-fea4-4082-9d09-e6ef6c5d228a",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "df0143e60c4df5ff48118161e41f76b01927d1ea1f62e15d33680e986c5c96e2",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "df0143e60c4df5ff48118161e41f76b01927d1ea1f62e15d33680e986c5c96e2",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "47e09843-2205-4100-9a06-91f53d1e2a6e",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "551a2faea7f82e2cd4d0f265ddefe7503aa8cb632ad6ddcf23cf2c5d8deb947d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "551a2faea7f82e2cd4d0f265ddefe7503aa8cb632ad6ddcf23cf2c5d8deb947d",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "a5ec2a48-5d2e-49c2-aba7-e964294d19f5",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "fe91f62567b71bfaafc4de10eece6a4980af38a7bf68fd85f74d5384119f44ec",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "fe91f62567b71bfaafc4de10eece6a4980af38a7bf68fd85f74d5384119f44ec",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b016ce41-d173-493a-b3e0-b72ed174bde5",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "190fe6b6323af3d0f2380d736c9fea5f75799cfe0a606766276753ee58c01db2",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "190fe6b6323af3d0f2380d736c9fea5f75799cfe0a606766276753ee58c01db2",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "72220c2c-c451-4679-a66e-09c5730dd906",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "f3296d5886737ef1e4127173b7eae9b21b961c776acb3127ff883fa9b320e34c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f3296d5886737ef1e4127173b7eae9b21b961c776acb3127ff883fa9b320e34c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1f71fdce-429d-4fda-8132-f576e45cce74",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "d86dd6f102b6f453b36a46dc3e0b3994bb690c81b94b2069bf8fce43cce26849",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d86dd6f102b6f453b36a46dc3e0b3994bb690c81b94b2069bf8fce43cce26849",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "a528327b-b0cc-4805-944f-2acac8dc749b",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "8328fb23b9661d01977b80df8985ff42e218ff3c68a3c45af24716d78ee6ab55",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8328fb23b9661d01977b80df8985ff42e218ff3c68a3c45af24716d78ee6ab55",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "eaee268c-de42-4ae4-91b7-d849005bb226",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "1fa9a36e3b8791071f69b76910b5df887678a66cb8b676305a1fc61add8ceb26",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "1fa9a36e3b8791071f69b76910b5df887678a66cb8b676305a1fc61add8ceb26",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f4fb06fe-6069-4ff8-9f1a-a699f6b0790f",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "760ad5a5084e42b79fa506bcbc1bcd86a4735fbff2af3561833f3c0b81da44d3",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "760ad5a5084e42b79fa506bcbc1bcd86a4735fbff2af3561833f3c0b81da44d3",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "5dc2f417-9742-4f0b-8010-918c6c22eb0b",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "30154ea1b30b0f881b4e784bda03b1ae2832bac849a496834a71472ef38be0ef",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "30154ea1b30b0f881b4e784bda03b1ae2832bac849a496834a71472ef38be0ef",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "9c433b7b-81f5-4acc-b476-55d769c9a71a",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "160dec542f33deb47c960c1c3353bb4a482d4fb5d59a7cc95eb51fb31c7ec229",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "160dec542f33deb47c960c1c3353bb4a482d4fb5d59a7cc95eb51fb31c7ec229",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "ae84aea8-1aa6-43a1-b357-4d38660f92e5",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "4069af8e837f6b03e8d722290b0cffd973fb540ccfdb26d7738973d92158478a",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "4069af8e837f6b03e8d722290b0cffd973fb540ccfdb26d7738973d92158478a",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "fef57727-b058-4b1a-909f-87395d046ea1",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "d4182f0b2a76e4bfe4b42e117088fa727a6f2cc167f78a3759b661008d8efa76",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d4182f0b2a76e4bfe4b42e117088fa727a6f2cc167f78a3759b661008d8efa76",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "89cceacb-00af-46ec-a46d-b6fa2c778f45",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "a84e559ab61a2bf9283afee46772f5637ef02de5739eff2f8518bc7909f999ea",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a84e559ab61a2bf9283afee46772f5637ef02de5739eff2f8518bc7909f999ea",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "47ca1399-bdc2-4044-aa91-d2519aa98e1f",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "efb08ebcc05355496e9ac3417faa55c4cddce14452d8e61a96721d9405bb6c00",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "efb08ebcc05355496e9ac3417faa55c4cddce14452d8e61a96721d9405bb6c00",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "0db0c346-2da7-4b3b-a711-e9785d9a5a78",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "09fd96f080e4488988716e4916e729bcf97197a1d0d4d1733dd78b4bfa6d8084",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "09fd96f080e4488988716e4916e729bcf97197a1d0d4d1733dd78b4bfa6d8084",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1c6c2eb3-ea6c-445e-930c-9689c5a93522",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "e27aadb74d840e361e80e2a5a40eac7ff876bf638707c36d282869dabecd9195",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e27aadb74d840e361e80e2a5a40eac7ff876bf638707c36d282869dabecd9195",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "dbd89587-e730-4298-b420-4192bbaced8b",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "cf878209b4f86f472f6dc57e4cbf6d9afc8d29a792c9e20255f978dd706e52ef",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cf878209b4f86f472f6dc57e4cbf6d9afc8d29a792c9e20255f978dd706e52ef",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5e1a83e7-82f8-4bb4-ac78-4d60dddcbe08",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "2f14607f7a2992f87e4b38df3164e613b97f08e5a955728992939a7c6ed104ff",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2f14607f7a2992f87e4b38df3164e613b97f08e5a955728992939a7c6ed104ff",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "58b1a7eb-1bd6-493e-a88d-ee0c05934330",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "2bdd3f500e71e89fa4c15e4877968e8ca37bfd25ec3f9ea42af50b5df7996d27",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2bdd3f500e71e89fa4c15e4877968e8ca37bfd25ec3f9ea42af50b5df7996d27",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "ee8b465b-ed16-4af2-afa1-46e1e1dcc991",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "ca9255058db4ca9ed482963e3a0e93e4aecd27b870b765969692b871f3fbab66",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ca9255058db4ca9ed482963e3a0e93e4aecd27b870b765969692b871f3fbab66",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "97e0c706-0a6d-4027-8a16-212a7d534e85",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "a04da3353bfbf41bd4d88f8d9a2aa9eae74388df50fc6ba2d0be44007f3f86a9",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a04da3353bfbf41bd4d88f8d9a2aa9eae74388df50fc6ba2d0be44007f3f86a9",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "51217525-01ad-4ac1-ba13-ffeddebe408f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "b8713c7af3a8b70a12bdaa9110aa4eb41701be029301b4e4ee2a1afbee7ea774",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "b8713c7af3a8b70a12bdaa9110aa4eb41701be029301b4e4ee2a1afbee7ea774",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "e74bd44d-c1e7-420b-b020-6b39a7bc237b",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "4d2f7e5b5703e666ea33d594dcf67d740a4b6e68983e12b8ef3fa1f25ff22216",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "4d2f7e5b5703e666ea33d594dcf67d740a4b6e68983e12b8ef3fa1f25ff22216",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "36b00832-75b9-4ec2-9c00-d4090c3d0f3e",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "64ee561c0e72f56a635f283671db4886dbfc40056280c91db102fd4ffa972e6f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "64ee561c0e72f56a635f283671db4886dbfc40056280c91db102fd4ffa972e6f",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "70a059fd-fe12-4ff0-8ccf-d245f9130fb0",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "05eadc1e5c3fd98c3923202996596e1afe3ca3d518215a4f7ba50ea02dbf43d7",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "05eadc1e5c3fd98c3923202996596e1afe3ca3d518215a4f7ba50ea02dbf43d7",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c280a3f2-bbed-465e-87ed-f90fcb94cb73",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "dfe8e4a23023e6099ea42ba038bf4142d3a67b57162d5d0feb70ffa133916e33",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "dfe8e4a23023e6099ea42ba038bf4142d3a67b57162d5d0feb70ffa133916e33",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1c3be1dc-8eff-45eb-99e8-a65b4604ad9d",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "2c3cd7da82f9166bab6b287b49efdaa0fb5deacd2b2aa2c4c12e91a60586f2e1",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2c3cd7da82f9166bab6b287b49efdaa0fb5deacd2b2aa2c4c12e91a60586f2e1",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "d404a991-cb77-45ec-8f5e-051c8f08a661",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "3ad974e74ee881664bd209ec7a2bd74a015ad95d992003aaed0564b43610552f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3ad974e74ee881664bd209ec7a2bd74a015ad95d992003aaed0564b43610552f",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5526862e-9d93-44fc-a87f-3472e74fa0b3",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "e0c95a1146c5904568ce5552be0851a3673e50faa0f2dca98d6fac1867083fdf",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e0c95a1146c5904568ce5552be0851a3673e50faa0f2dca98d6fac1867083fdf",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4168ecf8-aebb-491f-a3e6-e5fdf9a63cdb",
+      "territory_id": "0f4cb1d5-b67f-4bac-836d-6703828b2a69",
+      "source_hash": "6f6bf0a639368981cb1ad22474c444de8c091fecde0ff9405bcdb92a75948066",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "6f6bf0a639368981cb1ad22474c444de8c091fecde0ff9405bcdb92a75948066",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2dd3c1d4-34b6-4b34-bb80-1fde15256a58",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "8aebc1056e29a2963500fdd8e9fbac2fd82ca0b9851db80ea8c5c0b0ac309fc9",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8aebc1056e29a2963500fdd8e9fbac2fd82ca0b9851db80ea8c5c0b0ac309fc9",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "d2e09e7b-5cea-470c-88b2-3922d2c9b4ca",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "c2b7aa4c8a300f2987d2f33847ae7b55c0ad45fbd449e474eb84dd7e72bcae91",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "c2b7aa4c8a300f2987d2f33847ae7b55c0ad45fbd449e474eb84dd7e72bcae91",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f0cc3994-a18a-4df0-a189-38f7c4034ce0",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "d56331cfb2b3bc02738d5015b83359f30e90c0bcaca55bff89229dd7708737fc",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d56331cfb2b3bc02738d5015b83359f30e90c0bcaca55bff89229dd7708737fc",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "616cca9a-e48e-45e8-a32e-febeae11eb32",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "d937e2375e6c77a29c94b0a069d4aacf61aceb75ef51073ffb93627cef3b3ad7",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d937e2375e6c77a29c94b0a069d4aacf61aceb75ef51073ffb93627cef3b3ad7",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c55a397e-b9f0-4117-81e0-a4d67ac8fe65",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "1629d114060fe5c126e10a7f7cd29a5ded1cdf6c4456a8ca1d615df5a1fa3d37",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "1629d114060fe5c126e10a7f7cd29a5ded1cdf6c4456a8ca1d615df5a1fa3d37",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "e68241bc-ac3e-42ca-9177-13bc65075bb6",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "58f4d516252e9c335df1acc99ae9174ba5dcb6552a063d006fce8a8e0d9ff06e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "58f4d516252e9c335df1acc99ae9174ba5dcb6552a063d006fce8a8e0d9ff06e",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "a9cb6f69-7426-48b0-bf6a-9a089d1fda82",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "51f0b58244f7293f8a9e14301a05171d2911df1e1589b81f645285e78de63cdf",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "51f0b58244f7293f8a9e14301a05171d2911df1e1589b81f645285e78de63cdf",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "47e2c350-8150-47e9-923f-010ce912597b",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "44c350d1e20c2ebb5a88d323c2619507356a0cd55b7fdf7f6b159f84ea84ce9a",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "44c350d1e20c2ebb5a88d323c2619507356a0cd55b7fdf7f6b159f84ea84ce9a",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5f4ad3f9-5cd0-4fd8-8296-2257c905a0b0",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "7bcccb60d18b44f6894ee161505e996e12a3d114145da91878375d44c1df04c5",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "7bcccb60d18b44f6894ee161505e996e12a3d114145da91878375d44c1df04c5",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "55267782-3440-4847-a4cb-b872e903de54",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "530e39c5ed6d0f388e3f41425fc88e95ffb0b3a2cb1116978fec5d8ca105fb20",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "530e39c5ed6d0f388e3f41425fc88e95ffb0b3a2cb1116978fec5d8ca105fb20",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "c083cad3-beef-42da-b555-abc4ba2143f4",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "190605d63cb57ae67b08e04029e8fa83db7d7138d85dbc1c8cbddddb9d760734",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "190605d63cb57ae67b08e04029e8fa83db7d7138d85dbc1c8cbddddb9d760734",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "e6c09629-3a18-4284-8124-cbe587f62b9a",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "a501c9c761c59ec7e18b71d4ea1c5c3e1c411df67dd14a33deab7da77e151040",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "a501c9c761c59ec7e18b71d4ea1c5c3e1c411df67dd14a33deab7da77e151040",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2aaf2c04-f10c-4dbc-b689-d56c120abf7e",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "421d47d6ea17465cd46633b53080aea58339c7e7ed96cf1892b0144ec5824c8f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "421d47d6ea17465cd46633b53080aea58339c7e7ed96cf1892b0144ec5824c8f",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "46ef3767-c772-4699-b1d0-898e6719411a",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "b17995ed8fbe80d15309c610e4eb38408caf920aa36b5c640c4df8bb1f4e6a66",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "b17995ed8fbe80d15309c610e4eb38408caf920aa36b5c640c4df8bb1f4e6a66",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "80f17fa0-eb8f-4707-8114-a24541218e37",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "9d52a381c0cbca7a9ea93369fc97096028693ca9b7ae206d842b1803264c977b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9d52a381c0cbca7a9ea93369fc97096028693ca9b7ae206d842b1803264c977b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8486c061-a215-4240-9f4e-d6999243f0a4",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "075259af701eb79799a8d5b09f3e1735a1cff0b8ce00059373480f48d74382e2",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "075259af701eb79799a8d5b09f3e1735a1cff0b8ce00059373480f48d74382e2",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "39b4a3bd-426f-422e-b97d-39b3ac34a17b",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "0b989a361d1df958b7e3e1179a3321ad5b4e2e2554681ae94500bc7b22f827f6",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0b989a361d1df958b7e3e1179a3321ad5b4e2e2554681ae94500bc7b22f827f6",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3858fc5c-4c9c-4b7d-beba-688a3e6f8a28",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "2dbe305979f5bf822eba914984f11cd1384d094bb2e9a93d73189764a4d84e98",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2dbe305979f5bf822eba914984f11cd1384d094bb2e9a93d73189764a4d84e98",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3c3a1448-b4c3-4fd1-819d-3f3f87697296",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "41560aa357dbcbc45a863fdad38bd9d59b79ca0ec4f65edc990a333a58d49d8e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "41560aa357dbcbc45a863fdad38bd9d59b79ca0ec4f65edc990a333a58d49d8e",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "83659351-bc47-481f-a1e6-014caa65d608",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "09ae79fa347a4523502590c2d7c1e0d55f819035532f2be0669b940a181fa6b4",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "09ae79fa347a4523502590c2d7c1e0d55f819035532f2be0669b940a181fa6b4",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "65501231-9a97-4aeb-9525-cc913c7c1c4a",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "32a71bc709712aa1e46ed87062b1e23aed5f9ff54fb698e285d6ff6907e9735e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "32a71bc709712aa1e46ed87062b1e23aed5f9ff54fb698e285d6ff6907e9735e",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b79d7abe-dd2f-405b-904c-be9836a298b6",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "2672d91f0f865333e80db87c1b258459ee7515f672b1b2db0d879ff40a7fbefa",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2672d91f0f865333e80db87c1b258459ee7515f672b1b2db0d879ff40a7fbefa",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "57273864-0170-49dc-a1e0-774a112db372",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "26f3265a31368ece8886ffe7651e6fe43e751db344e20fa2bf1f13cc7f7ca39c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "26f3265a31368ece8886ffe7651e6fe43e751db344e20fa2bf1f13cc7f7ca39c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "290c98d4-a6fa-4d06-beea-bc18130914e4",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "e0ad2a7b80e354a0d8d7e93121309a945beb7e346afb01e0d838bb288c6cfa2b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e0ad2a7b80e354a0d8d7e93121309a945beb7e346afb01e0d838bb288c6cfa2b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8b7035de-5d1f-46e1-8d68-7162472a19ac",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "7ecd5ddd086dfba45dab79639fc79001e5444d333a9cebedcd5a2a5a66302bd3",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "7ecd5ddd086dfba45dab79639fc79001e5444d333a9cebedcd5a2a5a66302bd3",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "da35cda7-e3f7-44b4-8d1d-5f2c735996d3",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "3833faa6f971d46ef7937a358980a0d2e0336f0b7c43b7898bfa77565aaaec0c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3833faa6f971d46ef7937a358980a0d2e0336f0b7c43b7898bfa77565aaaec0c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "429bed91-fdab-4629-be15-68d735fad8d2",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "ac65c84580371642da7bf11ca68ddde4c66e8e7a566efdbfdbf1a17d19e3cf6b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ac65c84580371642da7bf11ca68ddde4c66e8e7a566efdbfdbf1a17d19e3cf6b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "74e04cff-f4a1-4e67-aa17-f214588a49d9",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "d20ec6eb168afa2ff4691270ffcf44eb44102b0d8bf6ad68b5fef5976a4df8c0",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d20ec6eb168afa2ff4691270ffcf44eb44102b0d8bf6ad68b5fef5976a4df8c0",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "2a90787c-7f30-48dd-8e5c-00c4594544b4",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "8aeeb4ac41e9cac6fad11694269323c0c6cb9ece05963255f0edd7f54fb6c59c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8aeeb4ac41e9cac6fad11694269323c0c6cb9ece05963255f0edd7f54fb6c59c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "0cf59f4d-0adb-4a1b-977a-c2ec8c1abe90",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "33d5e8dd96ab3444b25b703e8b3e11dea8c69bca5192d23e0f6a58471ea0c265",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "33d5e8dd96ab3444b25b703e8b3e11dea8c69bca5192d23e0f6a58471ea0c265",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "781ad4d6-3a03-4100-b3b8-fe30b4dc4113",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "3febd2ea061d559b76a427a1d1fca8b4f32509cef867960dd81a66269f55e159",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3febd2ea061d559b76a427a1d1fca8b4f32509cef867960dd81a66269f55e159",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "3b6ae9d2-96d6-43e0-9608-74a87597252d",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "e7d49e2821485bc8164dc5caf85808abc77790c84e390f0d2cb651cf7e066029",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e7d49e2821485bc8164dc5caf85808abc77790c84e390f0d2cb651cf7e066029",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "64957605-6507-40bf-93d3-52f1bdcfd6c7",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "98fe125e5424bc996c7709207761090aba517b919a7cf4fcfc59619841b4acfb",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "98fe125e5424bc996c7709207761090aba517b919a7cf4fcfc59619841b4acfb",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4036baa3-4d54-47a2-8f3e-850f6d416053",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "63c6d24824f7ff36b9d17c7cdc15ce32f19e85c5203f7aa0660dceb99b5f0e71",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "63c6d24824f7ff36b9d17c7cdc15ce32f19e85c5203f7aa0660dceb99b5f0e71",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4897a93c-94eb-4321-b512-6d8dc03b9728",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "acf4d42d15c480c9ac2c3f0b907dc182e1a7a84de118e8fdcbfd10aee05da181",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "acf4d42d15c480c9ac2c3f0b907dc182e1a7a84de118e8fdcbfd10aee05da181",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1a2cb57b-1a3d-4d0d-ab39-2c6834a29c17",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "1ebeaf8c817b38546baa95a989a0dd77d5abc9f5a0a06f667414a670bf7dd529",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "1ebeaf8c817b38546baa95a989a0dd77d5abc9f5a0a06f667414a670bf7dd529",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f9f149b3-f225-4598-8097-2edd3e83200e",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "0d8c47cbc49ad78791418d682aed1fbcf62bb181c7757dffdcb0f0bdf5ddb9aa",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0d8c47cbc49ad78791418d682aed1fbcf62bb181c7757dffdcb0f0bdf5ddb9aa",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "079b16ca-34c1-4ad3-a477-58133c974788",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "5edb48fd3a2449e244d192d2561a33913a49d850af8868838a74668470a26d5c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "5edb48fd3a2449e244d192d2561a33913a49d850af8868838a74668470a26d5c",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "2a5b650c-ba87-4e7e-8781-19138dcabfa2",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "d024e81d38d3ac0e9ccb4352d227e5808f8a65e500174b079f11c825e3173b3d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d024e81d38d3ac0e9ccb4352d227e5808f8a65e500174b079f11c825e3173b3d",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c5ff3342-7e06-4c49-9230-50d1e686c448",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "30a974891f4a5fcd01569e3cf8a1ccacdba24f776dcf7509c4a2fa31ca076a66",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "30a974891f4a5fcd01569e3cf8a1ccacdba24f776dcf7509c4a2fa31ca076a66",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "0ce70682-5e26-49f7-a6f1-486d064fc2b0",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "30c742ae807a8aec467f9987601be37e832e852eb1e102e408bb72cdadfe90bd",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "30c742ae807a8aec467f9987601be37e832e852eb1e102e408bb72cdadfe90bd",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "7b0dbff5-fda7-4f7d-8e2b-e869f6f777d1",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "40429314fb23ceee317bf2351015f19274a4a57fc798a5da830c4a2df14969db",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "40429314fb23ceee317bf2351015f19274a4a57fc798a5da830c4a2df14969db",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b5955b1a-9854-4c78-8526-ab7692d02175",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "d9cfdc3849fadcbe2c565289fc830dc23f2fd13c572e71230f598935a59b3002",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d9cfdc3849fadcbe2c565289fc830dc23f2fd13c572e71230f598935a59b3002",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "aacdb255-05bf-4e65-8e0d-d4f7c4a6b86a",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "63822abf558e65525e4bc23536adc8dd5692b60357e7c59f75cce7eb719c04cc",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "63822abf558e65525e4bc23536adc8dd5692b60357e7c59f75cce7eb719c04cc",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "a1658293-7d64-4158-b045-2d52333f04ee",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "36307296f821676a6d84a7bbed7c4ac1bb86d6a629cd06d9d44b2454ebee96b3",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "36307296f821676a6d84a7bbed7c4ac1bb86d6a629cd06d9d44b2454ebee96b3",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b6013b20-b612-462c-9b49-10e35f505de7",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "462de7c8aa23dadb6e5053b0c0f07b83e1521f4a9404759006601a9a48052fca",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "462de7c8aa23dadb6e5053b0c0f07b83e1521f4a9404759006601a9a48052fca",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c8d6e9ff-6e41-4468-8c2b-d204d5430d4e",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "06e151373c21f182625e49ef7b9187b956f9b14b6a0a7577243330dc5db13b45",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "06e151373c21f182625e49ef7b9187b956f9b14b6a0a7577243330dc5db13b45",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8406a954-3b0b-4754-891e-740d51ecbcae",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "8edccb6e460f91776359d7446e89bb4678b16d439852c6ee6d95fc1ff8b95e0b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8edccb6e460f91776359d7446e89bb4678b16d439852c6ee6d95fc1ff8b95e0b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3ce5438c-b124-4f43-852d-0767aeae2c6f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "83dbc7c82761743b938770ba3e5ee530c1b633b15425dba6040745e86dbc32fa",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "83dbc7c82761743b938770ba3e5ee530c1b633b15425dba6040745e86dbc32fa",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8cbfb1f9-e8ef-4915-afbf-7187d3c2271e",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "637aa9a74846c7d11944e7bd1a3d83b4105990720276b7262bf8984b0ebe4741",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "637aa9a74846c7d11944e7bd1a3d83b4105990720276b7262bf8984b0ebe4741",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b4584d35-7234-4d2e-ac02-5c04a3eaae6f",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "3e11e456cf82f644d315497f0b0a5fcae6fc3d1bda2b5b1aedf2cffd63e821bc",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3e11e456cf82f644d315497f0b0a5fcae6fc3d1bda2b5b1aedf2cffd63e821bc",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "89a79530-5706-48ad-8f84-223d2e277c4b",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "70bba7f5ed48c91ff23c9c447c8d284478d680186ffa7f6d22a3c5288fa05d85",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "70bba7f5ed48c91ff23c9c447c8d284478d680186ffa7f6d22a3c5288fa05d85",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "f7a18994-6496-4211-8881-6b0fe65227b5",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "ee941111bf03a8a901d362b122b23245c02b737f8386f8d906b03f66c6333321",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ee941111bf03a8a901d362b122b23245c02b737f8386f8d906b03f66c6333321",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "9efafe3c-058f-44d2-ad2c-c76d774fb528",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "513660beb480ad796aaaa3593345f0d8a317b52692d92a806144cc63e89f6963",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "513660beb480ad796aaaa3593345f0d8a317b52692d92a806144cc63e89f6963",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "0f8f05a2-3ab9-41aa-81c0-a169a2f76ff0",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "8b46ed5a51e11512411e8141df8727e33a6a5358bdc3b95b1d52ce45831bd3bf",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8b46ed5a51e11512411e8141df8727e33a6a5358bdc3b95b1d52ce45831bd3bf",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "122520cd-05aa-464e-8d53-af39af3bbc59",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "478c635bfa878a0b33d6096ff84faf4986bf08065d41cc38f69cf9b86c284724",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "478c635bfa878a0b33d6096ff84faf4986bf08065d41cc38f69cf9b86c284724",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "e3555db0-c89f-41b3-b496-6bbd3d159ab3",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "c86198afd2f7832af8d5e9c258fb632e5f410daec2acbf62292114921cb4299a",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "c86198afd2f7832af8d5e9c258fb632e5f410daec2acbf62292114921cb4299a",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2b066626-273c-43c5-94b0-011d543b3b05",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "6a82f96403a09ffd4a243008e2bb33fa8fdf2c6dfd662472e288354713ac5977",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "6a82f96403a09ffd4a243008e2bb33fa8fdf2c6dfd662472e288354713ac5977",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "337590c8-a0ed-46fe-8aa2-46db94accc2b",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "9fc32ef9d9b8aa3d73cab0da9828d1142c0bc82899f9593b90b9c7ec5bcdb87c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9fc32ef9d9b8aa3d73cab0da9828d1142c0bc82899f9593b90b9c7ec5bcdb87c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c39f381a-9f3c-4faf-96b8-f8bc287dc79f",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "4a81c13a9077a649011c1b2ac3fd564a9b845ba6138c3e7b2403f844d1c609fb",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "4a81c13a9077a649011c1b2ac3fd564a9b845ba6138c3e7b2403f844d1c609fb",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f89c1557-4be4-4fb9-8d6b-b16efa9d8885",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "c9b7c75c60977d5d8943200b5883fd43a5303148da2db55777eafbf65fb17da0",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "c9b7c75c60977d5d8943200b5883fd43a5303148da2db55777eafbf65fb17da0",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "4cf7afcd-c3e0-43c0-817c-28b4b8004e0b",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "9e7c368381ffb74aea20d1cdcf63dba0f9a81a26e3318024e05720f1f3ebbf6a",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9e7c368381ffb74aea20d1cdcf63dba0f9a81a26e3318024e05720f1f3ebbf6a",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "72a47c9f-9bc5-4ceb-ac4b-5e2fd514c70e",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "ab0a42c128d891387e5b872beea442e43e8497904b8810d60a914b60d7f17f89",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ab0a42c128d891387e5b872beea442e43e8497904b8810d60a914b60d7f17f89",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "7353fc53-41bf-45ec-9f3d-9058628d5f60",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "3d1f6b029b2752b25a80ac496be0174d2042801a94371e9d6c200dd93b1a1b6e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3d1f6b029b2752b25a80ac496be0174d2042801a94371e9d6c200dd93b1a1b6e",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1cee2ee9-a244-45ca-a1eb-db81945f3615",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "064165c1140287db8e305f8ae0f385472c73a98fd3d72b78e2899637d044d175",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "064165c1140287db8e305f8ae0f385472c73a98fd3d72b78e2899637d044d175",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2aa74327-6599-430e-a59d-1a49b1135af8",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "48926cd837384d273f8644b274bbd3d2abc2c82dbfd6232ae4fc96b8730daa2b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "48926cd837384d273f8644b274bbd3d2abc2c82dbfd6232ae4fc96b8730daa2b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "cb4edbe5-7279-475e-86a3-cba82d07142a",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "db6df770e86aa183ea1a5e89b63f14dc13f7768e182d901e7b995be774bb9468",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "db6df770e86aa183ea1a5e89b63f14dc13f7768e182d901e7b995be774bb9468",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "18ae1ee0-fbe1-4a3d-9cc5-ec17cb251d15",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "7723e735fe6a3e48f34c3ef961ef32693fbc87bb55147d82b997cfe6a47e6536",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "7723e735fe6a3e48f34c3ef961ef32693fbc87bb55147d82b997cfe6a47e6536",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "ddeecc2c-6284-4eb7-977e-6e9271f7b79c",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "d884edf8b9ba0d9f2348878919be3c2b7384182d614b0ea3d2c79d3d316746cc",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d884edf8b9ba0d9f2348878919be3c2b7384182d614b0ea3d2c79d3d316746cc",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8e9c19c9-4328-4877-8746-2add08c6dad7",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "025473248ecb6e264c7ecbea9ccb9533b7a737e009e54e86f3813ae880bc512c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "025473248ecb6e264c7ecbea9ccb9533b7a737e009e54e86f3813ae880bc512c",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "d2af219f-ef57-485c-80bc-2719b6b983fa",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "dc445c6e1cd0f7be92876a4a12e8e0a8e3a57db6e3737d48a0d4cab9787cb8b0",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "dc445c6e1cd0f7be92876a4a12e8e0a8e3a57db6e3737d48a0d4cab9787cb8b0",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "9e05d470-c412-4b95-86eb-5f0e2f0709d6",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "5c895350fda7fd4a1aba6c9c22a8f2c7782b29baeb3a2b7a9f6b4347bf3d4b0e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "5c895350fda7fd4a1aba6c9c22a8f2c7782b29baeb3a2b7a9f6b4347bf3d4b0e",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "d38c88f6-fe71-4bdb-82cd-e2eefd34b205",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "030dfbe25952da099c11b5d810cad9f1a865f9648f819aa769523469546ed5b4",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "030dfbe25952da099c11b5d810cad9f1a865f9648f819aa769523469546ed5b4",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c81350b6-9512-443e-99a3-4a7e69dcb42b",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "6bf4f8d424a015b70f38dc8c3cdb8096ad84d027b5c3c6fa19b5fac515adc8e4",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "6bf4f8d424a015b70f38dc8c3cdb8096ad84d027b5c3c6fa19b5fac515adc8e4",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "7560efaf-a013-4d5f-a382-ab8a087d56a1",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "2576ae0f5b1ae68409e215451d349c2d884b942a1e32c03b43278bba49634824",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2576ae0f5b1ae68409e215451d349c2d884b942a1e32c03b43278bba49634824",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "ec00a882-866f-4b13-b2b5-57170729dea5",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "fe60e1f3382d25dff8a750e598bbe8c7bf4835a2f4618c5ad293951a497af9b7",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "fe60e1f3382d25dff8a750e598bbe8c7bf4835a2f4618c5ad293951a497af9b7",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "766d998e-d0d1-4a75-a542-705e13f73ed1",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "ac322115e3da0aa7cbdf2a5c21075c090af3de9b090735752a327fc1eb5d65ed",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ac322115e3da0aa7cbdf2a5c21075c090af3de9b090735752a327fc1eb5d65ed",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "db44612d-0919-488d-95d2-c1a6230e3c09",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "2d5e445591c7dcb1c90e82f0daa07b6860a1d4749530a37a0520c52ca1d06035",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2d5e445591c7dcb1c90e82f0daa07b6860a1d4749530a37a0520c52ca1d06035",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "cf3b3fa2-d3ad-44f2-a4f8-c3d7d4b8b4a0",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "d0246ec4979641c9362285417f42393699f2cf130d269df832c72d86abf3460c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "d0246ec4979641c9362285417f42393699f2cf130d269df832c72d86abf3460c",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "fcbd7541-f9c3-4e42-895c-93e8c4ca309a",
+      "territory_id": "6459d628-0ca3-4876-a4dc-ae397c6f9d06",
+      "source_hash": "0a10a7f4f1f7bfc137b122585b6ed6f1c9bbb915b4c9a689f21b30b4a19b57d9",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0a10a7f4f1f7bfc137b122585b6ed6f1c9bbb915b4c9a689f21b30b4a19b57d9",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "ca6ab0ba-e488-4cdc-b3ce-f11b1615a2bd",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "f91b3c6622dc9c97814c16b38382eb0d0d85ad8e6652c1249d64f265bece89a6",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f91b3c6622dc9c97814c16b38382eb0d0d85ad8e6652c1249d64f265bece89a6",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "6050442e-6430-4316-8264-84efae3a9e3f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "4a59eff23450643e2b28f6753056e4766bcfaa5d69562674b8026b7302638ed7",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "4a59eff23450643e2b28f6753056e4766bcfaa5d69562674b8026b7302638ed7",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "d7cd14cb-8ee4-43d4-bcbf-d1c0da84aa13",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "2920c09343c56b86d952a17e76ffb477fa62518763a90d4c83b0dd65beddabab",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2920c09343c56b86d952a17e76ffb477fa62518763a90d4c83b0dd65beddabab",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "16b10323-9152-458f-b4d0-29496ff1f7f4",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "4e7d5846cf3b36b111c1f657569bd13b9b9c24037a0fda74253c1a75ce5e09a3",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "4e7d5846cf3b36b111c1f657569bd13b9b9c24037a0fda74253c1a75ce5e09a3",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "68d1235f-da59-4a16-9c45-04e941685a0f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "93bb9245826ccdecb465eda4bd5c92b05faf22007a6b8ec7b3885b34ce6831dc",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "93bb9245826ccdecb465eda4bd5c92b05faf22007a6b8ec7b3885b34ce6831dc",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "bf2b838d-d199-4e1d-aaf7-4023ba005df8",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "7fb9981486a0151da19a040202d45f46a83c3e332cd3735c4fe1ddec70e00e62",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "7fb9981486a0151da19a040202d45f46a83c3e332cd3735c4fe1ddec70e00e62",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "48f3bfa6-ba01-41d4-a525-da27af8d1438",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "3f3878003979aababaade3ce0fc58083a41464f761c6dd6ffa5d93240112823d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3f3878003979aababaade3ce0fc58083a41464f761c6dd6ffa5d93240112823d",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8fcd14c7-2a54-4d18-9c00-e514af0569d9",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "0bfd162617fb1a60c702010d28bf2e3c9e568b60700fc1887cfeba44c9530f0d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0bfd162617fb1a60c702010d28bf2e3c9e568b60700fc1887cfeba44c9530f0d",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "afa93cf1-0f99-4f94-ade0-b050cca51e4f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "8edc6a5806afd78468dce09773c3253befa15bf51f3f7bc9164272dd956d5281",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8edc6a5806afd78468dce09773c3253befa15bf51f3f7bc9164272dd956d5281",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "521eae3d-9dd4-46b8-b9a4-5bb38e8b4ba5",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "5a2b833eb057d9a6afe8230eef331a24eb014ea3a947500b4367027f7c4af73f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "5a2b833eb057d9a6afe8230eef331a24eb014ea3a947500b4367027f7c4af73f",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "aca7d44b-1629-4f0e-9bae-d2928f242c64",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "41f8f6268423b9bb7e3f0cde153b2584cfd27f62bb1fa6238595e32ea6ba8e65",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "41f8f6268423b9bb7e3f0cde153b2584cfd27f62bb1fa6238595e32ea6ba8e65",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "3ae9260b-60cc-49b3-9306-68e41e997cc4",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "990ae4d0af18bc9de4d04d1a016623d34f3752627b460de8ff805ec2ffe811cc",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "990ae4d0af18bc9de4d04d1a016623d34f3752627b460de8ff805ec2ffe811cc",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "dedad316-3adb-437c-8e7f-9b4d68748b83",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "35efe277d0044a9c9941a3551ec77505b413c8eab21ff2878914010e6999a556",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "35efe277d0044a9c9941a3551ec77505b413c8eab21ff2878914010e6999a556",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "afa8e0fb-eaa3-4c33-be9b-0fb21e2d8f8a",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "1104e774774d38240d8bf5d95cbc898fb155d4cc400daa3e46f11c3edc924246",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "1104e774774d38240d8bf5d95cbc898fb155d4cc400daa3e46f11c3edc924246",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f192149d-9326-497b-a6dc-a94918c93b7a",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "0187d790f93813b12b43284d0892243cbe4170bc05eae5ced2ad7c2d392e1b7b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0187d790f93813b12b43284d0892243cbe4170bc05eae5ced2ad7c2d392e1b7b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "8ff17b8e-7acd-465f-9e0e-1b53f3d7a01c",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "0d4640a5319875df2b9b1f996f312a14e7ef1a7075a705d7754061d13f0fb829",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0d4640a5319875df2b9b1f996f312a14e7ef1a7075a705d7754061d13f0fb829",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "ddcc4e83-5dfe-41a3-bb75-75b938059c42",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "264015f8c202f02ada49a05560e536a81cba61b2b69c8bc2872de429e9caf0ac",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "264015f8c202f02ada49a05560e536a81cba61b2b69c8bc2872de429e9caf0ac",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "741aa567-b4e2-4de7-9cbe-ef2eea887c18",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "719a875b9c8067a5cf4d0314ec7e26ecfd3ae1ab25783abe567f8cfe2a9ca1b5",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "719a875b9c8067a5cf4d0314ec7e26ecfd3ae1ab25783abe567f8cfe2a9ca1b5",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "c0341739-2fd9-49c0-a3df-51668caa0b84",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "263a006aa3c25acf97460f61f92dad00de9c95bba0bb59ec1f4eaaf8b0dd6b51",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "263a006aa3c25acf97460f61f92dad00de9c95bba0bb59ec1f4eaaf8b0dd6b51",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "a921fe1a-6c90-48ef-9066-416ae71bde1c",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "aea3f13a1bce3aff175e8e10e3d096677b960c408b1471de9be4fcd0f2a05e17",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "aea3f13a1bce3aff175e8e10e3d096677b960c408b1471de9be4fcd0f2a05e17",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "f0e4f8d0-abb4-4648-ad03-0dae090c860f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "572ed3fafd1b2d3a38533cd7d9e72fb9fa70d3f9cddbcb072f2a94eace985fbf",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "572ed3fafd1b2d3a38533cd7d9e72fb9fa70d3f9cddbcb072f2a94eace985fbf",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "bc3b6ad2-4493-4204-8f20-678e27247c06",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "8bc069e980096381fb5f2d79ac7f4520e657a212a66baa8ecdcd1c04d96edf71",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "8bc069e980096381fb5f2d79ac7f4520e657a212a66baa8ecdcd1c04d96edf71",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3bc98de8-18ff-433a-9db6-a57fc325955b",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "354c94b36939b25e647b813377abf6e6374e0596b484092733c0b2b431c74fe2",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "354c94b36939b25e647b813377abf6e6374e0596b484092733c0b2b431c74fe2",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "71686559-f9f7-4a99-be4f-78df038bc46e",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "80948203ef47983b7d8b294948814a9d9da9c4d805ddc4e59d428a064c7010db",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "80948203ef47983b7d8b294948814a9d9da9c4d805ddc4e59d428a064c7010db",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "b552662e-469b-449b-8070-a147cbaf6e17",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "9ce2522282e7e205e945a2466ebd25eee399d0a61fcc69db3c5ff4d023210e1b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9ce2522282e7e205e945a2466ebd25eee399d0a61fcc69db3c5ff4d023210e1b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b9a24a93-3b70-42e5-9cf6-8f94531d4783",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "f0842bfd075dcb38b2de2f2b599926508f1eed558ef78f31bacda6cab49427b2",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f0842bfd075dcb38b2de2f2b599926508f1eed558ef78f31bacda6cab49427b2",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "31e2d8e8-1445-45e3-bd85-7e1201d44aaf",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "cb6343b678daadcb9fca96aa34bebd4ef94543fdc28bc64ae9458541f094017c",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cb6343b678daadcb9fca96aa34bebd4ef94543fdc28bc64ae9458541f094017c",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "a5a224ab-9119-4736-a489-997cc1c2d901",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "b13929ee007948eb3beb538229ccf442dbfa7c8d7534d5c41c8213c7c9763708",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "b13929ee007948eb3beb538229ccf442dbfa7c8d7534d5c41c8213c7c9763708",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "11a2e344-d823-45a4-9923-10cfcc5e0553",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "9cff92ca81fc21003732de51b69516ea321497a0f4df31f1428da1f36e0fcbd5",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9cff92ca81fc21003732de51b69516ea321497a0f4df31f1428da1f36e0fcbd5",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2b458dab-68f2-4f7b-a59c-afe62393abd7",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "cdb5adcd4f35382234c7b2dfb2562447e49cba7aec5664ddac8bdc636e82d531",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "cdb5adcd4f35382234c7b2dfb2562447e49cba7aec5664ddac8bdc636e82d531",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "02266c9d-bcb2-4bd0-b599-22e69af29f04",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "2b9b26f23a6bf2a8ab65f93ab35a87bd86cd55ef9518904921bd54ee416c74b6",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2b9b26f23a6bf2a8ab65f93ab35a87bd86cd55ef9518904921bd54ee416c74b6",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "584a2334-8bf7-4bb3-be4e-5e36388a196a",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "e686d37eb846e7c570e0788b0c77f991a80ce71ea20f2d20ddea1cd40a95b874",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e686d37eb846e7c570e0788b0c77f991a80ce71ea20f2d20ddea1cd40a95b874",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "5f22c507-38b0-4647-96ec-5c9c1df63ab6",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "c17c1b5a6122096661ca43d337ab89efac25f396321fd33ce90a4b6c53cc6007",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "c17c1b5a6122096661ca43d337ab89efac25f396321fd33ce90a4b6c53cc6007",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b97ba0e5-570b-4e23-91ad-817e86265aa8",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "e9af3cfa5ff41d13f374647220bd56fabd93e659ce2bd1d9ecd4197a4d53811d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e9af3cfa5ff41d13f374647220bd56fabd93e659ce2bd1d9ecd4197a4d53811d",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "dca10de7-f461-49f6-b889-3563a55ba5f5",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "524e014b8f6fa65bc5f13fed996b5fe5547985ae7932a7d008e8be081b2d2514",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "524e014b8f6fa65bc5f13fed996b5fe5547985ae7932a7d008e8be081b2d2514",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "a9532350-b416-4205-b2b7-808d41ac3264",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "bdd081262b26198bd80f75e8610a799ecce13f9915d6610e5fe039fec7a69f3f",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "bdd081262b26198bd80f75e8610a799ecce13f9915d6610e5fe039fec7a69f3f",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "942981b7-efd5-42a2-a08c-daa908b19a71",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "f84b04a977a85f940bf970e72276f6e9fa324f6a2064db50f58b1c14bc73da59",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "f84b04a977a85f940bf970e72276f6e9fa324f6a2064db50f58b1c14bc73da59",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "48229ec7-d03e-40df-a6cf-dd635a8e5840",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "c10becdcd1ccce96bebe5f03ea148ea006c735cfeae84c72724b2a327b249393",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "c10becdcd1ccce96bebe5f03ea148ea006c735cfeae84c72724b2a327b249393",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3de1fbe8-12f0-4848-a0ae-ff24bd42c181",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "3805d6b0c238493b5897d0d9a74c1a3c2259eb6eae4dc33568162bca03ae8eb7",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3805d6b0c238493b5897d0d9a74c1a3c2259eb6eae4dc33568162bca03ae8eb7",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "23e81f54-6e5e-4f74-ae3e-0f8a6c537635",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "b941293784eebe6b3e2fa1d0b4a0333b3600cac1cba6a9f43ab38e8f332be9ea",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "b941293784eebe6b3e2fa1d0b4a0333b3600cac1cba6a9f43ab38e8f332be9ea",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1bfcb7c6-60ea-4f87-bb75-5eb3808c7196",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "e1ab54f13fa7459ea8180dcd6f908b612c3002d52a550241e801178d047d9627",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e1ab54f13fa7459ea8180dcd6f908b612c3002d52a550241e801178d047d9627",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "34fe1f52-bb11-4061-9562-b7aa45d3fc7f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "9fea019306890c4d151aa37e503f911e0de4ab87f5b7169ef77f4716689570f8",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9fea019306890c4d151aa37e503f911e0de4ab87f5b7169ef77f4716689570f8",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "0cd14c14-f7fe-477a-9c8d-be45db66e6cc",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "2353a03628cf22cc8b52c50c1f3a5ce6d08ffcf16589666a53c3e965427582db",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2353a03628cf22cc8b52c50c1f3a5ce6d08ffcf16589666a53c3e965427582db",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "2a287612-4f15-4b2c-b9ad-c4de38cf18a3",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "242f3fc3206f6c96920c7a80d5edab788f26247f98e60d945870582ae4421066",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "242f3fc3206f6c96920c7a80d5edab788f26247f98e60d945870582ae4421066",
+        "method_version": "novo-caged-municipal-v1"
+      }
+    },
+    {
+      "id": "3a9b971d-d7a1-4567-a6b6-b564af54f5e2",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "9a8c1da23da7009b826ae2785e1586d357329c5449b79611594ccabfae4eb584",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "9a8c1da23da7009b826ae2785e1586d357329c5449b79611594ccabfae4eb584",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "e25d53fe-00a4-464e-99ab-785da3224e56",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "91ea05fb492fb25303a2398649a503fd10c7d21b474e304d61b32dba9c50ceeb",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "91ea05fb492fb25303a2398649a503fd10c7d21b474e304d61b32dba9c50ceeb",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "41ef1803-8379-4963-9b76-223fc65724f6",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "0a3edf67e502ad5dc07b8452883f99142e2699ce31d0003ff937d02689da884b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0a3edf67e502ad5dc07b8452883f99142e2699ce31d0003ff937d02689da884b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2a4a88fa-6af2-46c2-ad22-32b4e954a5c9",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "ffe91b7cbcf0ac9cb081760792f4d6191c537f719a6ccd5bdc4d36a7c535d33b",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ffe91b7cbcf0ac9cb081760792f4d6191c537f719a6ccd5bdc4d36a7c535d33b",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "83631dea-2f33-47ac-bc81-28db6b133f8d",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "746f7a49a00cb028a5f62276f61dc77a6b747fadd9eb5d543a76bdd7c43aebf3",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "746f7a49a00cb028a5f62276f61dc77a6b747fadd9eb5d543a76bdd7c43aebf3",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "9835545e-ee8a-4abe-b54e-f06ada6775d9",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "54f304edb260d48487cc61644ac65187eca0b96427a3031c9b929c795e688bb1",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "54f304edb260d48487cc61644ac65187eca0b96427a3031c9b929c795e688bb1",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "eabe4cf9-46d1-4cff-96e6-0ecd0dfdf325",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "3721677a86c6aa5133abc592574a4ac9d6b23302c63f7fe7bb3f3d8817404417",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "3721677a86c6aa5133abc592574a4ac9d6b23302c63f7fe7bb3f3d8817404417",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "3c4a7f88-c977-409f-a459-9857160804c7",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "0052f287fc5be5f7dbe55d8c346641ee4733d036686681225606190fba167f66",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "0052f287fc5be5f7dbe55d8c346641ee4733d036686681225606190fba167f66",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "bd2dd9e0-e8f2-4806-8744-5364a2c7ed9f",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "55a6ddeb7942f31aaa3cda4d2b13a59036060173669f438337d4e973a376b3ca",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "55a6ddeb7942f31aaa3cda4d2b13a59036060173669f438337d4e973a376b3ca",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "bc22893d-1c9c-4b93-b8ab-cbe426e3efec",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "550dde375bcc7aae54bc1863de1ea069acb407917c02a9ee73e990e41bc18766",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "550dde375bcc7aae54bc1863de1ea069acb407917c02a9ee73e990e41bc18766",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "e6cadb72-3156-4aab-bb88-41144d0188d1",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "6b54ffd53b07009a747ee5c8e07876cc1d652a2fe1fe518a56eb32b8824c828e",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "6b54ffd53b07009a747ee5c8e07876cc1d652a2fe1fe518a56eb32b8824c828e",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "2f5fbb14-0c88-4b27-a3aa-5109e5277d4e",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "b55dfb59215932e79913e59255a534303f024c4d42bbee616ea7baff5fb9f454",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "b55dfb59215932e79913e59255a534303f024c4d42bbee616ea7baff5fb9f454",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "aff09f54-5b89-4c36-ae0c-9b14f95dd69b",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "41f9ad6bda0bbafa3de6f236fd818cbb3a4582c96a0113ea2a6ef37d60570d7d",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "41f9ad6bda0bbafa3de6f236fd818cbb3a4582c96a0113ea2a6ef37d60570d7d",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "54e101ea-24db-461c-933d-efb1964d1bcd",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "2c4953a7cb2676a58ae20c0b82ad04add5729731da14f603a9ba2e26a2e202d0",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2c4953a7cb2676a58ae20c0b82ad04add5729731da14f603a9ba2e26a2e202d0",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "b518fc87-bc2a-45f2-966b-7e243c3c4292",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "ada6cffeeed59513cb43c11b758656ffc51251665d59bcdf3a1c3d2e0c5d2253",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "ada6cffeeed59513cb43c11b758656ffc51251665d59bcdf3a1c3d2e0c5d2253",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "1d83a83d-e8b6-4817-9e6c-bf1f316646cd",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "fb7a65806a0df15c2fdb7a92b842e0e59e5585bd47a24c5f392b544c0affd8ef",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "fb7a65806a0df15c2fdb7a92b842e0e59e5585bd47a24c5f392b544c0affd8ef",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "6050e458-e687-45fb-bba0-da8c77296df5",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "33709e3f04306186e9393fe0c76549773ad329b0827e6e4699e678aa0522fe06",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "33709e3f04306186e9393fe0c76549773ad329b0827e6e4699e678aa0522fe06",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "fd1d16b1-4ab4-4792-9651-9e221909a06c",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "e5d70406b5785fe8689ea3062a2fd0c02dad39dcc76c2fbde56cb9afb4a89549",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "e5d70406b5785fe8689ea3062a2fd0c02dad39dcc76c2fbde56cb9afb4a89549",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    },
+    {
+      "id": "68dca439-a0c1-4a3c-ae38-ab34a84911d4",
+      "territory_id": "83209768-3cb6-4823-8bff-5cabaf051c93",
+      "source_hash": "2e22104cbca838a591219371b45e47e132f56aeb8ffaec24cd47f7fb6fcb4c98",
+      "metadata": {
+        "current": true,
+        "source_mode": "REAL",
+        "aggregate_hash": "2e22104cbca838a591219371b45e47e132f56aeb8ffaec24cd47f7fb6fcb4c98",
+        "method_version": "novo-caged-five-sectors-v1",
+        "mapping_version": "mte-cnae2-sections-2026-v1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+'use client';
+
+import React, { useState } from 'react';
+import ExecutiveTerritoryHeader from './ExecutiveTerritoryHeader';
+import TerritorySituationSummary from './TerritorySituationSummary';
+import PrioritySignalsSection from './PrioritySignalsSection';
+import RiskOpportunitySummary, { RiskItem, OpportunityItem } from './RiskOpportunitySummary';
+import TerritoryAgendaSummary from './TerritoryAgendaSummary';
+import TerritoryNotebookNavigator from './TerritoryNotebookNavigator';
+import AnalysisStatusSummary from './AnalysisStatusSummary';
+import EvidencePanel, { EvidenceDetail } from '../intelligence/EvidencePanel';
+import { PrioritizedSignal } from '../intelligence/PoliticalSignalStack';
+import { DomainCoverage } from '../intelligence/AnalysisCoveragePanel';
+import { TerritoryAgendaItem } from '../intelligence/TerritoryAgendaPanel';
+
+export interface TerritoryCommandCenterViewModel {
+  cityName: string;
+  uf: string;
+  regionName?: string;
+  ibge: string;
+  statusLabel?: string;
+  statusType?: 'CONCLUIDO' | 'PARCIAL' | 'PROCESSANDO' | 'COLETA_NECESSARIA' | 'STALE' | 'ERRO';
+  lastUpdated?: string;
+  headline: string;
+  situationSummaryText: string;
+  keyFinding?: string;
+  signals: PrioritizedSignal[];
+  risks: RiskItem[];
+  opportunities: OpportunityItem[];
+  agendaItems: TerritoryAgendaItem[];
+  domains: DomainCoverage[];
+  evidences?: EvidenceDetail[];
+}
+
+export interface TerritoryCommandCenterProps {
+  viewModel: TerritoryCommandCenterViewModel;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+}
+
+export default function TerritoryCommandCenter({
+  viewModel,
+  onRefresh,
+  isRefreshing,
+}: TerritoryCommandCenterProps) {
+  const [selectedSignal, setSelectedSignal] = useState<PrioritizedSignal | null>(null);
+
+  const availableDomainsCount = viewModel.domains.filter((d) => d.status === 'DISPONIVEL').length;
+  const coverageText = `${availableDomainsCount} de ${viewModel.domains.length} Domínios`;
+
+  return (
+    <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in pb-12">
+      {/* 1. Territory Executive Header */}
+      <ExecutiveTerritoryHeader
+        cityName={viewModel.cityName}
+        uf={viewModel.uf}
+        regionName={viewModel.regionName}
+        statusLabel={viewModel.statusLabel}
+        statusType={viewModel.statusType}
+        lastUpdated={viewModel.lastUpdated}
+        coverageText={coverageText}
+        onRefresh={onRefresh}
+        isRefreshing={isRefreshing}
+      />
+
+      {/* 2. Situation Summary (30-Second Briefing) */}
+      <TerritorySituationSummary
+        headline={viewModel.headline}
+        summaryText={viewModel.situationSummaryText}
+        keyFinding={viewModel.keyFinding}
+        statusText={viewModel.statusLabel}
+      />
+
+      {/* 3. Engine Coverage Summary Bar */}
+      <AnalysisStatusSummary domains={viewModel.domains} />
+
+      {/* 4. Priority Signals */}
+      {viewModel.signals.length > 0 && (
+        <PrioritySignalsSection
+          signals={viewModel.signals}
+          ibge={viewModel.ibge}
+          onOpenEvidence={(sig) => setSelectedSignal(sig)}
+        />
+      )}
+
+      {/* 5. Risks vs Opportunities */}
+      <RiskOpportunitySummary risks={viewModel.risks} opportunities={viewModel.opportunities} />
+
+      {/* 6. Territory Agenda Summary */}
+      {viewModel.agendaItems.length > 0 && (
+        <TerritoryAgendaSummary
+          municipioName={viewModel.cityName}
+          ibge={viewModel.ibge}
+          items={viewModel.agendaItems}
+        />
+      )}
+
+      {/* 7. Thematic Notebooks Navigator */}
+      <TerritoryNotebookNavigator ibge={viewModel.ibge} />
+
+      {/* Evidence Trace Drawer Modal */}
+      <EvidencePanel
+        isOpen={selectedSignal !== null}
+        onClose={() => setSelectedSignal(null)}
+        title={selectedSignal?.title ?? 'Evidências do Sinal'}
+        evidences={viewModel.evidences ?? []}
+      />
+    </div>
+  );
+}

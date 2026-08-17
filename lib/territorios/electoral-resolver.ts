@@ -1,6 +1,6 @@
 import type { ElectoralNotebook, TerritoryIndicator } from './types';
 
-export type ElectoralFieldMode = 'REAL' | 'DEMO' | 'DERIVADO' | 'IA';
+export type ElectoralFieldMode = 'REAL' | 'DEMO' | 'DERIVADO' | 'IA' | 'INDISPONIVEL';
 
 export interface ElectoralResolution {
   notebook: ElectoralNotebook;
@@ -24,16 +24,39 @@ export interface ElectoralRealBlock {
   margin?: ElectoralNotebook['margin'];
 }
 
-const FIELDS: (keyof ElectoralRealBlock)[] = ['electorate', 'participation', 'abstention', 'validVotes', 'blankVotes', 'nullVotes', 'historicalElectorate', 'historicalParticipation', 'historicalAbstention', 'candidateResults', 'topParties'];
+const FIELDS: (keyof ElectoralRealBlock)[] = [
+  'electorate',
+  'participation',
+  'abstention',
+  'validVotes',
+  'blankVotes',
+  'nullVotes',
+  'historicalElectorate',
+  'historicalParticipation',
+  'historicalAbstention',
+  'candidateResults',
+  'topParties',
+];
 
-export function resolveElectoralNotebook(demo: ElectoralNotebook, real: ElectoralRealBlock | null): ElectoralResolution {
+export function resolveElectoralNotebook(
+  demo: ElectoralNotebook | null | undefined,
+  real: ElectoralRealBlock | null
+): ElectoralResolution {
   const hasAnyRealValue = FIELDS.some((field) => {
     const value = real?.[field];
     return value !== undefined && value !== null && (!Array.isArray(value) || value.length > 0);
   });
-  const notebook: ElectoralNotebook = { ...demo, mode: hasAnyRealValue ? 'real' : 'demo' };
+
+  const baseNotebook: Partial<ElectoralNotebook> = demo ? { ...demo } : {};
+  const mode = hasAnyRealValue ? 'real' : demo ? 'demo' : 'no_data';
+  const notebook: ElectoralNotebook = {
+    ...baseNotebook,
+    mode: mode as any,
+  } as ElectoralNotebook;
+
   const fieldModes: Record<string, ElectoralFieldMode> = {};
   let realCount = 0;
+
   for (const field of FIELDS) {
     const value = real?.[field];
     const available = value !== undefined && value !== null && (!Array.isArray(value) || value.length > 0);
@@ -41,14 +64,26 @@ export function resolveElectoralNotebook(demo: ElectoralNotebook, real: Electora
       Object.assign(notebook, { [field]: value });
       fieldModes[field] = 'REAL';
       realCount++;
-    } else fieldModes[field] = 'DEMO';
+    } else {
+      fieldModes[field] = demo ? 'DEMO' : 'INDISPONIVEL';
+    }
   }
+
   if (real?.margin) {
     notebook.margin = real.margin;
     fieldModes.margin = 'DERIVADO';
-  } else fieldModes.margin = 'DEMO';
-  fieldModes.concentration = 'DEMO';
-  fieldModes.fragmentation = 'DEMO';
-  fieldModes.competitiveness = 'DEMO';
-  return { notebook, fieldModes, realCoveragePercent: (realCount / FIELDS.length) * 100, demoCoveragePercent: ((FIELDS.length - realCount) / FIELDS.length) * 100 };
+  } else {
+    fieldModes.margin = demo ? 'DEMO' : 'INDISPONIVEL';
+  }
+
+  fieldModes.concentration = demo ? 'DEMO' : 'INDISPONIVEL';
+  fieldModes.fragmentation = demo ? 'DEMO' : 'INDISPONIVEL';
+  fieldModes.competitiveness = demo ? 'DEMO' : 'INDISPONIVEL';
+
+  return {
+    notebook,
+    fieldModes,
+    realCoveragePercent: (realCount / FIELDS.length) * 100,
+    demoCoveragePercent: demo ? ((FIELDS.length - realCount) / FIELDS.length) * 100 : 0,
+  };
 }

@@ -165,7 +165,7 @@ export function buildElectoralRealBlock(rows: IndicatorRow[]): { block: Electora
 export async function loadElectoralNotebook(
   client: AdminClient,
   codigoIbge: string,
-  demo: ElectoralNotebook
+  demo?: ElectoralNotebook | null
 ): Promise<ElectoralNotebookResult> {
   const { data: territory, error: territoryError } = await client
     .from('territories')

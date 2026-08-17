@@ -1,83 +1,120 @@
-import React from 'react';
-import { MapPin, Clock, Database, RefreshCw, Sparkles, Building2 } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { MapPin, Clock, Database, RefreshCw, Building2, CheckCircle2, Loader2 } from 'lucide-react';
 import { TerritoryDossier, DataSourceMode } from '@/lib/territorios/types';
+import { createTerritoryBriefingRequest } from '@/lib/actions/territories';
 
 interface Props {
   dossier: TerritoryDossier;
 }
 
 export default function DossierHeader({ dossier }: Props) {
-  const isDemo = Object.values(dossier.coverage).some(v => v === 'demo');
+  const [updating, setUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+
   const dateObj = new Date(dossier.lastUpdated);
   const formattedDate = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(dateObj);
 
+  const handleRefreshClick = async () => {
+    setUpdating(true);
+    setUpdateMessage(null);
+    try {
+      const res = await createTerritoryBriefingRequest({ codigo_ibge: dossier.ibgeCode });
+      if (res.success) {
+        setUpdateMessage('Solicitação de reprocessamento registrada com sucesso.');
+      } else {
+        setUpdateMessage(res.message ?? 'Não foi possível solicitar reprocessamento.');
+      }
+    } catch {
+      setUpdateMessage('Erro ao solicitar reprocessamento.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 py-1.5 px-1 bg-[var(--background)]">
-      <div className="flex flex-wrap items-center gap-4">
-        {/* NOME DO TERRITÓRIO E LABEL */}
-        <div className="flex items-center gap-2">
-          <Building2 size={14} className="text-slate-500 hidden sm:block" />
-          <h1 className="text-[13px] font-bold text-white tracking-wide">
-            {dossier.cityName} <span className="text-slate-500 font-medium">— {dossier.uf}</span>
-          </h1>
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-widest text-slate-500 uppercase bg-white/5 ml-1 border border-white/5">
-            Território
-          </span>
+    <div className="bg-[#0B0F19] border border-white/10 rounded-xl p-3 md:p-4 space-y-2 mb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* NOME DO TERRITÓRIO E METADADOS */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+            <Building2 size={18} />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-white tracking-tight">
+                {dossier.cityName} <span className="text-cyan-400 font-semibold">— {dossier.uf}</span>
+              </h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 uppercase">
+                Dossiê Territorial
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mt-0.5 font-medium">
+              <span className="flex items-center gap-1 font-mono">
+                <MapPin size={12} className="text-gray-500" /> IBGE: {dossier.ibgeCode}
+              </span>
+              <span className="text-gray-600">·</span>
+              <span className="flex items-center gap-1">
+                <Clock size={12} className="text-gray-500" /> Última atualização: {formattedDate}
+              </span>
+            </div>
+          </div>
         </div>
-        
-        <div className="hidden sm:block w-px h-3.5 bg-white/10" />
-        
-        {/* METADADOS BÁSICOS */}
-        <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
-          <span className="flex items-center gap-1"><MapPin size={11} className="text-slate-500" /> IBGE: {dossier.ibgeCode}</span>
-          <span className="flex items-center gap-1"><Clock size={11} className="text-slate-500" /> {formattedDate}</span>
+
+        {/* COBERTURA E AÇÃO */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* COBERTURA DOS MOTORES */}
+          <div className="flex flex-wrap items-center gap-1 bg-[#12192A] p-1.5 rounded-lg border border-white/5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-1.5 mr-1 hidden xl:inline">
+              Motores:
+            </span>
+            <CoverageBadge label="IBGE" status={dossier.coverage.ibge} />
+            <CoverageBadge label="TSE" status={dossier.coverage.electoral} />
+            <CoverageBadge label="Segurança" status={dossier.coverage.security} />
+            <CoverageBadge label="Saúde" status={dossier.coverage.health} />
+            <CoverageBadge label="Economia" status={dossier.coverage.economy} />
+          </div>
+
+          {/* BOTÃO ATUALIZAR REPROCESSAMENTO REAL */}
+          <button
+            onClick={handleRefreshClick}
+            disabled={updating}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-gray-200 transition-colors disabled:opacity-40"
+            title="Registrar solicitação de atualização do Dossiê"
+          >
+            {updating ? <Loader2 size={13} className="animate-spin text-cyan-400" /> : <RefreshCw size={13} className="text-gray-400" />}
+            <span>{updating ? 'Solicitando...' : 'Atualizar'}</span>
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {/* BADGES */}
-        {isDemo && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
-            <Sparkles size={9} /> DEMO
-          </span>
-        )}
-
-        <div className="hidden lg:flex items-center gap-1 border-l border-white/10 pl-3">
-          <CoverageBadge label="IBGE" status={dossier.coverage.ibge} />
-          <CoverageBadge label="Seg." status={dossier.coverage.security} />
-          <CoverageBadge label="Saúde" status={dossier.coverage.health} />
-          <CoverageBadge label="TSE" status={dossier.coverage.electoral} />
-          <CoverageBadge label="Econ." status={dossier.coverage.economy} />
+      {updateMessage && (
+        <div className="text-[11px] text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+          <CheckCircle2 size={12} className="text-cyan-400 shrink-0" />
+          <span>{updateMessage}</span>
         </div>
-
-        {/* ATUALIZAR */}
-        <button 
-          className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm text-[10px] font-semibold text-slate-300 transition-colors uppercase tracking-widest ml-1"
-          title="Atualização automática será conectada ao Motor Territorial."
-        >
-          <RefreshCw size={10} className="text-slate-400" />
-          <span>Atualizar</span>
-        </button>
-      </div>
+      )}
     </div>
   );
 }
 
 function CoverageBadge({ label, status }: { label: string; status: DataSourceMode }) {
-  const isDemo = status === 'demo';
-  const isAvailable = status === 'real';
+  const isAvailable = status === 'real' || status === 'demo';
 
   return (
-    <div 
-      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-bold tracking-widest uppercase border ${
-        isAvailable ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-        isDemo ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-        'bg-slate-500/10 text-slate-400 border-white/5'
+    <div
+      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border ${
+        isAvailable
+          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          : 'bg-slate-500/10 text-slate-400 border-white/5'
       }`}
-      title={isDemo ? 'Fonte Demonstrativa' : isAvailable ? 'Fonte Real' : 'Indisponível'}
+      title={isAvailable ? `${label}: Ativo/Disponível` : `${label}: Pendente`}
     >
-      <Database size={8} className="opacity-70" />
-      {label}
+      <Database size={9} className="opacity-70" />
+      <span>{label}</span>
     </div>
   );
 }

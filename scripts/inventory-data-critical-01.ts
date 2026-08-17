@@ -1,0 +1,19 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { createClient } from '@supabase/supabase-js';
+
+function loadEnv() { const file = path.join(process.cwd(), '.env.local'); if (fs.existsSync(file)) for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) { const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/); if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, ''); } }
+async function all<T>(query: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) { const rows: T[] = []; for (let from = 0; ; from += 1000) { const result = await query(from, from + 999); if (result.error) throw new Error(result.error.message); rows.push(...(result.data ?? [])); if ((result.data ?? []).length < 1000) return rows; } }
+
+async function main() {
+  loadEnv(); const url = process.env.NEXT_PUBLIC_SUPABASE_URL; const key = process.env.SUPABASE_SERVICE_ROLE_KEY; if (!url || !key) throw new Error('Supabase não configurado.');
+  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const territories = await all<Record<string, unknown>>((from, to) => client.from('territories').select('id,codigo_ibge,municipio').range(from, to)); const pilots = territories.filter((row) => ['3106200', '3106705', '3118601'].includes(String(row.codigo_ibge))); const pilotIds = pilots.map((row) => row.id);
+  const security = await all<Record<string, unknown>>((from, to) => client.from('territory_indicators').select('id,territory_id,indicador,valor,unidade,source_dataset,source_record_id,periodo_inicio,periodo_fim,source_updated_at,collected_at,metadata').eq('categoria', 'seguranca_publica').range(from, to));
+  const demo = await all<Record<string, unknown>>((from, to) => client.from('territory_indicators').select('id,territory_id,indicador,valor,unidade,fonte,source_dataset,source_record_id,periodo_inicio,periodo_fim,source_updated_at,collected_at,metadata').eq('categoria', 'demografia').eq('source_dataset', 'SIDRA_6579').range(from, to));
+  const health = await all<Record<string, unknown>>((from, to) => client.from('territory_indicators').select('indicador').eq('categoria', 'saude').eq('source_dataset', 'CNES_ESTABELECIMENTOS').range(from, to));
+  const economy = await all<Record<string, unknown>>((from, to) => client.from('territory_indicators').select('territory_id,fonte,source_dataset,indicador').in('territory_id', pilotIds).eq('categoria', 'economia').in('source_dataset', ['IBGE_SIDRA_5938','IBGE_PIB_MUNICIPIOS_BASE','SICONFI_DCA']).range(from, to));
+  const result = { territories: territories.length, pilots, security: { rows: security.length, territories: new Set(security.map((r) => r.territory_id)).size, periods: [...new Set(security.map((r) => r.periodo_inicio))].sort(), datasets: [...new Set(security.map((r) => r.source_dataset))], indicators: [...new Set(security.map((r) => r.indicador))].sort(), sample: security.slice(0, 3) }, demography: { rows: demo.length, territories: new Set(demo.map((r) => r.territory_id)).size, sample: demo.slice(0, 3) }, cnes: { types: [...new Set(health.map((r) => String(r.indicador)).filter((v) => v.startsWith('estabelecimentos_tipo_unidade_')).map((v) => v.split('_').at(-1)))].sort((a,b)=>Number(a)-Number(b)) }, economyPilots: pilots.map((pilot) => ({ ibge: pilot.codigo_ibge, municipio: pilot.municipio, rows: economy.filter((row) => row.territory_id === pilot.id).length, datasets: [...new Set(economy.filter((row) => row.territory_id === pilot.id).map((row) => row.source_dataset))] })) };
+  fs.writeFileSync('/private/tmp/data-critical-01-inventory.json', `${JSON.stringify(result, null, 2)}\n`); console.log(JSON.stringify(result, null, 2));
+}
+main().catch((error) => { console.error(error); process.exitCode = 1; });

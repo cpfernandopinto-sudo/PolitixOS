@@ -1,89 +1,120 @@
 import React from 'react';
+import DossierNotebookContainer from '@/components/dashboard/territorios/DossierNotebookContainer';
+import { ContextualKPI } from '@/components/dashboard/territorios/AnalyticalComponents';
+import AnalyticalEmptyState from '@/components/dashboard/territorios/analytical/AnalyticalEmptyState';
+import { Users, MapPin, Info } from 'lucide-react';
+import { getTerritoryByIbgeCode } from '@/lib/queries/territories';
+import { createAdminClient } from '@/lib/supabaseClient';
 import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
-import { NotebookHeader, ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
-import { Users, TrendingUp, MapPin, ActivitySquare, AlertTriangle } from 'lucide-react';
-import { LineChart, PopulationPyramid } from '@/components/dashboard/territorios/PolitixCharts';
 
 export default async function DemografiaPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
-  const dossier = ibge === '3118601' ? CONTAGEM_DEMO : null;
-  if (!dossier || !dossier.demography) return null;
+  const territory = await getTerritoryByIbgeCode(ibge);
 
-  const data = dossier.demography;
-  const isDemo = data.mode === 'demo';
+  let realPopulation: string | null = null;
+  let isDemo = false;
+  let demoData: any = null;
+
+  if (territory) {
+    // Try to extract real population from territory metadata or territory_indicators
+    const metaPop = territory.metadata?.populacao_2022 ?? territory.metadata?.populacao;
+    if (metaPop) {
+      realPopulation = Number(metaPop).toLocaleString('pt-BR');
+    } else {
+      try {
+        const client = createAdminClient();
+        const { data: rows } = await client
+          .from('territory_indicators')
+          .select('valor')
+          .eq('territory_id', territory.id)
+          .eq('categoria', 'demografia')
+          .ilike('indicador', '%populacao%')
+          .maybeSingle();
+        if (rows?.valor) {
+          realPopulation = Number(rows.valor).toLocaleString('pt-BR');
+        }
+      } catch {
+        // Query error
+      }
+    }
+  }
+
+  // Explicit DEMONSTRATIVO fallback ONLY for Contagem (3118601) if real pop query is null
+  if (!realPopulation && ibge === '3118601') {
+    demoData = CONTAGEM_DEMO.demography;
+    realPopulation = demoData.population.value;
+    isDemo = true;
+  }
+
+  const cityName = territory?.municipio ?? (ibge === '3118601' ? 'Contagem' : 'Município');
+  const statusKey = realPopulation ? (isDemo ? 'PARCIAL' : 'CONCLUIDO') : 'SEM_DADOS';
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 animate-fade-in">
-      <NotebookHeader 
-        title="Demografia e Estrutura Social" 
-        summary={data.executiveSummary} 
-      />
+    <DossierNotebookContainer
+      title={`Demografia e Perfil Populacional — ${cityName}`}
+      description="População total oficial apurada pelo Censo Demográfico e estimativas estatísticas do IBGE."
+      engineName="Motor IBGE Real"
+      status={statusKey}
+      sourceName={isDemo ? 'IBGE (Demonstrativo — Fixture Contagem)' : 'IBGE (Censo Demográfico 2022 / SIDRA 6579)'}
+    >
       {isDemo && (
-        <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
-          <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
-          <p className="text-xs text-amber-400/90 leading-relaxed">
-            <strong>Demonstrativo:</strong> Os dados demográficos foram populados para ilustrar a arquitetura e aguardam integração do Censo 2022.
-          </p>
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-mono flex items-center justify-between">
+          <span>Selo de Transparência: Dados demográficos demonstrativos pré-carregados (Fixture Contagem).</span>
+          <span className="px-2 py-0.5 bg-amber-500/20 rounded font-bold uppercase font-mono">DEMONSTRATIVO</span>
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 mb-8">
-        <ContextualKPI label="População Total" indicator={data.population} icon={Users} />
-        <ContextualKPI label="Densidade" indicator={data.density} icon={MapPin} />
-        <ContextualKPI label="Taxa de Urbanização" indicator={data.urbanization} />
-        <ContextualKPI label="Índ. Envelhecimento" indicator={data.agingIndex} icon={ActivitySquare} />
-        <ContextualKPI label="Razão Dependência" indicator={data.dependencyRatio} />
-        
-        <div className="bg-[#111726] border border-white/5 rounded-xl p-5 flex flex-col h-full">
-           <div className="flex items-center justify-between mb-4">
-             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cresc. Intercensitário</span>
-             <TrendingUp size={16} className="text-slate-500" />
-           </div>
-           <div className="flex items-end gap-3 mb-2 mt-auto">
-             <span className="text-2xl md:text-3xl font-bold text-white">{data.intercensalGrowth || 'N/A'}</span>
-           </div>
-           <div className="pt-4 border-t border-white/5 mt-auto">
-             <span className="text-[11px] font-semibold text-slate-400">Entre 2010 e 2022</span>
-           </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Evolução Populacional */}
-        <div className="surface-primary rounded-xl p-6 border border-white/5">
-          <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-6">Evolução Populacional</h3>
-          {data.historicalPopulation && data.historicalPopulation.length > 0 ? (
-            <LineChart 
-              data={data.historicalPopulation} 
-              xAxisKey="period" 
-              lineKeys={[{ key: 'value', name: 'Habitantes', color: '#22d3ee' }]} 
-              height={350} 
+      {realPopulation ? (
+        <div className="space-y-8">
+          {/* Main Real Population KPI */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ContextualKPI
+              label="População Total Oficial"
+              indicator={{
+                value: realPopulation,
+                label: 'habitantes — Censo IBGE 2022',
+                evidence: {
+                  source: 'IBGE',
+                  dataset: 'SIDRA Tabela 6579',
+                  period: '2022',
+                  lastUpdated: '2022',
+                  confidence: 'ALTA',
+                },
+              }}
+              icon={Users}
             />
-          ) : (
-            <div className="h-[350px] flex items-center justify-center text-slate-500 text-xs">Sem dados históricos</div>
-          )}
-        </div>
 
-        {/* Pirâmide Etária */}
-        <div className="surface-primary rounded-xl p-6 border border-white/5 relative">
-          <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Estrutura Etária</h3>
-          <p className="text-xs text-slate-400 mb-6">Distribuição populacional (Homens vs Mulheres)</p>
-          {data.ageGroupDistrib && data.ageGroupDistrib.length > 0 ? (
-            <PopulationPyramid 
-               data={data.ageGroupDistrib}
-               ageKey="group"
-               maleKey="male"
-               femaleKey="female"
-               height={350}
-            />
-          ) : (
-            <div className="h-[350px] flex items-center justify-center text-slate-500 text-xs">Sem dados etários</div>
-          )}
-        </div>
-      </div>
+            <div className="bg-[#111726] border border-white/5 rounded-xl p-5 flex flex-col h-full space-y-2">
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className="uppercase font-bold tracking-wider">Unidade Territorial</span>
+                <MapPin size={16} className="text-cyan-400" />
+              </div>
+              <div className="text-xl font-bold text-white font-mono">
+                {cityName} / {territory?.uf ?? 'MG'}
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">Código IBGE: {ibge}</span>
+            </div>
+          </div>
 
-      <PolitixInsight insight={data.insight} />
-    </div>
+          {/* Disclosure Box for Detailed Demographic Data */}
+          <div className="p-5 bg-[#111726] border border-white/5 rounded-xl space-y-2">
+            <div className="flex items-center gap-2 text-slate-300 font-mono text-xs font-bold">
+              <Info size={16} className="text-cyan-400" />
+              <span>Transparência de Cobertura Demográfica (IBGE)</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed font-mono">
+              O indicador de população total acima provém da base oficial de dados do IBGE. Detalhamentos censitários adicionais (pirâmide etária, composição por sexo e domicílios) serão integrados na próxima rodada de consolidação do Motor IBGE.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <AnalyticalEmptyState
+          reason="nao_coletado"
+          engineName="Motor IBGE Real"
+          title="Dados Demográficos Ainda Não Consolidados"
+          description={`Os dados de população do IBGE para ${cityName} (IBGE: ${ibge}) ainda não estão disponíveis no catálogo territorial.`}
+        />
+      )}
+    </DossierNotebookContainer>
   );
 }

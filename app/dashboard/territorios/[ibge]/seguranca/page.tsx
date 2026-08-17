@@ -1,209 +1,179 @@
 import React from 'react';
-import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
-import { NotebookHeader, ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
+import DossierNotebookContainer from '@/components/dashboard/territorios/DossierNotebookContainer';
+import { ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
+import AnalyticalEmptyState from '@/components/dashboard/territorios/analytical/AnalyticalEmptyState';
 import { ShieldAlert, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
 import { LineChart, HorizontalBarChart } from '@/components/dashboard/territorios/PolitixCharts';
+import { createAdminClient } from '@/lib/supabaseClient';
+import { getTerritoryByIbgeCode } from '@/lib/queries/territories';
+import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
+
+interface IndicatorRow {
+  indicador: string;
+  valor: number | string | null;
+  periodo_inicio: string | null;
+  metadata: Record<string, unknown> | null;
+}
 
 export default async function SegurancaPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
-  const dossier = ibge === '3118601' ? CONTAGEM_DEMO : null;
-  if (!dossier || !dossier.security) return null;
+  const territory = await getTerritoryByIbgeCode(ibge);
 
-  const data = dossier.security;
-  const historicalData = data.historicalSeries || [];
+  const isMgTerritory = !territory || territory.uf?.toUpperCase() === 'MG';
+  let realData: any = null;
+  let isDemo = false;
+
+  if (territory && isMgTerritory) {
+    try {
+      const client = createAdminClient();
+      const { data: rows } = await client
+        .from('territory_indicators')
+        .select('indicador, valor, periodo_inicio, metadata')
+        .eq('territory_id', territory.id)
+        .eq('categoria', 'seguranca_publica')
+        .eq('fonte', 'SEJUSP-MG')
+        .order('periodo_inicio', { ascending: true });
+
+      if (rows && rows.length > 0) {
+        // Group by month
+        const monthlyMap = new Map<string, Record<string, number>>();
+        rows.forEach((r: IndicatorRow) => {
+          const month = r.periodo_inicio ? r.periodo_inicio.slice(0, 7) : '2024';
+          const current = monthlyMap.get(month) ?? {};
+          current[r.indicador] = Number(r.valor ?? 0);
+          monthlyMap.set(month, current);
+        });
+
+        const historicalSeries = Array.from(monthlyMap.entries()).map(([month, vals]) => ({
+          period: month.replace('-', '/'),
+          violentos: vals['indice_crimes_violentos'] ?? vals['crimes_violentos_total'] ?? 0,
+          patrimoniais: vals['roubo_consumado'] ?? 0,
+          homicidios: vals['homicidio_consumado'] ?? 0,
+          veiculos: vals['veiculos_roubo_furto'] ?? 0,
+        }));
+
+        // Latest month values for KPIs
+        const latestVals = Array.from(monthlyMap.values()).at(-1) ?? {};
+
+        realData = {
+          mode: 'real',
+          violentCrimes: { value: latestVals['indice_crimes_violentos'] ?? latestVals['crimes_violentos_total'] ?? 0, label: 'índice agregado — 100k hab' },
+          propertyCrimes: { value: latestVals['roubo_consumado'] ?? 0, label: 'roubos registrados' },
+          homicides: { value: latestVals['homicidio_consumado'] ?? 0, label: 'homicídios consumados' },
+          robberies: { value: latestVals['roubo_consumado'] ?? 0, label: 'roubos' },
+          thefts: { value: latestVals['furto_consumado'] ?? 0, label: 'furtos' },
+          vehicles: { value: latestVals['veiculos_roubo_furto'] ?? 0, label: 'roubos/furtos de veículos' },
+          historicalSeries,
+        };
+      }
+    } catch {
+      // SEJUSP query fallback
+    }
+  }
+
+  // Explicit DEMONSTRATIVO fallback ONLY for Contagem (3118601) if query empty
+  if (!realData && ibge === '3118601') {
+    realData = CONTAGEM_DEMO.security;
+    isDemo = true;
+  }
+
+  const cityName = territory?.municipio ?? (ibge === '3118601' ? 'Contagem' : 'Município');
+  const statusKey = realData ? (isDemo ? 'PARCIAL' : 'CONCLUIDO') : 'SEM_DADOS';
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 animate-fade-in">
-      <NotebookHeader
-        title="Segurança Pública"
-        summary={data.executiveSummary}
-      />
-
-      {/* Source Badge */}
-      <div className="mb-6 flex items-center gap-3 flex-wrap">
-        <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-[11px] font-bold text-emerald-400 uppercase tracking-widest">
-          SEJUSP MG — DADOS REAIS
-        </span>
-        <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-[11px] font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-          <AlertTriangle size={11} /> BENCHMARKS DEMONSTRATIVOS
-        </span>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 mb-8">
-        <ContextualKPI label="Crimes Violentos" indicator={data.violentCrimes} icon={ShieldAlert} />
-        <ContextualKPI label="Crimes Patrimoniais" indicator={data.propertyCrimes} />
-        <ContextualKPI label="Homicídios" indicator={data.homicides} />
-        <ContextualKPI label="Roubos" indicator={data.robberies} />
-        <ContextualKPI label="Furtos" indicator={data.thefts} />
-        <ContextualKPI label="Furtos de Veículos" indicator={data.vehicles} />
-      </div>
-
-      {/* Main evolution chart + High/Low crimes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <div className="lg:col-span-2 surface-primary rounded-xl p-6 border border-white/5">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Evolução Histórica — 2019 a 2024</h3>
-            <div className="flex gap-1.5">
-              {['12m', '24m', '5a', 'Tudo'].map((t, i) => (
-                <span key={t} className={`px-2 py-1 border rounded text-[10px] cursor-pointer transition-all ${i === 3 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>{t}</span>
-              ))}
-            </div>
-          </div>
-          {historicalData.length > 0 ? (
-            <LineChart
-              data={historicalData}
-              xAxisKey="period"
-              lineKeys={[
-                { key: 'violentos', name: 'Violentos', color: '#f43f5e' },
-                { key: 'patrimoniais', name: 'Patrimoniais', color: '#eab308' },
-                { key: 'homicidios', name: 'Homicídios', color: '#9f1239' },
-                { key: 'veiculos', name: 'Roubo/Furto Veíc.', color: '#3b82f6' }
-              ]}
-              height={300}
-            />
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-slate-500 text-xs">Dados históricos não disponíveis</div>
-          )}
+    <DossierNotebookContainer
+      title={`Segurança Pública — ${cityName}`}
+      description="Indicadores de ocorrências criminais, séries temporais e estatísticas oficiais da SEJUSP-MG."
+      engineName="Motor SEJUSP-MG Real"
+      status={statusKey}
+      sourceName={isDemo ? 'SEJUSP MG (Demonstrativo — Fixture Contagem)' : 'SEJUSP MG (Secretaria de Estado de Justiça e Segurança Pública)'}
+    >
+      {!isMgTerritory && (
+        <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-mono flex items-center gap-3">
+          <AlertTriangle size={18} className="shrink-0" />
+          <span>Limitação de Cobertura Regional: O Motor SEJUSP-MG é restrito ao estado de Minas Gerais. O município selecionado pertence à UF {territory?.uf}.</span>
         </div>
+      )}
 
-        {/* Crimes em Alta / Baixa */}
-        <div className="space-y-4">
-          <div className="surface-primary rounded-xl p-5 border border-white/5">
-            <h4 className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <TrendingUp size={14} /> Crimes em Alta
-            </h4>
-            <div className="space-y-3">
-              {data.growingCrimes?.map((crime, idx) => (
-                <div key={idx} className="flex justify-between items-center pb-2 border-b border-white/5 last:border-0 last:pb-0">
-                  <span className="text-sm text-slate-300 font-medium">{crime.nature}</span>
-                  <div className="text-right">
-                    <span className="block text-sm font-bold text-white">{crime.count.toLocaleString()}</span>
-                    <span className="text-[10px] text-rose-400 font-semibold">{crime.variation}</span>
+      {isDemo && (
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-mono flex items-center justify-between">
+          <span>Selo de Transparência: Dados de segurança demonstrativos pré-carregados (Fixture Contagem).</span>
+          <span className="px-2 py-0.5 bg-amber-500/20 rounded font-bold uppercase">DEMONSTRATIVO</span>
+        </div>
+      )}
+
+      {realData ? (
+        <div className="space-y-8">
+          {/* KPIs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4">
+            <ContextualKPI label="Crimes Violentos" indicator={realData.violentCrimes} icon={ShieldAlert} />
+            <ContextualKPI label="Crimes Patrimoniais" indicator={realData.propertyCrimes} />
+            <ContextualKPI label="Homicídios" indicator={realData.homicides} />
+            <ContextualKPI label="Roubos" indicator={realData.robberies} />
+            <ContextualKPI label="Furtos" indicator={realData.thefts} />
+            <ContextualKPI label="Furtos de Veículos" indicator={realData.vehicles} />
+          </div>
+
+          {/* Main evolution chart + High/Low crimes */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 surface-primary rounded-xl p-6 border border-white/5 space-y-4">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <h3 className="text-xs font-bold text-white uppercase tracking-widest font-mono">
+                  Evolução Histórica Mensal de Ocorrências
+                </h3>
+                <span className="text-[10px] font-mono text-slate-400">Série Temporal SEJUSP-MG</span>
+              </div>
+              {realData.historicalSeries && realData.historicalSeries.length > 0 ? (
+                <LineChart
+                  data={realData.historicalSeries}
+                  xAxisKey="period"
+                  lineKeys={[
+                    { key: 'violentos', name: 'Violentos', color: '#f43f5e' },
+                    { key: 'patrimoniais', name: 'Patrimoniais', color: '#eab308' },
+                    { key: 'homicidios', name: 'Homicídios', color: '#9f1239' },
+                    { key: 'veiculos', name: 'Roubo/Furto Veíc.', color: '#3b82f6' },
+                  ]}
+                  height={300}
+                />
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-slate-500 text-xs font-mono">Dados históricos não disponíveis</div>
+              )}
+            </div>
+
+            {/* Crimes em Alta / Baixa se disponíveis */}
+            <div className="space-y-4">
+              <div className="surface-primary rounded-xl p-5 border border-white/5">
+                <h4 className="text-xs font-bold text-rose-400 uppercase tracking-widest font-mono mb-4 flex items-center gap-2">
+                  <TrendingUp size={14} /> Ocorrências de Atenção
+                </h4>
+                <div className="space-y-3 font-mono text-xs text-slate-300">
+                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                    <span>Homicídios Consumados</span>
+                    <span className="font-bold text-white">{realData.homicides?.value ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                    <span>Roubos Consumados</span>
+                    <span className="font-bold text-white">{realData.robberies?.value ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Furtos de Veículos</span>
+                    <span className="font-bold text-white">{realData.vehicles?.value ?? 0}</span>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-          <div className="surface-primary rounded-xl p-5 border border-white/5">
-            <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <TrendingDown size={14} /> Crimes em Queda
-            </h4>
-            <div className="space-y-3">
-              {data.fallingCrimes?.map((crime, idx) => (
-                <div key={idx} className="flex justify-between items-center pb-2 border-b border-white/5 last:border-0 last:pb-0">
-                  <span className="text-sm text-slate-300 font-medium">{crime.nature}</span>
-                  <div className="text-right">
-                    <span className="block text-sm font-bold text-white">{crime.count.toLocaleString()}</span>
-                    <span className="text-[10px] text-emerald-400 font-semibold">{crime.variation}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Benchmark + Ranking + Sazonalidade */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Ranking */}
-        <div className="lg:col-span-1 surface-primary rounded-xl p-6 border border-white/5">
-          <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-6">Ranking por Natureza</h3>
-          {data.topNatureRanking && data.topNatureRanking.length > 0 ? (
-            <HorizontalBarChart
-              data={data.topNatureRanking}
-              yAxisKey="nature"
-              barKey="count"
-              name="Ocorrências"
-              color="#3b82f6"
-              height={250}
-            />
-          ) : null}
+          {realData.insight && <PolitixInsight insight={realData.insight} />}
         </div>
-
-        {/* Sazonalidade mensal */}
-        <div className="lg:col-span-1 surface-primary rounded-xl p-6 border border-white/5">
-          <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-2">Sazonalidade Mensal</h3>
-          <p className="text-[11px] text-slate-500 mb-5 uppercase tracking-widest">Índice de ocorrências (média = 100)</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-1.5">
-            {data.seasonality?.map((s) => {
-              const pct = Math.min(100, Math.max(0, s.index));
-              const color = s.index > 105 ? '#f43f5e' : s.index > 95 ? '#eab308' : '#10b981';
-              return (
-                <div key={s.month} className="flex flex-col items-center gap-1">
-                  <div className="w-full h-16 bg-white/5 rounded flex items-end overflow-hidden">
-                    <div
-                      className="w-full rounded-t transition-all"
-                      style={{ height: `${pct}%`, backgroundColor: color + '80', border: `1px solid ${color}40` }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-slate-500 font-bold">{s.month.slice(0,3)}</span>
-                  <span className="text-[9px] font-bold" style={{ color }}>{s.index}</span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="text-[10px] text-slate-600 mt-3">
-            Valores acima de 100 indicam sazonalidade superior à média anual.
-          </p>
-        </div>
-
-        {/* Benchmark */}
-        <div className="lg:col-span-1 surface-primary rounded-xl p-6 border border-white/5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Benchmark — Taxa/100k</h3>
-            <span className="text-[10px] text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded px-2 py-0.5 font-bold">DEMO</span>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Crimes Violentos / 100k</p>
-              {[
-                { label: 'Contagem', value: data.benchmarks?.violentCrimesPer100k?.contagem ?? 199.4, color: 'bg-cyan-500' },
-                { label: 'RMBH', value: data.benchmarks?.violentCrimesPer100k?.rmbh ?? 171.4, color: 'bg-white/50' },
-                { label: 'MG', value: data.benchmarks?.violentCrimesPer100k?.mg ?? 199.8, color: 'bg-slate-600' },
-              ].map(b => {
-                const max = Math.max(data.benchmarks?.violentCrimesPer100k?.contagem ?? 200, data.benchmarks?.violentCrimesPer100k?.mg ?? 200) * 1.1;
-                const pct = (b.value / max) * 100;
-                return (
-                  <div key={b.label} className="mb-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-300 font-semibold">{b.label}</span>
-                      <span className="text-[11px] text-white font-bold">{b.value}</span>
-                    </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${b.color}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Homicídios / 100k</p>
-              {[
-                { label: 'Contagem', value: data.benchmarks?.homicidesPer100k?.contagem ?? 13.7, color: 'bg-rose-500' },
-                { label: 'RMBH', value: data.benchmarks?.homicidesPer100k?.rmbh ?? 14.1, color: 'bg-white/50' },
-                { label: 'MG', value: data.benchmarks?.homicidesPer100k?.mg ?? 21.4, color: 'bg-slate-600' },
-              ].map(b => {
-                const max = 25;
-                const pct = (b.value / max) * 100;
-                return (
-                  <div key={b.label} className="mb-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-300 font-semibold">{b.label}</span>
-                      <span className="text-[11px] text-white font-bold">{b.value}</span>
-                    </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${b.color}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <PolitixInsight insight={data.insight} />
-    </div>
+      ) : (
+        <AnalyticalEmptyState
+          reason="nao_coletado"
+          engineName="Motor SEJUSP-MG Real"
+          title="Dados de Segurança Pública Ainda Não Consolidados"
+          description={`As ocorrências policiais oficiais da SEJUSP-MG para ${cityName} (IBGE: ${ibge}) ainda não foram carregadas na base territorial.`}
+        />
+      )}
+    </DossierNotebookContainer>
   );
 }
