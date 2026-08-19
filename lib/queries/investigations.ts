@@ -7,12 +7,26 @@ import type {
   InvestigationQuery,
 } from '@/lib/types/investigations'
 
-export async function getInvestigations(): Promise<Investigation[]> {
+/**
+ * `allowedTargetIds`: null = admin (sem restrição). [] = nenhum candidato
+ * permitido (retorna vazio/nega). [...] = restringe a investigações cujo
+ * `candidate_id` esteja na lista. Investigações com `candidate_id` nulo
+ * (não vinculadas a um candidato específico) são excluídas para não-admin —
+ * fail-closed, já que não há como verificar a quem pertencem.
+ */
+export async function getInvestigations(allowedTargetIds?: string[] | null): Promise<Investigation[]> {
   const client = createAdminClient()
-  const { data, error } = await client
+  let query = client
     .from('investigations')
     .select('*')
     .order('created_at', { ascending: false })
+
+  if (allowedTargetIds !== null && allowedTargetIds !== undefined) {
+    if (allowedTargetIds.length === 0) return []
+    query = query.in('candidate_id', allowedTargetIds)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[Investigação] Erro ao buscar investigações:', error.message)
@@ -21,7 +35,10 @@ export async function getInvestigations(): Promise<Investigation[]> {
   return (data ?? []) as Investigation[]
 }
 
-export async function getInvestigationById(id: string): Promise<Investigation | null> {
+export async function getInvestigationById(
+  id: string,
+  allowedTargetIds?: string[] | null
+): Promise<Investigation | null> {
   const client = createAdminClient()
   console.info('[Investigação] Buscando dossiê por id:', id)
   const { data, error } = await client
@@ -38,6 +55,16 @@ export async function getInvestigationById(id: string): Promise<Investigation | 
     })
     return null
   }
+
+  if (
+    allowedTargetIds !== null &&
+    allowedTargetIds !== undefined &&
+    (!data?.candidate_id || !allowedTargetIds.includes(data.candidate_id))
+  ) {
+    console.warn('[Investigação] Acesso negado — candidato fora das permissões:', { id, candidateId: data?.candidate_id })
+    return null
+  }
+
   console.info('[Investigação] Resultado da consulta investigations:', {
     id: data?.id,
     status: data?.status,

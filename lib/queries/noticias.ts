@@ -130,10 +130,19 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
     q = q.in('candidate_name', allowedCandidateNames)
   }
 
-  // Filtros Globais
-  if (filters?.candidate) q = q.eq('candidate_name', filters.candidate)
-  // Se vier candidateId, podemos resolver para nome se necessário, mas mantendo compatibilidade:
-  if (filters?.candidateId) {
+  // Filtros Globais — candidateIds (multi-select) tem precedência sobre os
+  // aliases legados de candidato único.
+  if (filters?.candidateIds && filters.candidateIds.length > 0) {
+    const { data: rows } = await client
+      .from('targets')
+      .select('candidate_name')
+      .in('id', filters.candidateIds)
+    const names = (rows || []).map((r: { candidate_name: string }) => r.candidate_name)
+    q = names.length === 1 ? q.eq('candidate_name', names[0]) : q.in('candidate_name', names)
+  } else if (filters?.candidate) {
+    q = q.eq('candidate_name', filters.candidate)
+  } else if (filters?.candidateId) {
+    // Se vier candidateId, podemos resolver para nome se necessário, mas mantendo compatibilidade:
     const { data: t } = await client.from('targets').select('candidate_name').eq('id', filters.candidateId).single()
     if (t) q = q.eq('candidate_name', t.candidate_name)
   }
@@ -171,7 +180,7 @@ const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[
   }
 
   const { data, error } = await withTiming(
-    `fetchMencoes(period=${filters?.period ?? 'all'}, candidate=${filters?.candidate ?? filters?.candidateId ?? '—'})`,
+    `fetchMencoes(period=${filters?.period ?? 'all'}, candidates=${filters?.candidateIds?.join(',') ?? filters?.candidate ?? filters?.candidateId ?? '—'})`,
     (): Promise<{ data: MencaoRow[] | null; error: { message: string } | null }> =>
       q.order('published_at', { ascending: false }),
     (r) => r.data?.length ?? 0

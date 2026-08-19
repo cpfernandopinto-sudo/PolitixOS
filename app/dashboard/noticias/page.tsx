@@ -5,6 +5,7 @@ import { getCandidateOptions, getCityOptions, getSourceOptions, getCrisisAlerts,
 import type { NoticiasFilters } from '@/lib/types/noticias';
 import CrisisAlert from '@/components/dashboard/CrisisAlert';
 import { getAllowedTargetIds } from '@/lib/auth/dal';
+import { parseGlobalFilters, getEffectiveCandidateIds, searchParamsToURLSearchParams, toLegacyNoticiasBucket } from '@/lib/filters/global';
 
 export const metadata = {
   title: "Radar de Notícias"
@@ -25,16 +26,15 @@ function str(v: string | string[] | undefined): string | null {
   return s || null;
 }
 
-function buildFilters(
+/** Filtros locais desta página — cidade/fonte/sentimento/busca/range customizado.
+ *  Candidato e período vêm do GlobalContextBar (ver montagem de `filters` abaixo). */
+function buildLocalFilters(
   params: Record<string, string | string[] | undefined>
-): NoticiasFilters {
+): Pick<NoticiasFilters, 'city' | 'source' | 'sentiment' | 'startDate' | 'endDate' | 'search'> {
   return {
-    candidateId: str(params.candidateId),
-    candidate: str(params.candidate),
     city: str(params.city),
     source: str(params.source),
     sentiment: str(params.sentiment),
-    period: str(params.period),
     startDate: str(params.startDate),
     endDate: str(params.endDate),
     search: str(params.search),
@@ -84,7 +84,14 @@ async function CrisisAlertsSection({ filters }: { filters: NoticiasFilters }) {
 export default async function NoticiasDashboard({ searchParams }: PageProps) {
   const params = await searchParams;
   const allowedTargetIds = await getAllowedTargetIds();
-  const filters = { ...buildFilters(params), allowedTargetIds };
+  const globalFilters = parseGlobalFilters(searchParamsToURLSearchParams(params));
+  const candidateIds = getEffectiveCandidateIds(globalFilters, allowedTargetIds);
+  const filters: NoticiasFilters = {
+    ...buildLocalFilters(params),
+    candidateIds,
+    period: toLegacyNoticiasBucket(globalFilters.period) ?? null,
+    allowedTargetIds,
+  };
 
   const [candidates, cities, sources] = await Promise.all([
     getCandidateOptions(allowedTargetIds),

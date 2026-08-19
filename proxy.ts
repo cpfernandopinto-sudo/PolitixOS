@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decryptSessionToken } from '@/lib/auth/token';
+import { APP_SCREENS } from '@/lib/navigation/appScreens';
 
 // Rotas públicas que não precisam de autenticação
 const PUBLIC_ROUTES = ['/login', '/'];
 
-// Mapeamento: pathname prefix → screen_key
-const SCREEN_MAP: Record<string, string> = {
-  '/dashboard/noticias': 'noticias',
-  '/dashboard/instagram': 'instagram',
-  '/dashboard/candidatos': 'candidatos',
-  '/dashboard/automacoes': 'automacoes',
-  '/dashboard/investigacoes': 'investigacoes',
-  '/dashboard/gestao-crise': 'gestao_crise',
-  '/dashboard/apoiadores': 'apoiadores',
-  '/dashboard/territorios': 'territorios',
-  '/dashboard/configuracoes': 'configuracoes',
-  '/dashboard/usuarios': 'usuarios', // apenas admin
-};
+/**
+ * Mapeamento pathname prefix → screen_key, derivado do catálogo canônico
+ * (`lib/navigation/appScreens.ts`) em vez de mantido à mão aqui — antes desta
+ * unificação esta tabela não tinha entrada para `/dashboard/x`, deixando essa
+ * tela sem NENHUMA checagem de permissão no middleware (bypass direto por
+ * URL). Telas `implemented: false` (sem página real) não entram aqui — nada
+ * a proteger. `dashboard` fica de fora do mapa por prefixo (ver
+ * DASHBOARD_OVERVIEW_KEY abaixo) porque sua rota é `/dashboard/overview`, não
+ * `/dashboard` — precisa do caso especial para a rota raiz.
+ */
+const SCREEN_MAP: Record<string, string> = Object.fromEntries(
+  APP_SCREENS.filter((s) => s.implemented && s.key !== 'dashboard').map((s) => [s.route, s.key])
+);
 
 // dashboard raiz → screen 'dashboard'
 const DASHBOARD_OVERVIEW_KEY = 'dashboard';

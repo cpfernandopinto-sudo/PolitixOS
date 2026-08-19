@@ -26,8 +26,12 @@ export interface Noticia {
 
 // Filtros do dashboard — mapeiam direto para URL search params
 export interface NoticiasFilters {
+  /** @deprecated use `candidateIds` */
   candidateId?: string | null
+  /** @deprecated use `candidateIds` */
   candidate?: string | null
+  /** Candidatos selecionados no GlobalContextBar (multi-select, ids de `targets`). Tem precedência sobre `candidate`/`candidateId` quando presente. */
+  candidateIds?: string[] | null
   city?: string | null
   source?: string | null
   sentiment?: string | null   // 'positivo' | 'neutro' | 'negativo'

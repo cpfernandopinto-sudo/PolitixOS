@@ -46,28 +46,8 @@ export default function XFilterBar({ options }: { options: any }) {
         )}
       </div>
 
-      <select
-        className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
-        onChange={e => handleChange('candidate', e.target.value)}
-        value={searchParams.get('candidate') || 'todos'}
-      >
-        <option value="todos">Candidato: Todos</option>
-        {(options.candidates || []).map((c: any) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
-
-      <select
-        className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
-        onChange={e => handleChange('period', e.target.value)}
-        value={searchParams.get('period') || 'todos'}
-      >
-        <option value="todos">Período: Todos</option>
-        <option value="1">Últimas 24h</option>
-        <option value="7">Últimos 7 dias</option>
-        <option value="30">Últimos 30 dias</option>
-      </select>
-
+      {/* Candidato e Período agora vêm do GlobalContextBar (topo do dashboard) —
+          esta barra mantém só os filtros locais/específicos de X. */}
       <select
         className="bg-[#0D0D0D] border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300"
         onChange={e => handleChange('sentiment', e.target.value)}

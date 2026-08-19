@@ -23,9 +23,13 @@ import {
 } from '@/lib/analytics/executive-summary';
 import { classifyPoliticalStatus } from '@/lib/analytics/political-status';
 import { withTiming } from '@/lib/perf/timing';
+import { toLegacyNoticiasBucket, type GlobalPeriod } from '@/lib/filters/global';
 
 export interface OverviewFilters {
+  /** @deprecated use `candidateIds` — mantido para compatibilidade com chamadores internos que ainda passam um único id. */
   candidate?: string | null;
+  /** Candidatos selecionados no GlobalContextBar (já resolvidos via getEffectiveCandidateIds — interseção com allowedTargetIds feita pela página). */
+  candidateIds?: string[] | null;
   city?: string | null;
   period?: string | null; // 'all' | '1' | '7' | '30'
   allowedTargetIds?: string[] | null;
@@ -140,24 +144,28 @@ export const fetchOverviewData = cache(async (filters?: OverviewFilters) => {
   // period='all' = sem filtro de data (todo período)
   const period = filters?.period || 'all';
   const isAllPeriod = period === 'all';
-  const perfKey = `period=${period} candidate=${filters?.candidate ?? '—'}`;
+  const candidateIds = filters?.candidateIds ?? (filters?.candidate ? [filters.candidate] : undefined);
+  const perfKey = `period=${period} candidates=${candidateIds?.join(',') ?? '—'}`;
 
   const [noticias, instagram, x] = await withTiming(
     `fetchOverviewData TOTAL (${perfKey})`,
     () => Promise.all([
       withTiming(`  noticias (${perfKey})`, () => fetchMencoes({
         candidateId: filters?.candidate,
+        candidateIds,
         city: filters?.city,
-        period: isAllPeriod ? undefined : (period === '1' ? '24h' : period === '7' ? '7d' : '30d'),
+        period: isAllPeriod ? undefined : toLegacyNoticiasBucket(period as GlobalPeriod),
         allowedTargetIds: filters?.allowedTargetIds
       }), (r) => r.length),
       withTiming(`  instagram (${perfKey})`, () => fetchInstagramData({
         candidate: filters?.candidate,
+        candidateIds,
         period: isAllPeriod ? undefined : period,
         allowedTargetIds: filters?.allowedTargetIds
       }), (r) => r.posts.length),
       withTiming(`  x (${perfKey})`, () => fetchXData({
         candidate: filters?.candidate,
+        candidateIds,
         period: isAllPeriod ? undefined : period,
         allowedTargetIds: filters?.allowedTargetIds
       }), (r) => r.posts.length),

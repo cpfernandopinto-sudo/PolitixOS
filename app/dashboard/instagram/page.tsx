@@ -3,6 +3,7 @@ import InstagramDashboard from '@/components/dashboard/InstagramDashboard';
 import InstagramFilterBar from '@/components/dashboard/InstagramFilterBar';
 import { computeInstagramKPIs, computeInstagramChartData, fetchInstagramData, cleanFilter, getInstagramFiltersOptions } from '@/lib/queries/instagram';
 import { getAllowedTargetIds } from '@/lib/auth/dal';
+import { parseGlobalFilters, getEffectiveCandidateIds, searchParamsToURLSearchParams } from '@/lib/filters/global';
 
 export const metadata = {
   title: "Dashboard Instagram | PolitixOS"
@@ -15,13 +16,15 @@ type PageProps = {
 export default async function InstagramPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const allowedTargetIds = await getAllowedTargetIds();
+  const globalFilters = parseGlobalFilters(searchParamsToURLSearchParams(params));
+  const candidateIds = getEffectiveCandidateIds(globalFilters, allowedTargetIds);
   const filters = {
-    period: cleanFilter(params.period),
+    period: globalFilters.period === 'all' ? null : globalFilters.period,
     sentiment: cleanFilter(params.sentiment),
     risk: cleanFilter(params.risk),
     topic: cleanFilter(params.topic),
     post: cleanFilter(params.post),
-    candidate: cleanFilter(params.candidate),
+    candidateIds,
     allowedTargetIds,
   };
 

@@ -1,60 +1,9 @@
-import type { ComponentType } from 'react';
-import {
-  LayoutDashboard,
-  Newspaper,
-  UserPlus,
-  Zap,
-  FileSearch,
-  UserCog,
-  Settings,
-  Sparkles,
-  ShieldCheck,
-  MapPin,
-} from 'lucide-react';
+import { Sparkles, ShieldCheck } from 'lucide-react';
+import { APP_SCREENS, type AppScreen } from './appScreens';
+import type { NavIcon } from './navIcons';
 
-export type NavIconProps = { size?: number; className?: string };
-export type NavIcon = ComponentType<NavIconProps>;
-
-/**
- * Ícones dedicados de Instagram/X — mesmo desenho usado no Sidebar anterior
- * (components/Sidebar.tsx), reaproveitado aqui para não duplicar estilos
- * nem regredir a identidade visual dos itens de navegação.
- */
-export function InstagramNavIcon({ size = 20, className = '' }: NavIconProps) {
-  return (
-    <span
-      className={`relative inline-flex shrink-0 items-center justify-center rounded-md border-2 border-current ${className}`}
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      <span
-        className="rounded-full border-2 border-current"
-        style={{ width: Math.round(size * 0.42), height: Math.round(size * 0.42) }}
-      />
-      <span
-        className="absolute rounded-full bg-current"
-        style={{
-          width: Math.max(3, Math.round(size * 0.14)),
-          height: Math.max(3, Math.round(size * 0.14)),
-          right: Math.round(size * 0.18),
-          top: Math.round(size * 0.18),
-        }}
-      />
-    </span>
-  );
-}
-
-export function XNavIcon({ size = 20, className = '' }: NavIconProps) {
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-md border border-current/35 font-black leading-none ${className}`}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.78), lineHeight: 1 }}
-      aria-hidden="true"
-    >
-      X
-    </span>
-  );
-}
+export type { NavIcon, NavIconProps } from './navIcons';
+export { InstagramNavIcon, XNavIcon } from './navIcons';
 
 /**
  * Fonte única das rotas do dashboard — usada por ModuleSwitcher (desktop),
@@ -77,6 +26,9 @@ export interface NavItem {
   /** Item ainda sem página própria — preserva o link exatamente como estava
    *  no Sidebar anterior (não é uma remoção de rota, nem uma rota nova). */
   pageNotYetImplemented?: boolean;
+  /** Repassados do catálogo — usados para decidir quais filtros globais preservar ao navegar (ver lib/filters/global.ts#buildNavHref). */
+  supportsGlobalCandidate?: boolean;
+  supportsGlobalPeriod?: boolean;
 }
 
 export interface NavGroup {
@@ -84,114 +36,72 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+/**
+ * Converte uma entrada do catálogo canônico (`lib/navigation/appScreens.ts`)
+ * em um `NavItem`. `permission` reproduz a regra anterior: `null` para itens
+ * `adminOnly` (não há screen_key grantável), a `key` do catálogo caso
+ * contrário — inclusive para telas ainda não implementadas (ex.:
+ * Configurações), preservando o comportamento pré-existente.
+ */
+function screenToNavItem(screen: AppScreen): NavItem {
+  return {
+    label: screen.label,
+    href: screen.route,
+    icon: screen.icon,
+    permission: screen.adminOnly ? null : screen.key,
+    adminOnly: screen.adminOnly,
+    description: screen.description,
+    pageNotYetImplemented: !screen.implemented,
+    supportsGlobalCandidate: screen.supportsGlobalCandidate,
+    supportsGlobalPeriod: screen.supportsGlobalPeriod,
+  };
+}
+
+const byGroup = (group: string) => APP_SCREENS.filter((s) => s.group === group && s.showInNav);
+const usuariosScreen = APP_SCREENS.find((s) => s.key === 'usuarios')!;
+const configuracoesScreen = APP_SCREENS.find((s) => s.key === 'configuracoes')!;
+const candidatosScreen = APP_SCREENS.find((s) => s.key === 'candidatos')!;
+
+/**
+ * "Politix IA" e "Auditoria" não têm screen_key nem página real — nunca
+ * fizeram parte do catálogo de telas (não há o que proteger/conceder), mas
+ * já existiam como placeholders "em breve" no menu antes desta unificação.
+ * Preservados aqui como itens avulsos, na posição original.
+ */
+const POLITIX_IA_ITEM: NavItem = {
+  label: 'Politix IA',
+  href: '/dashboard/politix-ia',
+  icon: Sparkles,
+  permission: null,
+  pageNotYetImplemented: true,
+  description: 'Insights preditivos com IA',
+};
+
+const AUDITORIA_ITEM: NavItem = {
+  label: 'Auditoria',
+  href: '/dashboard/auditoria',
+  icon: ShieldCheck,
+  permission: null,
+  pageNotYetImplemented: true,
+  description: 'Logs e conformidade',
+};
+
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Inteligência',
-    items: [
-      {
-        label: 'Visão Geral',
-        href: '/dashboard/overview',
-        icon: LayoutDashboard,
-        permission: 'dashboard',
-        description: 'Centro executivo consolidado',
-      },
-      {
-        label: 'Territórios',
-        href: '/dashboard/territorios',
-        icon: MapPin,
-        permission: 'territorios',
-        description: 'Dossiês e inteligência municipal',
-      },
-      {
-        label: 'Notícias',
-        href: '/dashboard/noticias',
-        icon: Newspaper,
-        permission: 'noticias',
-        description: 'Monitoramento e análise de risco',
-      },
-      {
-        label: 'Instagram',
-        href: '/dashboard/instagram',
-        icon: InstagramNavIcon,
-        permission: 'instagram',
-        description: 'Análise de comentários e interações',
-      },
-      {
-        label: 'X',
-        href: '/dashboard/x',
-        icon: XNavIcon,
-        permission: 'x',
-        description: 'Discurso político em tempo real',
-      },
-      {
-        label: 'Investigações',
-        href: '/dashboard/investigacoes',
-        icon: FileSearch,
-        permission: 'investigacoes',
-        description: 'Dossiês e investigações profundas',
-      },
-    ],
+    items: byGroup('Inteligência').map(screenToNavItem),
   },
   {
     label: 'Monitoramento',
-    items: [
-      {
-        label: 'Candidatos/Entidades',
-        href: '/dashboard/candidatos',
-        icon: UserPlus,
-        permission: 'candidatos',
-        description: 'Perfil de candidatos monitorados',
-      },
-      {
-        label: 'Politix IA',
-        href: '/dashboard/politix-ia',
-        icon: Sparkles,
-        permission: null,
-        pageNotYetImplemented: true,
-        description: 'Insights preditivos com IA',
-      },
-    ],
+    items: [screenToNavItem(candidatosScreen), POLITIX_IA_ITEM],
   },
   {
     label: 'Operação',
-    items: [
-      {
-        label: 'Automação/Operação',
-        href: '/dashboard/automacoes',
-        icon: Zap,
-        permission: 'automacoes',
-        description: 'Integrações e alertas automáticos',
-      },
-    ],
+    items: byGroup('Operação').map(screenToNavItem),
   },
   {
     label: 'Sistema',
-    items: [
-      {
-        label: 'Usuários',
-        href: '/dashboard/usuarios',
-        icon: UserCog,
-        permission: null,
-        adminOnly: true,
-        description: 'Gestão de acessos',
-      },
-      {
-        label: 'Auditoria',
-        href: '/dashboard/auditoria',
-        icon: ShieldCheck,
-        permission: null,
-        pageNotYetImplemented: true,
-        description: 'Logs e conformidade',
-      },
-      {
-        label: 'Configurações',
-        href: '/dashboard/configuracoes',
-        icon: Settings,
-        permission: 'configuracoes',
-        pageNotYetImplemented: true,
-        description: 'Configurações do sistema',
-      },
-    ],
+    items: [screenToNavItem(usuariosScreen), AUDITORIA_ITEM, screenToNavItem(configuracoesScreen)],
   },
 ];
 

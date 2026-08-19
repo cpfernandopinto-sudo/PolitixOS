@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabaseClient';
 import { revalidatePath } from 'next/cache';
+import { requireAuth, getAllowedTargetIds } from '@/lib/auth/dal';
 import {
   TargetInput,
   SocialAccountInput,
@@ -10,13 +11,48 @@ import {
 } from '@/lib/queries/candidatos';
 
 /**
+ * Verifica se o usuário atual pode operar sobre o candidato `targetId`.
+ * Admin (allowedTargetIds === null) sempre pode. Demais perfis só podem
+ * operar sobre candidatos em "Candidatos Permitidos" — RLS é "allow all"
+ * nestas tabelas por design (ver supabase_migration_access_control.sql),
+ * então esta checagem no servidor é a única barreira real.
+ */
+async function assertCandidateAllowed(targetId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const allowedTargetIds = await getAllowedTargetIds();
+  if (allowedTargetIds === null) return { ok: true };
+  if (allowedTargetIds.includes(targetId)) return { ok: true };
+  return { ok: false, error: 'Você não tem permissão para este candidato.' };
+}
+
+/** Mesma checagem, mas a partir do id de uma conta social — resolve o target_id primeiro. */
+async function assertSocialAccountAllowed(socialAccountId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const allowedTargetIds = await getAllowedTargetIds();
+  if (allowedTargetIds === null) return { ok: true };
+
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient
+    .from('social_accounts')
+    .select('target_id')
+    .eq('id', socialAccountId)
+    .single();
+
+  if (error || !data?.target_id || !allowedTargetIds.includes(data.target_id)) {
+    return { ok: false, error: 'Você não tem permissão para esta conta social.' };
+  }
+  return { ok: true };
+}
+
+/**
  * Server Action para cadastrar um novo candidato e suas contas sociais.
- * Usa createAdminClient para bypass de RLS.
+ * Usa createAdminClient para bypass de RLS. Qualquer usuário autenticado
+ * pode criar (política definida no UX-ACCESS-FILTERS-01) — não há
+ * "Candidatos Permitidos" a checar para um candidato que ainda não existe.
  */
 export async function createCandidateAction(
   target: TargetInput,
   accounts: SocialAccountInput[]
 ) {
+  await requireAuth();
   const adminClient = createAdminClient();
 
   // 1. Inserir candidato (target)
@@ -82,6 +118,10 @@ export async function updateCandidateAction(
   accounts: SocialAccountInput[],
   deletedAccountIds: string[]
 ) {
+  await requireAuth();
+  const scope = await assertCandidateAllowed(id);
+  if (!scope.ok) return { success: false, error: scope.error };
+
   const adminClient = createAdminClient();
 
   // 1. Atualizar target
@@ -101,12 +141,15 @@ export async function updateCandidateAction(
     return { success: false, error: targetError.message };
   }
 
-  // 2. Deletar contas removidas
+  // 2. Deletar contas removidas — restrito ao próprio target (id já
+  // verificado acima) para que um deletedAccountIds malicioso não possa
+  // apagar contas de OUTRO candidato fora do escopo permitido do usuário.
   if (deletedAccountIds.length > 0) {
     const { error: deleteError } = await adminClient
       .from('social_accounts')
       .delete()
-      .in('id', deletedAccountIds);
+      .in('id', deletedAccountIds)
+      .eq('target_id', id);
 
     if (deleteError) {
       console.error('[updateCandidateAction] Error deleting social accounts:', deleteError.message);
@@ -146,6 +189,10 @@ export async function updateCandidateAction(
  * Server Action para deletar uma conta social individualmente.
  */
 export async function deleteSocialAccountAction(id: string) {
+  await requireAuth();
+  const scope = await assertSocialAccountAllowed(id);
+  if (!scope.ok) return { success: false, error: scope.error };
+
   const adminClient = createAdminClient();
   const { error } = await adminClient.from('social_accounts').delete().eq('id', id);
 
@@ -161,6 +208,10 @@ export async function deleteSocialAccountAction(id: string) {
  * Server Action para alterar o status de um candidato.
  */
 export async function toggleTargetActiveAction(id: string, isActive: boolean) {
+  await requireAuth();
+  const scope = await assertCandidateAllowed(id);
+  if (!scope.ok) return { success: false, error: scope.error };
+
   const adminClient = createAdminClient();
 
   // 1. Atualiza o target
@@ -193,6 +244,10 @@ export async function toggleTargetActiveAction(id: string, isActive: boolean) {
  * Server Action para alterar o status de uma conta social.
  */
 export async function toggleSocialAccountActiveAction(id: string, isActive: boolean) {
+  await requireAuth();
+  const scope = await assertSocialAccountAllowed(id);
+  if (!scope.ok) return { success: false, error: scope.error };
+
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -209,13 +264,19 @@ export async function toggleSocialAccountActiveAction(id: string, isActive: bool
 }
 
 /**
- * Server Action para buscar todos os candidatos e suas contas sociais.
- * Usa createAdminClient para bypass de RLS.
+ * Server Action para buscar os candidatos e suas contas sociais.
+ * Usa createAdminClient para bypass de RLS — a restrição de acesso é
+ * aplicada aqui via `allowedTargetIds` (admin vê todos, demais perfis só os
+ * candidatos em "Candidatos Permitidos").
  */
 export async function fetchTargetsAction(): Promise<TargetWithAccounts[]> {
+  await requireAuth();
+  const allowedTargetIds = await getAllowedTargetIds();
+  if (allowedTargetIds !== null && allowedTargetIds.length === 0) return [];
+
   const adminClient = createAdminClient();
 
-  const { data, error } = await adminClient
+  let query = adminClient
     .from('targets')
     .select(`
       id,
@@ -235,6 +296,12 @@ export async function fetchTargetsAction(): Promise<TargetWithAccounts[]> {
       )
     `)
     .order('candidate_name', { ascending: true });
+
+  if (allowedTargetIds !== null) {
+    query = query.in('id', allowedTargetIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('[fetchTargetsAction] Error:', error.message);

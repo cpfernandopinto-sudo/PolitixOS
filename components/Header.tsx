@@ -90,12 +90,14 @@ export default function Header({ permissions, userName, roleLabel, candidates, g
         </div>
       </header>
 
-      <MobileNavigationDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        groups={filteredGroups}
-        currentHref=""
-      />
+      <Suspense fallback={null}>
+        <MobileNavigationDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          groups={filteredGroups}
+          currentHref=""
+        />
+      </Suspense>
     </>
   );
 }

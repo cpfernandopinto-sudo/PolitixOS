@@ -6,7 +6,10 @@ export interface XFilters {
   sentiment?: string | null;
   risk?: string | null;
   topic?: string | null;
+  /** @deprecated use `candidateIds` — mantido para chamadores internos que ainda passam um único id. */
   candidate?: string | null;
+  /** Candidatos selecionados no GlobalContextBar (multi-select). Tem precedência sobre `candidate` quando presente. */
+  candidateIds?: string[] | null;
   search?: string | null;
   allowedTargetIds?: string[] | null;
 }
@@ -53,8 +56,11 @@ export async function fetchXData(filters?: XFilters) {
     pQuery = pQuery.in('target_id', filters!.allowedTargetIds!);
   }
 
-  if (filters?.candidate) {
-    pQuery = pQuery.eq('target_id', filters.candidate);
+  const requestedCandidateIds = filters?.candidateIds ?? (filters?.candidate ? [filters.candidate] : null);
+  if (requestedCandidateIds && requestedCandidateIds.length > 0) {
+    pQuery = requestedCandidateIds.length === 1
+      ? pQuery.eq('target_id', requestedCandidateIds[0])
+      : pQuery.in('target_id', requestedCandidateIds);
   }
 
   if (filters?.period) {

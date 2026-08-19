@@ -11,7 +11,10 @@ export interface InstagramFilters {
   risk?: string | null;
   topic?: string | null;
   post?: string | null;
+  /** @deprecated use `candidateIds` — mantido para chamadores internos que ainda passam um único id. */
   candidate?: string | null;
+  /** Candidatos selecionados no GlobalContextBar (multi-select). Tem precedência sobre `candidate` quando presente. */
+  candidateIds?: string[] | null;
   /**
    * IDs de targets permitidos.
    * null  = admin (sem restrição, vê tudo).
@@ -70,15 +73,19 @@ export async function fetchInstagramData(filters?: InstagramFilters) {
     return { posts: [], comments: [] };
   }
 
-  // Checagem de candidato fora dos permitidos — pura, sem I/O, feita ANTES de
-  // disparar qualquer consulta (evita 2 round trips desperdiçados quando o
+  // Checagem de candidato(s) fora dos permitidos — pura, sem I/O, feita ANTES
+  // de disparar qualquer consulta (evita round trips desperdiçados quando o
   // resultado já sabemos que será vazio).
-  if (filters?.candidate && restricted && !filters!.allowedTargetIds!.includes(filters.candidate)) {
-    console.log('[fetchInstagramData] candidato selecionado fora dos permitidos → retornando vazio');
-    return { posts: [], comments: [] };
+  const requestedCandidateIds = filters?.candidateIds ?? (filters?.candidate ? [filters.candidate] : null);
+  if (requestedCandidateIds && requestedCandidateIds.length > 0 && restricted) {
+    const allowedSet = new Set(filters!.allowedTargetIds!);
+    if (!requestedCandidateIds.some((id) => allowedSet.has(id))) {
+      console.log('[fetchInstagramData] candidato(s) selecionado(s) fora dos permitidos → retornando vazio');
+      return { posts: [], comments: [] };
+    }
   }
 
-  // 2. Posts Fetch — filtrar por allowedTargetIds + candidate
+  // 2. Posts Fetch — filtrar por allowedTargetIds + candidate(s)
   let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
 
   // Restrição de acesso: aplica .in() apenas para não-admin com targets definidos
@@ -86,9 +93,11 @@ export async function fetchInstagramData(filters?: InstagramFilters) {
     pQuery = pQuery.in('target_id', filters!.allowedTargetIds!);
   }
 
-  // Filtro adicional de candidato selecionado pelo usuário via UI
-  if (filters?.candidate) {
-    pQuery = pQuery.eq('target_id', filters.candidate);
+  // Filtro adicional de candidato(s) selecionado(s) pelo usuário via UI
+  if (requestedCandidateIds && requestedCandidateIds.length > 0) {
+    pQuery = requestedCandidateIds.length === 1
+      ? pQuery.eq('target_id', requestedCandidateIds[0])
+      : pQuery.in('target_id', requestedCandidateIds);
   }
 
   if (filters?.period) {

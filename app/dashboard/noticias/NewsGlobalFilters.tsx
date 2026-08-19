@@ -59,24 +59,29 @@ export default function NewsGlobalFilters({ candidates: _candidates, cities, sou
     return () => clearTimeout(timer);
   }, [searchInput, currentSearch, updateURL]);
 
+  // Nomes de parâmetro do contrato canônico de filtros globais (candidato + período) —
+  // preservados ao limpar/contar filtros LOCAIS desta página. Ver lib/filters/global.ts.
+  const GLOBAL_PARAM_KEYS = ['candidates', 'mode', 'candidate', 'candidateId', 'period'];
+
   const clearFilters = useCallback(() => {
-    // Preservar candidateId e period (filtros globais) ao limpar filtros locais
     const globalParams = new URLSearchParams();
-    const candidateId = searchParams.get('candidateId');
-    const period = searchParams.get('period');
-    if (candidateId) globalParams.set('candidateId', candidateId);
-    if (period) globalParams.set('period', period);
+    let hasGlobal = false;
+    for (const key of GLOBAL_PARAM_KEYS) {
+      const value = searchParams.get(key);
+      if (value) {
+        globalParams.set(key, value);
+        hasGlobal = true;
+      }
+    }
     setSearchInput('');
     startTransition(() => {
-      router.push(candidateId || period ? `${pathname}?${globalParams.toString()}` : pathname);
+      router.push(hasGlobal ? `${pathname}?${globalParams.toString()}` : pathname);
     });
   }, [pathname, router, searchParams]);
 
-  // Filtros locais ativos (excluindo os globais candidateId/period)
+  // Filtros locais ativos (excluindo os globais candidato/período)
   const localParams = new URLSearchParams(searchParams.toString());
-  localParams.delete('candidateId');
-  localParams.delete('candidate');
-  localParams.delete('period');
+  for (const key of GLOBAL_PARAM_KEYS) localParams.delete(key);
   const hasActive = localParams.size > 0;
 
   return (

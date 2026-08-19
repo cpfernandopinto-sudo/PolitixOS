@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { requireAuth } from '@/lib/auth/dal';
@@ -47,8 +48,12 @@ export default async function DashboardLayout({
 
       {/* Linha de conteúdo abaixo do header: Sidebar + Main */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Sidebar lateral — apenas Navigation Area (Brand Area está no Header) */}
-        <Sidebar permissions={navPermissions} />
+        {/* Sidebar lateral — apenas Navigation Area (Brand Area está no Header).
+            Suspense: Sidebar usa useSearchParams() (via buildNavHref) para
+            preservar candidato/período selecionados ao trocar de tela. */}
+        <Suspense fallback={<div className="hidden md:block w-60 shrink-0 h-full bg-[#0B0F19]" />}>
+          <Sidebar permissions={navPermissions} />
+        </Suspense>
 
         {/* Área de conteúdo principal */}
         <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden">

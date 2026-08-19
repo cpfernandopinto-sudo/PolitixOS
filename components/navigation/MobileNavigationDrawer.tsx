@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { X } from 'lucide-react';
 import type { NavGroup } from '@/lib/navigation/dashboardNavigation';
+import { buildNavHref } from '@/lib/filters/global';
 
 interface Props {
   open: boolean;
@@ -17,6 +19,8 @@ interface Props {
  * não duplica a lista de rotas em nenhum lugar.
  */
 export default function MobileNavigationDrawer({ open, onClose, groups, currentHref }: Props) {
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
@@ -66,10 +70,14 @@ export default function MobileNavigationDrawer({ open, onClose, groups, currentH
               {group.items.map((item) => {
                 const active = currentHref === item.href;
                 const Icon = item.icon;
+                const href = buildNavHref(item.href, searchParams, {
+                  supportsCandidate: item.supportsGlobalCandidate,
+                  supportsPeriod: item.supportsGlobalPeriod,
+                });
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={href}
                     onClick={onClose}
                     aria-current={active ? 'page' : undefined}
                     className={`relative flex h-[46px] items-center gap-3 rounded-lg px-3 text-sm transition-colors duration-150 ${

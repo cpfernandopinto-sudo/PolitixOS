@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Building2, Users2, Calendar, Database, 
-  Sparkles, RefreshCw, ChevronDown, Compass
+import {
+  Building2, Users2, Calendar, Database,
+  Sparkles, RefreshCw, ChevronDown, Compass, Check
 } from 'lucide-react';
 import { findCurrentNavItem } from '@/lib/navigation/dashboardNavigation';
+import { findAppScreenByRoute } from '@/lib/navigation/appScreens';
+import {
+  parseGlobalFilters,
+  serializeGlobalFilters,
+  GLOBAL_PERIODS,
+  GLOBAL_PERIOD_LABELS,
+  type GlobalPeriod,
+} from '@/lib/filters/global';
 import type { DataSourceMode } from '@/lib/territorios/types';
 
 export interface CandidateOption {
@@ -20,26 +28,6 @@ interface Props {
   generatedAt?: string;
 }
 
-const PAGES_WITH_CANDIDATE = ['/dashboard/candidatos', '/dashboard/overview'];
-const PAGES_WITH_PERIOD = ['/dashboard/overview', '/dashboard/territorios', '/dashboard/noticias', '/dashboard/instagram', '/dashboard/x'];
-
-const PERIOD_OPTIONS = [
-  { value: '2024-R12', label: 'Últimos 12 meses (R12)', type: 'R12' },
-  { value: '2024-YTD', label: 'Acumulado 2024 (YTD)', type: 'YTD' },
-  { value: '2023-FULL', label: 'Ano Consolidado 2023', type: 'ANO' },
-  { value: '2022-CENSO', label: 'Censo Demográfico 2022', type: 'CENSO' },
-];
-
-function normalizeIncomingPeriod(raw: string | null): string {
-  if (!raw) return '2024-R12';
-  const upper = raw.toUpperCase();
-  if (upper.includes('12M') || upper.includes('R12')) return '2024-R12';
-  if (upper.includes('YTD') || upper === '2024') return '2024-YTD';
-  if (upper === '2023') return '2023-FULL';
-  if (upper === '2022' || upper.includes('CENSO')) return '2022-CENSO';
-  return '2024-R12';
-}
-
 const SELECT_CLASS =
   'bg-[#0B0F19] border border-white/[0.08] text-white text-[11px] font-semibold rounded-md ' +
   'pl-2.5 pr-6 h-7 focus:outline-none focus:border-cyan-400/50 hover:border-white/[0.18] ' +
@@ -51,15 +39,34 @@ const KNOWN_MUNICIPALITIES: Record<string, { cityName: string; uf: string }> = {
   '3106705': { cityName: 'Betim', uf: 'MG' },
 };
 
+/** Resumo textual do trigger — nunca deixa o botão crescer indefinidamente (PARTE 5). */
+function candidateSummaryLabel(selectedIds: string[], candidates: CandidateOption[]): string {
+  if (selectedIds.length === 0) return 'Todos os Candidatos';
+  if (selectedIds.length === 1) {
+    const c = candidates.find((c) => c.id === selectedIds[0]);
+    return c?.name ?? '1 candidato selecionado';
+  }
+  if (selectedIds.length === 2) {
+    const names = selectedIds
+      .map((id) => candidates.find((c) => c.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
+    if (names.length === 2) return `${names[0]} + ${names[1]}`;
+  }
+  return `${selectedIds.length} candidatos selecionados`;
+}
+
 export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [candidateMenuOpen, setCandidateMenuOpen] = useState(false);
+  const candidateMenuRef = useRef<HTMLDivElement>(null);
 
   const currentModule = findCurrentNavItem(pathname);
-  const supportsCandidate = PAGES_WITH_CANDIDATE.some((p: string) => pathname.startsWith(p));
-  const supportsPeriod = PAGES_WITH_PERIOD.some((p: string) => pathname.startsWith(p));
+  const currentScreen = findAppScreenByRoute(pathname === '/dashboard' ? '/dashboard/overview' : pathname);
+  const supportsCandidate = currentScreen?.supportsGlobalCandidate ?? false;
+  const supportsPeriod = currentScreen?.supportsGlobalPeriod ?? false;
 
   const isTerritory = pathname.startsWith('/dashboard/territorios');
   const ibgeMatch = pathname.match(/\/territorios\/(\d+)/);
@@ -82,51 +89,53 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
     },
   } : null;
 
-  // Ler candidato atual da URL (normalizar formatos)
-  const rawCandidate = searchParams.get('candidate') ?? searchParams.get('candidateId') ?? '';
-  const rawPeriod = normalizeIncomingPeriod(
-    searchParams.get('period') ?? searchParams.get('startDate') ?? null
-  );
+  const filters = parseGlobalFilters(searchParams);
+  const selectedCandidateIds = filters.candidateMode === 'SELECTED' ? filters.candidateIds : [];
 
-  const [candidate, setCandidate] = useState(rawCandidate);
-  const [period, setPeriod] = useState(rawPeriod);
-
-  const [syncKey, setSyncKey] = useState(`${pathname}?${searchParams.toString()}`);
-  const currentSyncKey = `${pathname}?${searchParams.toString()}`;
-  if (syncKey !== currentSyncKey) {
-    setSyncKey(currentSyncKey);
-    setCandidate(searchParams.get('candidate') ?? searchParams.get('candidateId') ?? '');
-    setPeriod(normalizeIncomingPeriod(searchParams.get('period') ?? searchParams.get('startDate') ?? null));
-  }
-
-  const handleCandidateChange = (newCandidateId: string) => {
-    setCandidate(newCandidateId);
-    startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (newCandidateId) {
-        params.set('candidate', newCandidateId);
-        params.delete('candidateId');
-      } else {
-        params.delete('candidate');
-        params.delete('candidateId');
+  // Fecha o dropdown de candidatos ao clicar fora ou pressionar Escape.
+  useEffect(() => {
+    if (!candidateMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (candidateMenuRef.current && !candidateMenuRef.current.contains(e.target as Node)) {
+        setCandidateMenuOpen(false);
       }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setCandidateMenuOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [candidateMenuOpen]);
+
+  const updateFilters = (next: Partial<{ candidateIds: string[]; period: GlobalPeriod }>) => {
+    startTransition(() => {
+      const nextState = {
+        candidateMode: (next.candidateIds ?? selectedCandidateIds).length > 0
+          ? ('SELECTED' as const)
+          : ('ALL_ALLOWED' as const),
+        candidateIds: next.candidateIds ?? selectedCandidateIds,
+        period: next.period ?? filters.period,
+      };
+      const params = serializeGlobalFilters(nextState, searchParams);
       router.replace(`${pathname}?${params.toString()}`);
     });
   };
 
+  const toggleCandidate = (id: string) => {
+    const next = selectedCandidateIds.includes(id)
+      ? selectedCandidateIds.filter((c) => c !== id)
+      : [...selectedCandidateIds, id];
+    updateFilters({ candidateIds: next });
+  };
+
+  const selectAllCandidates = () => updateFilters({ candidateIds: [] });
+
   const handlePeriodChange = (newPeriod: string) => {
-    setPeriod(newPeriod);
-    startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (newPeriod) {
-        params.set('period', newPeriod);
-        params.delete('startDate');
-        params.delete('endDate');
-      } else {
-        params.delete('period');
-      }
-      router.replace(`${pathname}?${params.toString()}`);
-    });
+    updateFilters({ period: newPeriod as GlobalPeriod });
   };
 
   const handleRefresh = () => {
@@ -164,24 +173,64 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
 
       {/* Direita: Controles / Badges de Disponibilidade */}
       <div className="flex items-center gap-3 shrink-0">
-        {/* Candidatos Selector */}
+        {/* Candidatos Selector — multi-select com checkbox */}
         {supportsCandidate && candidates && candidates.length > 0 && (
-          <div className="relative flex items-center">
-            <Users2 size={12} className="absolute left-2.5 text-slate-400 pointer-events-none z-10" />
-            <select
-              value={candidate}
-              onChange={(e) => handleCandidateChange(e.target.value)}
+          <div className="relative flex items-center" ref={candidateMenuRef}>
+            <button
+              type="button"
+              onClick={() => setCandidateMenuOpen((v) => !v)}
               disabled={isPending}
-              className={`${SELECT_CLASS} pl-7`}
+              aria-haspopup="listbox"
+              aria-expanded={candidateMenuOpen}
+              className={`${SELECT_CLASS} pl-7 pr-6 flex items-center max-w-[220px]`}
             >
-              <option value="">Todos os Candidatos</option>
-              {candidates.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.party ? `(${c.party})` : ''}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={12} className="absolute right-2 text-slate-400 pointer-events-none z-10" />
+              <Users2 size={12} className="absolute left-2.5 text-slate-400 pointer-events-none" />
+              <span className="truncate">{candidateSummaryLabel(selectedCandidateIds, candidates)}</span>
+              <ChevronDown size={12} className="absolute right-2 text-slate-400 pointer-events-none" />
+            </button>
+
+            {candidateMenuOpen && (
+              <div
+                role="listbox"
+                aria-multiselectable="true"
+                className="absolute right-0 top-full mt-1.5 w-64 max-h-80 overflow-y-auto bg-[#0E1526] border border-white/10 rounded-lg shadow-2xl z-40 py-1"
+              >
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selectedCandidateIds.length === 0}
+                  onClick={selectAllCandidates}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                >
+                  <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                    selectedCandidateIds.length === 0 ? 'bg-cyan-400 border-cyan-400' : 'border-white/20'
+                  }`}>
+                    {selectedCandidateIds.length === 0 && <Check size={10} className="text-[#0B0F19]" />}
+                  </span>
+                  Todos os Candidatos
+                </button>
+                {candidates.map((c) => {
+                  const checked = selectedCandidateIds.includes(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="option"
+                      aria-selected={checked}
+                      onClick={() => toggleCandidate(c.id)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] text-slate-200 hover:bg-white/5 transition-colors"
+                    >
+                      <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                        checked ? 'bg-cyan-400 border-cyan-400' : 'border-white/20'
+                      }`}>
+                        {checked && <Check size={10} className="text-[#0B0F19]" />}
+                      </span>
+                      <span className="truncate">{c.name} {c.party ? `(${c.party})` : ''}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -190,14 +239,14 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
           <div className="relative flex items-center">
             <Calendar size={12} className="absolute left-2.5 text-slate-400 pointer-events-none z-10" />
             <select
-              value={period}
+              value={filters.period}
               onChange={(e) => handlePeriodChange(e.target.value)}
               disabled={isPending}
               className={`${SELECT_CLASS} pl-7`}
             >
-              {PERIOD_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
+              {GLOBAL_PERIODS.map((value) => (
+                <option key={value} value={value}>
+                  {value === 'all' ? 'Período: Todos' : GLOBAL_PERIOD_LABELS[value]}
                 </option>
               ))}
             </select>

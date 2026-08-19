@@ -17,7 +17,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import type { AppUser, UserFormState } from '@/lib/auth/types';
-import { ALL_SCREENS } from '@/lib/auth/types';
+import { APP_SCREENS } from '@/lib/navigation/appScreens';
 import {
   createUserAction,
   updateUserAction,
@@ -39,21 +39,13 @@ interface Props {
   targets: TargetOption[];
 }
 
-// ─── Screen labels ────────────────────────────────────────────────────────────
-
-export const SCREEN_LABELS: Record<string, string> = {
-  dashboard: 'Visão Geral',
-  noticias: 'Radar de Notícias',
-  instagram: 'Radar Instagram',
-  x: 'Radar X',
-  candidatos: 'Candidatos',
-  automacoes: 'Automações',
-  investigacoes: 'Investigações',
-  gestao_crise: 'Gestão de Crise',
-  apoiadores: 'Apoiadores',
-  territorios: 'Territórios',
-  configuracoes: 'Configurações',
-};
+/**
+ * Telas grantáveis no picker "Telas Permitidas" — derivadas diretamente do
+ * catálogo canônico (`lib/navigation/appScreens.ts`) em vez de uma segunda
+ * lista de rótulos mantida à mão aqui (era a 3ª cópia da mesma informação,
+ * junto de `ALL_SCREENS` e `proxy.ts SCREEN_MAP` — já haviam divergido).
+ */
+const GRANTABLE_SCREENS = APP_SCREENS.filter((s) => s.implemented && !s.adminOnly);
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrador',
@@ -293,7 +285,7 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
               Telas Permitidas
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {ALL_SCREENS.map((key) => (
+              {GRANTABLE_SCREENS.map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
@@ -321,7 +313,7 @@ function UserFormModal({ editUserId, targets, onClose, onSuccess }: UserFormProp
                       </svg>
                     )}
                   </div>
-                  <span className="truncate">{SCREEN_LABELS[key] ?? key}</span>
+                  <span className="truncate">{label}</span>
                 </button>
               ))}
             </div>

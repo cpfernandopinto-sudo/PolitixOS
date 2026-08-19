@@ -7,6 +7,7 @@ vi.mock('@/lib/auth/token', () => ({
 }));
 
 import { proxy } from './proxy';
+import { APP_SCREENS } from '@/lib/navigation/appScreens';
 
 function requestFor(pathname: string, hasCookie = true) {
   return new NextRequest(`http://localhost${pathname}`, {
@@ -63,5 +64,55 @@ describe('proxy — proteção da rota /dashboard/territorios (screen_key: terri
     });
     const res = await proxy(requestFor('/dashboard/territorios'));
     expect(res.status).toBe(200);
+  });
+});
+
+describe('proxy — regressão: /dashboard/x tinha um gap de enforcement (SCREEN_MAP não incluía a rota)', () => {
+  it('gestor SEM permissão "x" é bloqueado ao acessar /dashboard/x diretamente por URL', async () => {
+    mockDecrypt.mockResolvedValue({
+      userId: 'u1',
+      name: 'Teste',
+      email: 't@politixos.com',
+      role: 'gestor',
+      permissions: ['noticias'],
+      allowedTargetIds: [],
+      expiresAt: new Date(Date.now() + 60000).toISOString(),
+    });
+    const res = await proxy(requestFor('/dashboard/x'));
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain('/dashboard/sem-permissao');
+  });
+
+  it('gestor COM permissão "x" concedida passa direto', async () => {
+    mockDecrypt.mockResolvedValue({
+      userId: 'u1',
+      name: 'Teste',
+      email: 't@politixos.com',
+      role: 'gestor',
+      permissions: ['x'],
+      allowedTargetIds: [],
+      expiresAt: new Date(Date.now() + 60000).toISOString(),
+    });
+    const res = await proxy(requestFor('/dashboard/x'));
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('proxy — cobertura estrutural: toda tela implementada do catálogo é enforced', () => {
+  it('toda AppScreen com implemented=true (exceto "dashboard", tratada por caso especial de rota raiz) bloqueia um gestor sem a permissão correspondente', async () => {
+    for (const screen of APP_SCREENS.filter((s) => s.implemented && s.key !== 'dashboard')) {
+      mockDecrypt.mockResolvedValue({
+        userId: 'u1',
+        name: 'Teste',
+        email: 't@politixos.com',
+        role: 'gestor',
+        permissions: [], // nenhuma permissão concedida
+        allowedTargetIds: [],
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+      });
+      const res = await proxy(requestFor(screen.route));
+      expect(res.status, `esperava bloqueio em ${screen.route} (screen_key=${screen.key})`).toBe(307);
+      expect(res.headers.get('location')).toContain('/dashboard/sem-permissao');
+    }
   });
 });

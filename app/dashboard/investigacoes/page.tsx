@@ -1,11 +1,19 @@
 import { FileSearch } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import { getInvestigations } from '@/lib/queries/investigations';
+import { requireAuth, getAllowedTargetIds } from '@/lib/auth/dal';
 import InvestigacoesClient from './InvestigacoesClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function InvestigacoesPage() {
-  const investigations = await getInvestigations();
+  const session = await requireAuth();
+  if (session.role !== 'admin' && !session.permissions.includes('investigacoes')) {
+    redirect('/dashboard/sem-permissao');
+  }
+
+  const allowedTargetIds = await getAllowedTargetIds();
+  const investigations = await getInvestigations(allowedTargetIds);
 
   return (
     <div className="space-y-8">

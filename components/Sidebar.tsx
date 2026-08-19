@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { NAV_GROUPS, canSeeNavItem, type NavPermissions, type NavItem } from '@/lib/navigation/dashboardNavigation';
+import { buildNavHref } from '@/lib/filters/global';
 
 interface Props {
   permissions: NavPermissions;
@@ -12,6 +13,7 @@ interface Props {
 
 export default function Sidebar({ permissions }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -87,10 +89,16 @@ export default function Sidebar({ permissions }: Props) {
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item);
+                  const href = item.pageNotYetImplemented
+                    ? '#'
+                    : buildNavHref(item.href, searchParams, {
+                        supportsCandidate: item.supportsGlobalCandidate,
+                        supportsPeriod: item.supportsGlobalPeriod,
+                      });
                   return (
                     <Link
                       key={item.href}
-                      href={item.pageNotYetImplemented ? '#' : item.href}
+                      href={href}
                       className={`group ${linkClass(active)}`}
                       title={collapsed ? undefined : item.label}
                       onClick={(e) => {

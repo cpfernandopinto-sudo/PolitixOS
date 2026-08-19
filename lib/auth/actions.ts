@@ -2,10 +2,25 @@
 
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabaseClient';
-import { createSession, deleteSession } from '@/lib/auth/session';
+import { createSession, deleteSession, getSession } from '@/lib/auth/session';
 import { loadUserPermissions, loadUserTargets } from '@/lib/auth/dal';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import type { UserRole, AppUser, UserFormState } from '@/lib/auth/types';
+
+/**
+ * Todas as funções de gestão de usuários abaixo são restritas a admin.
+ * Hoje a única barreira é o middleware (proxy.ts, screen_key 'usuarios',
+ * nunca concedível a não-admin) — esta checagem interna é defesa em
+ * profundidade, para não depender exclusivamente do casamento de rota do
+ * middleware.
+ */
+async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') {
+    return { ok: false, error: 'Não autorizado.' };
+  }
+  return { ok: true };
+}
 
 // ─── Login ───────────────────────────────────────────────────────────────────
 
@@ -104,6 +119,9 @@ export async function createUserAction(
   _prev: UserFormState | undefined,
   formData: FormData
 ): Promise<UserFormState> {
+  const admin = await requireAdmin();
+  if (!admin.ok) return { error: admin.error };
+
   const name = (formData.get('name') as string)?.trim();
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = formData.get('password') as string;
@@ -162,6 +180,9 @@ export async function updateUserAction(
   _prev: UserFormState | undefined,
   formData: FormData
 ): Promise<UserFormState> {
+  const admin = await requireAdmin();
+  if (!admin.ok) return { error: admin.error };
+
   const userId = formData.get('user_id') as string;
   const name = (formData.get('name') as string)?.trim();
   const email = (formData.get('email') as string)?.trim().toLowerCase();
@@ -217,6 +238,9 @@ export async function toggleUserActiveAction(
   userId: string,
   isActive: boolean
 ): Promise<{ error?: string }> {
+  const admin = await requireAdmin();
+  if (!admin.ok) return { error: admin.error };
+
   const client = createAdminClient();
   const { error } = await client
     .from('app_users')
@@ -232,6 +256,9 @@ export async function changePasswordAction(
   userId: string,
   newPassword: string
 ): Promise<{ error?: string }> {
+  const admin = await requireAdmin();
+  if (!admin.ok) return { error: admin.error };
+
   if (!newPassword || newPassword.length < 6) {
     return { error: 'Senha deve ter no mínimo 6 caracteres.' };
   }
@@ -248,6 +275,9 @@ export async function changePasswordAction(
 // ─── Listar usuários (re-exported para server components) ─────────────────────
 
 export async function listUsers(): Promise<AppUser[]> {
+  const admin = await requireAdmin();
+  if (!admin.ok) return [];
+
   const client = createAdminClient();
   const { data, error } = await client
     .from('app_users')
@@ -267,6 +297,9 @@ export async function getUserWithRelations(userId: string): Promise<{
   targetIds: string[];
   permissionKeys: string[];
 } | null> {
+  const admin = await requireAdmin();
+  if (!admin.ok) return null;
+
   const client = createAdminClient();
   const { data: user, error } = await client
     .from('app_users')

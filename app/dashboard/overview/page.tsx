@@ -1,5 +1,5 @@
 import { BarChart3, Layers } from 'lucide-react';
-import { requireAuth } from '@/lib/auth/dal';
+import { requireAuth, getAllowedTargetIds } from '@/lib/auth/dal';
 import { redirect } from 'next/navigation';
 import SectionBoundary from '@/components/ui/SectionBoundary';
 import { BlockSkeleton, KpiRowSkeleton } from '@/components/ui/BlockSkeleton';
@@ -33,6 +33,7 @@ import {
   getExecutiveOverviewData,
   type OverviewFilters,
 } from '@/lib/queries/overview';
+import { parseGlobalFilters, getEffectiveCandidateIds, searchParamsToURLSearchParams } from '@/lib/filters/global';
 
 export const metadata = {
   title: 'Visão Geral | PolitixOS',
@@ -131,10 +132,7 @@ async function TimelineSection({ filters }: { filters: OverviewFilters }) {
 }
 
 type Props = {
-  searchParams: Promise<{
-    candidate?: string;
-    period?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function OverviewPage({ searchParams }: Props) {
@@ -146,15 +144,16 @@ export default async function OverviewPage({ searchParams }: Props) {
   }
 
   const resolvedSearchParams = await searchParams;
-  const rawCandidate = resolvedSearchParams.candidate;
-  const requestedCandidate = Array.isArray(rawCandidate) ? rawCandidate[0] : rawCandidate;
-  const rawPeriod = resolvedSearchParams.period;
-  const period = Array.isArray(rawPeriod) ? rawPeriod[0] : (rawPeriod || 'all');
+  const urlParams = searchParamsToURLSearchParams(resolvedSearchParams);
+  const globalFilters = parseGlobalFilters(urlParams);
 
-  const allowedTargetIds = session.role === 'admin' ? null : session.permissions;
+  const allowedTargetIds = await getAllowedTargetIds();
+  const candidateIds = getEffectiveCandidateIds(globalFilters, allowedTargetIds);
+
   const filters: OverviewFilters = {
-    candidate: requestedCandidate && !['todos', 'all'].includes(requestedCandidate) ? requestedCandidate : null,
-    period,
+    candidateIds,
+    candidate: candidateIds && candidateIds.length === 1 ? candidateIds[0] : null,
+    period: globalFilters.period,
     allowedTargetIds,
   };
 

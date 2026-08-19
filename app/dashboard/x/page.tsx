@@ -3,6 +3,7 @@ import { computeXKPIs, computeXChartData, computeXAlert, fetchXData, cleanFilter
 import XDashboard from '@/components/dashboard/XDashboard';
 import XFilterBar from '@/components/dashboard/XFilterBar';
 import { getAllowedTargetIds } from '@/lib/auth/dal';
+import { parseGlobalFilters, getEffectiveCandidateIds, searchParamsToURLSearchParams } from '@/lib/filters/global';
 
 export const metadata = {
   title: "Radar X | PolitixOS"
@@ -15,12 +16,14 @@ type PageProps = {
 export default async function XPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const allowedTargetIds = await getAllowedTargetIds();
+  const globalFilters = parseGlobalFilters(searchParamsToURLSearchParams(params));
+  const candidateIds = getEffectiveCandidateIds(globalFilters, allowedTargetIds);
   const filters = {
-    period: cleanFilter(params.period),
+    period: globalFilters.period === 'all' ? null : globalFilters.period,
     sentiment: cleanFilter(params.sentiment),
     risk: cleanFilter(params.risk),
     topic: cleanFilter(params.topic),
-    candidate: cleanFilter(params.candidate),
+    candidateIds,
     search: cleanFilter(params.search),
     allowedTargetIds,
   };
