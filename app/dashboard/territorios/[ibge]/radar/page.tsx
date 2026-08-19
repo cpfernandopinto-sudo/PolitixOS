@@ -1,51 +1,29 @@
 import React from 'react';
-import { CONTAGEM_DEMO } from '@/lib/territorios/fixtures/contagem';
+import { Activity } from 'lucide-react';
 import DossierNotebookContainer from '@/components/dashboard/territorios/DossierNotebookContainer';
-import { PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
 import AnalyticalEmptyState from '@/components/dashboard/territorios/analytical/AnalyticalEmptyState';
-import { BarChart } from '@/components/dashboard/territorios/PolitixCharts';
-import { AlertTriangle, ActivitySquare } from 'lucide-react';
 import { getTerritoryByIbgeCode } from '@/lib/queries/territories';
+import { createAdminClient } from '@/lib/supabaseClient';
+import { loadTerritoryIntelligenceRuntime } from '@/lib/territorios/intelligence/territory-runtime';
 
 export default async function RadarPage({ params }: { params: Promise<{ ibge: string }> }) {
   const { ibge } = await params;
   const territory = await getTerritoryByIbgeCode(ibge);
-
-  const dossier = ibge === '3118601' ? CONTAGEM_DEMO : null;
-  const data = dossier?.radar;
-  const isDemo = Boolean(dossier && data);
-  const cityName = territory?.municipio ?? (ibge === '3118601' ? 'Contagem' : 'Município');
-
+  const runtime = territory ? await loadTerritoryIntelligenceRuntime(createAdminClient(), territory) : null;
+  const items = runtime?.radar ?? [];
   return (
-    <DossierNotebookContainer
-      title={`Radar Territorial — ${cityName}`}
-      description="Monitoramento de intensidade por tema, sinais emergentes e cronologia de acontecimentos."
-      engineName="Motor Radar Territorial"
-      status={data ? 'PARCIAL' : 'SEM_DADOS'}
-      sourceName={isDemo ? 'Fontes Locais (Demonstrativo — Fixture Contagem)' : 'Monitoramento de Redes e Notícias'}
-    >
-      {isDemo && data ? (
-        <div className="space-y-6">
-          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-mono flex items-center justify-between">
-            <span>Selo de Transparência: Dados do radar demonstrativos pré-carregados (Fixture Contagem).</span>
-            <span className="px-2 py-0.5 bg-amber-500/20 rounded font-bold uppercase">DEMONSTRATIVO</span>
-          </div>
-
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-4">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono">Intensidade por Tema</h3>
-            <BarChart data={data.intensityByTheme ?? []} xAxisKey="theme" barKey="count" name="Ocorrências" color="#8b5cf6" height={200} />
-          </div>
-
-          <PolitixInsight insight={data.insight} />
+    <DossierNotebookContainer title="Radar Territorial" description="Mudanças mensuráveis derivadas exclusivamente de sinais ativos com evidência oficial." engineName="Radar Analítico" status={items.length ? 'PARCIAL' : 'SEM_DADOS'} sourceName="Motores territoriais oficiais">
+      {items.length ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {items.map((item) => (
+            <article key={item.id} className="bg-[#111726] border border-white/5 hover:border-cyan-500/30 rounded-xl p-5 transition-colors">
+              <div className="flex items-center justify-between gap-3 mb-3"><div className="flex items-center gap-2 text-cyan-400"><Activity size={15} /><span className="text-[10px] font-bold uppercase tracking-widest font-mono">{item.domain}</span></div><span className="text-[10px] text-slate-500 font-mono">{item.period}</span></div>
+              <h3 className="text-base font-bold text-white">{item.headline}</h3>
+              <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-white/5 text-[10px] font-mono"><span className="text-slate-400">{item.confidence ?? 'contexto limitado'}</span><span className="text-slate-500">{item.evidenceRefs.length} evidência(s)</span></div>
+            </article>
+          ))}
         </div>
-      ) : (
-        <AnalyticalEmptyState
-          reason="nao_coletado"
-          engineName="Motor Radar Territorial"
-          title="Dados do Radar Territorial Ainda Não Consolidados"
-          description={`As informações do radar temático para ${cityName} (IBGE: ${ibge}) ainda não estão disponíveis no catálogo territorial.`}
-        />
-      )}
+      ) : <AnalyticalEmptyState reason="nao_coletado" title="Nenhuma mudança mensurável detectada" description="O radar só exibirá itens quando houver um sinal analítico ativo sustentado por evidência oficial." />}
     </DossierNotebookContainer>
   );
 }
