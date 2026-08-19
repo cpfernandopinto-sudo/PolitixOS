@@ -6,8 +6,8 @@ vi.mock('@/lib/supabaseClient', () => ({
   createAdminClient: () => ({ from: mockFrom }),
 }));
 
-import { upsertPollResult, getPriorityRacePolls } from './results-repository';
-import type { ElectoralPollResultUpsert } from './types';
+import { upsertPollResult, getPriorityRacePolls, buildTemporalSeries, type PriorityRacePoll } from './results-repository';
+import type { ElectoralPollResultUpsert, ElectoralPollResult } from './types';
 
 function chain(result: { data: unknown; error: unknown }) {
   const c: Record<string, unknown> = {};
@@ -145,5 +145,136 @@ describe('getPriorityRacePolls', () => {
     expect(polls).toHaveLength(1);
     expect(polls[0].id).toBe('poll-1');
     expect(polls[0].results).toHaveLength(1);
+  });
+});
+
+function poll(overrides: Partial<PriorityRacePoll> & { id: string; campoInicio: string | null }): PriorityRacePoll {
+  return {
+    tseRegistrationNumber: overrides.id,
+    source: 'TSE/PesqEle',
+    sourceUrl: null,
+    sourceDataset: 'pesquisas-eleitorais-2026',
+    electionYear: 2026,
+    uf: 'DF',
+    municipio: null,
+    cargo: 'Governador',
+    abrangencia: null,
+    instituto: 'Instituto Teste',
+    contratante: null,
+    pagante: null,
+    valor: null,
+    metodologia: null,
+    dataRegistro: overrides.campoInicio,
+    campoFim: overrides.campoInicio,
+    amostra: 1000,
+    margemErro: null,
+    nivelConfianca: null,
+    ingestedAt: '2026-08-19T00:00:00.000Z',
+    createdAt: '2026-08-19T00:00:00.000Z',
+    updatedAt: '2026-08-19T00:00:00.000Z',
+    results: [],
+    ...overrides,
+  };
+}
+
+function result(overrides: Partial<ElectoralPollResult> & { candidateName: string; percentage: number }): ElectoralPollResult {
+  return {
+    id: `${overrides.candidateName}-${overrides.percentage}`,
+    pollId: 'poll',
+    cenario: 'Cenário único',
+    turno: 1,
+    tipoPergunta: 'estimulada',
+    office: 'Governador',
+    resultType: 'STIMULATED',
+    candidateId: null,
+    sourceName: 'Fonte Teste',
+    sourceUrl: 'https://example.com',
+    sourceDate: '2026-08-01',
+    collectedAt: '2026-08-19T00:00:00.000Z',
+    provenance: {},
+    verified: true,
+    ...overrides,
+  };
+}
+
+describe('buildTemporalSeries — evolução temporal real (PESQUISAS-DATA-02)', () => {
+  it('menos de 2 pesquisas elegíveis → série vazia (não força comparação)', () => {
+    const polls = [
+      poll({
+        id: 'p1',
+        campoInicio: '2026-08-01',
+        results: [result({ candidateName: 'Celina', percentage: 30, pollId: 'p1' })],
+      }),
+    ];
+    expect(buildTemporalSeries(polls)).toEqual([]);
+  });
+
+  it('2+ pesquisas com cenário único de 1º turno estimulado → agrupa por candidato, ordenado por data', () => {
+    const polls = [
+      poll({
+        id: 'later',
+        campoInicio: '2026-08-15',
+        results: [
+          result({ candidateName: 'Celina', percentage: 34, pollId: 'later', cenario: 'Cenário A' }),
+          result({ candidateName: 'Arruda', percentage: 22, pollId: 'later', cenario: 'Cenário A' }),
+        ],
+      }),
+      poll({
+        id: 'earlier',
+        campoInicio: '2026-08-01',
+        results: [
+          result({ candidateName: 'Celina', percentage: 32, pollId: 'earlier', cenario: 'Cenário B' }),
+          result({ candidateName: 'Arruda', percentage: 24, pollId: 'earlier', cenario: 'Cenário B' }),
+        ],
+      }),
+    ];
+
+    const series = buildTemporalSeries(polls);
+    const celina = series.find((s) => s.candidateName === 'Celina');
+    expect(celina?.points.map((p) => p.percentage)).toEqual([32, 34]);
+    expect(celina?.points.map((p) => p.pollId)).toEqual(['earlier', 'later']);
+  });
+
+  it('pesquisa com múltiplos cenários de 1º turno estimulado (ex.: MG/abril, testes pareados) fica de fora — nunca escolhe um cenário "representativo"', () => {
+    const polls = [
+      poll({
+        id: 'fragmented',
+        campoInicio: '2026-04-28',
+        results: [
+          result({ candidateName: 'Cleitinho', percentage: 30, pollId: 'fragmented', cenario: 'Cenário 1' }),
+          result({ candidateName: 'Cleitinho', percentage: 35, pollId: 'fragmented', cenario: 'Cenário 2' }),
+        ],
+      }),
+      poll({
+        id: 'clean',
+        campoInicio: '2026-07-26',
+        results: [result({ candidateName: 'Cleitinho', percentage: 35, pollId: 'clean', cenario: 'Cenário único' })],
+      }),
+    ];
+
+    expect(buildTemporalSeries(polls)).toEqual([]);
+  });
+
+  it('turno 2 e tipo espontânea nunca entram na série (só 1º turno estimulado)', () => {
+    const polls = [
+      poll({
+        id: 'p1',
+        campoInicio: '2026-08-01',
+        results: [
+          result({ candidateName: 'Celina', percentage: 32, pollId: 'p1', turno: 1, tipoPergunta: 'estimulada' }),
+          result({ candidateName: 'Celina', percentage: 43, pollId: 'p1', turno: 2, tipoPergunta: 'estimulada' }),
+          result({ candidateName: 'Celina', percentage: 17, pollId: 'p1', turno: 1, tipoPergunta: 'espontanea' }),
+        ],
+      }),
+      poll({
+        id: 'p2',
+        campoInicio: '2026-08-15',
+        results: [result({ candidateName: 'Celina', percentage: 34, pollId: 'p2', turno: 1, tipoPergunta: 'estimulada' })],
+      }),
+    ];
+
+    const series = buildTemporalSeries(polls);
+    expect(series[0].points).toHaveLength(2);
+    expect(series[0].points.map((p) => p.percentage)).toEqual([32, 34]);
   });
 });

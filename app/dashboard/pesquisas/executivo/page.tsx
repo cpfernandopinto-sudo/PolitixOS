@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Crown, TrendingUp, FileText, ExternalLink, AlertTriangle } from 'lucide-react';
 import { requireAuth } from '@/lib/auth/dal';
-import { getPriorityRacePolls, type PriorityRacePoll } from '@/lib/pesquisas/results-repository';
+import { getPriorityRacePolls, buildTemporalSeries, type PriorityRacePoll } from '@/lib/pesquisas/results-repository';
 import KpiCard from '@/components/ui/KpiCard';
 import BarChart from '@/components/charts/BarChart';
 import type { ElectoralPollResult } from '@/lib/pesquisas/types';
@@ -84,12 +84,15 @@ export default async function ExecutivoPage({ searchParams }: { searchParams: Pr
   const t2Results = mostRecent?.results.filter((r) => r.turno === 2) ?? [];
   const t2ByCenario = groupResultsByCenario(t2Results);
 
-  // Média entre pesquisas: só faria sentido com 2+ pesquisas comparáveis
-  // (mesmo cargo/território/cenário/turno/tipo de pergunta) — PARTE 7/9,
-  // "não calcular média simples entre cenários incompatíveis". Hoje há
-  // exatamente 1 pesquisa verificada por corrida prioritária.
-  const comparablePollsCount = polls.length;
-  const canAverage = comparablePollsCount >= 2;
+  // Média entre pesquisas: só faria sentido com 2+ pesquisas realmente
+  // comparáveis (mesmo cargo/território/turno/tipo de pergunta, e cada
+  // pesquisa com um único cenário de 1º turno estimulado — sem cenários
+  // fragmentados) — PARTE 7/9 e PESQUISAS-DATA-02. `polls.length` sozinho
+  // não basta: MG tem 2 pesquisas com resultado, mas a de abril quebra o
+  // 1º turno em 4 cenários pareados, então não entra na série.
+  const temporalSeries = buildTemporalSeries(polls);
+  const canAverage = temporalSeries.length > 0;
+  const comparablePollsCount = canAverage ? new Set(temporalSeries[0].points.map((p) => p.pollId)).size : polls.length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -136,7 +139,7 @@ export default async function ExecutivoPage({ searchParams }: { searchParams: Pr
             <KpiCard title="Pesquisa Mais Recente" value={mostRecent.instituto ?? 'Não disponível'} compact />
             <KpiCard title="Líder Atual" value={leader ? `${leader.candidateName} (${leader.percentage}%)` : 'Não disponível'} status={leader ? 'success' : 'neutral'} compact />
             <KpiCard title="Diferença 1º × 2º" value={diff !== null ? `${diff} p.p.` : 'Não disponível'} compact />
-            <KpiCard title="Média das Pesquisas" value={canAverage ? 'Ver abaixo' : 'Indisponível (1 pesquisa)'} compact />
+            <KpiCard title="Evolução Temporal" value={canAverage ? `${comparablePollsCount} pesquisas` : `Indisponível (${comparablePollsCount} pesquisa${comparablePollsCount === 1 ? '' : 's'})`} compact />
             <KpiCard title="Pesquisas c/ Resultado" value={comparablePollsCount} compact />
             <KpiCard title="Última Atualização" value={formatDate(mostRecent.dataRegistro)} compact />
           </div>
@@ -191,12 +194,39 @@ export default async function ExecutivoPage({ searchParams }: { searchParams: Pr
               <TrendingUp size={15} className="text-[#2563EB]" /> Evolução Temporal
             </h3>
             {canAverage ? (
-              <p className="text-gray-400 text-sm">Comparação entre {comparablePollsCount} pesquisas comparáveis.</p>
+              <div className="space-y-3">
+                <p className="text-gray-500 text-xs">
+                  {comparablePollsCount} pesquisas comparáveis (1º turno, leitura estimulada, cenário único) — mais antiga → mais recente.
+                </p>
+                {temporalSeries
+                  .filter((s) => isRealCandidate(s.candidateName))
+                  .sort((a, b) => (b.points.at(-1)?.percentage ?? 0) - (a.points.at(-1)?.percentage ?? 0))
+                  .map((s) => {
+                    const first = s.points[0].percentage;
+                    const last = s.points.at(-1)!.percentage;
+                    const delta = Math.round((last - first) * 10) / 10;
+                    return (
+                      <div key={s.candidateName} className="flex items-center justify-between text-sm bg-white/5 rounded-xl px-4 py-2.5">
+                        <span className="text-gray-300 font-medium">{s.candidateName}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-500 text-xs">
+                            {s.points.map((p) => `${p.percentage}%`).join(' → ')}
+                          </span>
+                          {delta !== 0 && (
+                            <span className={`text-xs font-bold ${delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {delta > 0 ? '+' : ''}{delta} p.p.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
             ) : (
               <div className="py-6 text-center">
                 <p className="text-gray-400 text-sm">Ainda não há pesquisas suficientes para uma linha temporal.</p>
                 <p className="text-gray-600 text-xs mt-1">
-                  Requer 2 ou mais pesquisas com resultado verificado, mesmo cargo/território/cenário/turno/tipo de pergunta — hoje há {comparablePollsCount}.
+                  Requer 2 ou mais pesquisas com resultado verificado e cenário de 1º turno estimulado sem ambiguidade (não fragmentado) — hoje há {comparablePollsCount} pesquisa(s) com resultado nesta corrida.
                 </p>
               </div>
             )}

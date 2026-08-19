@@ -56,6 +56,47 @@ export interface PriorityRacePoll extends ElectoralPoll {
   results: ElectoralPollResult[];
 }
 
+export interface TemporalPoint {
+  pollId: string;
+  date: string | null;
+  percentage: number;
+}
+
+export interface TemporalSeriesEntry {
+  candidateName: string;
+  points: TemporalPoint[];
+}
+
+/**
+ * Série temporal real (PESQUISAS-DATA-02) — só inclui uma pesquisa quando
+ * ela tem exatamente 1 cenário de 1º turno estimulado (leitura principal
+ * sem ambiguidade). Pesquisas com cenários fragmentados (ex.: MG/abril,
+ * que testa Cleitinho contra um adversário por vez) ficam de fora
+ * automaticamente — nunca escolhemos um cenário "representativo" entre
+ * vários, isso seria inventar comparabilidade. Exige 2+ pesquisas elegíveis.
+ */
+export function buildTemporalSeries(polls: PriorityRacePoll[]): TemporalSeriesEntry[] {
+  const eligible = polls.filter((p) => {
+    const t1 = p.results.filter((r) => r.turno === 1 && r.tipoPergunta === 'estimulada');
+    if (t1.length === 0) return false;
+    const cenarios = new Set(t1.map((r) => r.cenario));
+    return cenarios.size === 1;
+  });
+  if (eligible.length < 2) return [];
+
+  const sorted = [...eligible].sort((a, b) => (a.campoInicio ?? '').localeCompare(b.campoInicio ?? ''));
+  const byCandidate = new Map<string, TemporalPoint[]>();
+  for (const poll of sorted) {
+    const t1 = poll.results.filter((r) => r.turno === 1 && r.tipoPergunta === 'estimulada');
+    for (const r of t1) {
+      const list = byCandidate.get(r.candidateName) ?? [];
+      list.push({ pollId: poll.id, date: poll.campoInicio, percentage: r.percentage });
+      byCandidate.set(r.candidateName, list);
+    }
+  }
+  return Array.from(byCandidate.entries()).map(([candidateName, points]) => ({ candidateName, points }));
+}
+
 function mapResultRow(row: Record<string, unknown>): ElectoralPollResult {
   return {
     id: row.id as string,
