@@ -111,9 +111,9 @@ OLD FILTER COMMIT: c6e606d
 OLD FILTER BASE:   66a4377
 
 NEW BRANCH BASE: main (9ac49d5) — confirmado ancestral direto, fast-forward puro
-NEW COMMIT: c6e606d (mesma referência de conteúdo — branch nova aponta para o commit já
-            validado; nenhuma reaplicação manual foi necessária pois não havia divergência
-            a reconciliar; ver §2)
+NEW COMMIT: c89a231 (este relatório, commitado na branch nova) sobre c6e606d (conteúdo
+            já validado — branch nova aponta para o commit já validado; nenhuma reaplicação
+            manual foi necessária pois não havia divergência a reconciliar; ver §2)
 
 FILES IN OLD DIFF: 38 (+1 doc)
 FILES PORTED: 38 (+1 doc) — 100%, fast-forward exato
