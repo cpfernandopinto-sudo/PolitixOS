@@ -154,7 +154,7 @@ P1: 0
 P2: 1 (verificação manual em navegador não realizada — sem credenciais; ver §9)
 P3: 1 (período customizado em Notícias permanece backlog, UI dormente preexistente)
 
-LOCAL COMMIT: <preenchido após commit — ver mensagem de commit>
+LOCAL COMMIT: 66a4377
 PUSH: NOT_EXECUTED
 DEPLOY: NOT_EXECUTED
 ```
