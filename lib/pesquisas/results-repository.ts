@@ -158,28 +158,33 @@ function mapPollRow(row: Record<string, unknown>): ElectoralPoll {
 export async function getPriorityRacePolls(uf: string, cargoLike: string): Promise<PriorityRacePoll[]> {
   const client = createClient();
 
-  const { data: pollRows, error: pollError } = await client
-    .from('electoral_polls')
-    .select('*')
-    .eq('uf', uf)
-    .ilike('cargo', `%${cargoLike}%`)
-    .order('data_registro', { ascending: false, nullsFirst: false });
+  // Filtra electoral_poll_results (tabela pequena, ~centenas de linhas) via
+  // join embutido em vez de primeiro listar TODAS as pesquisas registradas
+  // da corrida (centenas a milhares, ex.: BR/Presidente tem 626) e montar
+  // um .in('poll_id', [...]) com centenas de UUIDs — isso excede o limite
+  // de headers HTTP do PostgREST (16KB) e falha silenciosamente,
+  // retornando [] mesmo havendo resultado real (PESQUISAS-03, bug real
+  // encontrado ao rodar a consulta contra o banco de produção: BR
+  // retornava 0 pesquisas mesmo com 2 pesquisas verificadas no banco).
+  const { data: rows, error } = await client
+    .from('electoral_poll_results')
+    .select('*, poll:electoral_polls!inner(*)')
+    .eq('poll.uf', uf)
+    .ilike('poll.cargo', `%${cargoLike}%`);
 
-  if (pollError || !pollRows) return [];
+  if (error || !rows) return [];
 
-  const polls = pollRows.map(mapPollRow);
-  const pollIds = polls.map((p) => p.id);
-  if (pollIds.length === 0) return [];
-
-  const { data: resultRows } = await client.from('electoral_poll_results').select('*').in('poll_id', pollIds);
+  const pollsById = new Map<string, ElectoralPoll>();
   const resultsByPoll = new Map<string, ElectoralPollResult[]>();
-  for (const row of (resultRows ?? []).map(mapResultRow)) {
-    const list = resultsByPoll.get(row.pollId) ?? [];
-    list.push(row);
-    resultsByPoll.set(row.pollId, list);
+  for (const row of rows as Record<string, unknown>[]) {
+    const poll = mapPollRow(row.poll as Record<string, unknown>);
+    pollsById.set(poll.id, poll);
+    const list = resultsByPoll.get(poll.id) ?? [];
+    list.push(mapResultRow(row));
+    resultsByPoll.set(poll.id, list);
   }
 
-  return polls
+  return Array.from(pollsById.values())
     .map((poll) => ({ ...poll, results: resultsByPoll.get(poll.id) ?? [] }))
-    .filter((p) => p.results.length > 0);
+    .sort((a, b) => (b.dataRegistro ?? '').localeCompare(a.dataRegistro ?? ''));
 }

@@ -112,8 +112,8 @@ describe('getPriorityRacePolls', () => {
     expect(polls).toEqual([]);
   });
 
-  it('filtra para só as pesquisas que TÊM resultado (não lista pesquisas registradas sem resultado integrado)', async () => {
-    const pollRow = {
+  it('retorna as pesquisas que TÊM resultado, com a pesquisa embutida na própria linha (nunca lista pesquisas sem resultado, pois elas nunca aparecem na tabela de resultados)', async () => {
+    const pollEmbedded = {
       id: 'poll-1', tse_registration_number: 'BR067732026', source: 'TSE/PesqEle', source_url: null,
       source_dataset: 'pesquisas-eleitorais-2026', election_year: 2026, uf: 'BR', municipio: null,
       cargo: 'Presidente', abrangencia: null, instituto: 'QUAEST', contratante: null, pagante: null,
@@ -121,30 +121,31 @@ describe('getPriorityRacePolls', () => {
       campo_fim: '2026-08-13', amostra: 2004, margem_erro: null, nivel_confianca: null, raw_source_row: null,
       ingested_at: '2026-08-19T00:00:00.000Z', created_at: '2026-08-19T00:00:00.000Z', updated_at: '2026-08-19T00:00:00.000Z',
     };
-    const pollRow2 = { ...pollRow, id: 'poll-2', tse_registration_number: 'BR000002026' }; // sem resultado
 
-    let call = 0;
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'electoral_polls') return chain({ data: [pollRow, pollRow2], error: null });
-      // electoral_poll_results: só poll-1 tem resultado
-      return chain({
-        data: [
-          {
-            id: 'res-1', poll_id: 'poll-1', cenario: 'Cenário único', turno: 1, tipo_pergunta: 'estimulada',
-            candidate_name: 'Lula', percentage: 38, office: 'Presidente', result_type: 'STIMULATED',
-            candidate_id: null, source_name: 'Quaest', source_url: 'https://example.com', source_date: '2026-08-14',
-            collected_at: '2026-08-19T00:00:00.000Z', provenance: {}, verified: true,
-          },
-        ],
-        error: null,
-      });
+    const c = chain({
+      data: [
+        {
+          id: 'res-1', poll_id: 'poll-1', cenario: 'Cenário único', turno: 1, tipo_pergunta: 'estimulada',
+          candidate_name: 'Lula', percentage: 38, office: 'Presidente', result_type: 'STIMULATED',
+          candidate_id: null, source_name: 'Quaest', source_url: 'https://example.com', source_date: '2026-08-14',
+          collected_at: '2026-08-19T00:00:00.000Z', provenance: {}, verified: true,
+          poll: pollEmbedded,
+        },
+      ],
+      error: null,
     });
+    mockFrom.mockReturnValue(c);
 
     const polls = await getPriorityRacePolls('BR', 'Presidente');
 
     expect(polls).toHaveLength(1);
     expect(polls[0].id).toBe('poll-1');
     expect(polls[0].results).toHaveLength(1);
+    // Nunca constrói um .in('poll_id', [...]) com centenas de UUIDs — é
+    // exatamente essa consulta que estourava o limite de headers do
+    // PostgREST em produção quando havia centenas de pesquisas registradas
+    // sem resultado misturadas na lista (PESQUISAS-03).
+    expect(c.in).not.toHaveBeenCalled();
   });
 });
 

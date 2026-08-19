@@ -25,6 +25,7 @@ function mapPollRow(row: Record<string, unknown>): ElectoralPoll {
     amostra: (row.amostra as number | null) ?? null,
     margemErro: (row.margem_erro as number | null) ?? null,
     nivelConfianca: (row.nivel_confianca as number | null) ?? null,
+    rawSourceRow: (row.raw_source_row as Record<string, string> | null) ?? null,
     ingestedAt: row.ingested_at as string,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
@@ -40,6 +41,15 @@ function mapResultRow(row: Record<string, unknown>): ElectoralPollResult {
     tipoPergunta: row.tipo_pergunta as ElectoralPollResult['tipoPergunta'],
     candidateName: row.candidate_name as string,
     percentage: Number(row.percentage),
+    office: (row.office as string | null) ?? null,
+    resultType: (row.result_type as ElectoralPollResult['resultType']) ?? null,
+    candidateId: (row.candidate_id as string | null) ?? null,
+    sourceName: (row.source_name as string | null) ?? null,
+    sourceUrl: (row.source_url as string | null) ?? null,
+    sourceDate: (row.source_date as string | null) ?? null,
+    collectedAt: row.collected_at as string,
+    provenance: (row.provenance as Record<string, unknown>) ?? {},
+    verified: Boolean(row.verified),
   };
 }
 
@@ -133,4 +143,68 @@ export async function getPesquisasKpis(): Promise<PesquisasKpis> {
     sourceStatus,
     lastSyncAt: lastRun?.finished_at ?? null,
   };
+}
+
+export async function getAvailableFilterOptions(): Promise<{
+  ufs: string[];
+  cargos: string[];
+  institutos: string[];
+}> {
+  const client = createClient();
+
+  const [{ data: ufRows }, { data: cargoRows }, { data: instRows }] = await Promise.all([
+    client.from('electoral_polls').select('uf').not('uf', 'is', null),
+    client.from('electoral_polls').select('cargo').not('cargo', 'is', null),
+    client.from('electoral_polls').select('instituto').not('instituto', 'is', null),
+  ]);
+
+  const ufsSet = new Set<string>();
+  (ufRows ?? []).forEach((r: { uf: string }) => r.uf && ufsSet.add(r.uf));
+
+  const cargosSet = new Set<string>();
+  (cargoRows ?? []).forEach((r: { cargo: string }) => {
+    if (r.cargo) {
+      r.cargo.split(',').forEach((c) => cargosSet.add(c.trim()));
+    }
+  });
+
+  const instSet = new Set<string>();
+  (instRows ?? []).forEach((r: { instituto: string }) => r.instituto && instSet.add(r.instituto));
+
+  return {
+    ufs: Array.from(ufsSet).sort(),
+    cargos: Array.from(cargosSet).sort(),
+    institutos: Array.from(instSet).sort(),
+  };
+}
+
+export async function listPollResultsWithPoll(filters?: PesquisasFilters): Promise<import('./types').ElectoralPollResultWithPoll[]> {
+  const client = createClient();
+  let query = client.from('electoral_poll_results').select('*, poll:electoral_polls(*)');
+
+  if (filters?.turno) query = query.eq('turno', filters.turno);
+  if (filters?.tipoPergunta) query = query.eq('tipo_pergunta', filters.tipoPergunta);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('[pesquisas] listPollResultsWithPoll error:', error.message);
+    return [];
+  }
+
+  const mapped = (data ?? []).map((row: Record<string, unknown>) => {
+    const result = mapResultRow(row);
+    const pollObj = row.poll ? mapPollRow(row.poll as Record<string, unknown>) : null;
+    return {
+      ...result,
+      poll: pollObj,
+    };
+  });
+
+  return mapped.filter((r) => {
+    if (!r.poll) return true;
+    if (filters?.uf && r.poll.uf !== filters.uf && r.poll.abrangencia !== filters.uf) return false;
+    if (filters?.cargo && r.poll.cargo && !r.poll.cargo.toLowerCase().includes(filters.cargo.toLowerCase())) return false;
+    if (filters?.instituto && r.poll.instituto !== filters.instituto) return false;
+    return true;
+  });
 }
