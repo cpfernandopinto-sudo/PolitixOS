@@ -4,9 +4,10 @@
  *
  * Mapa FECHADO e AUDITÁVEL — cobre exatamente os 19 indicadores definidos em
  * `../economy/engine.ts` (`ECO01_MONETARY_INDICATORS` [7] + `ECO02B_ACTIVITY_MONETARY_INDICATORS`
- * [8] + `ECO02B_OFFICIAL_SHARE_INDICATORS` [4]), nunca um indicador inventado. Cada
- * entrada é uma tradução literal do slug para português legível — nunca uma fonte,
- * instituição ou entidade externa.
+ * [8] + `ECO02B_OFFICIAL_SHARE_INDICATORS` [4]) mais os 6 indicadores CAGED adicionados
+ * no INTEL-DOMAIN-02 (ver bloco abaixo), nunca um indicador inventado. Cada entrada é
+ * uma tradução literal do slug para português legível — nunca uma fonte, instituição ou
+ * entidade externa.
  *
  * Uso: `deriveKnownEntitiesFromContext()` (`guards.ts`) usa este mapa para popular
  * `GuardrailContext.knownEntities` com APENAS os nomes dos indicadores realmente
@@ -40,6 +41,21 @@ export const INDICATOR_FRIENDLY_NAMES: Record<string, string> = {
   participacao_vab_industria: 'participação do Valor Adicionado Bruto da Indústria',
   participacao_vab_servicos_exceto_setor_publico_ampliado: 'participação do Valor Adicionado Bruto de Serviços, exceto setor público ampliado',
   participacao_vab_administracao_defesa_educacao_saude_publicas_seguridade: 'participação da Administração, Defesa, Educação, Saúde Públicas e Seguridade Social',
+
+  // CAGED — INTEL-DOMAIN-02 (Missão A). Cobre exatamente os indicatorId reais emitidos
+  // por `../economy/caged-adapter.ts` e `../economy/caged-facts.ts` (SALDO_INDICATOR e
+  // seus sufixos `_mom`/`_yoy`/`_rolling12`, mais admissões/desligamentos). Não inclui
+  // variantes setoriais como indicatorId separado porque o adapter nunca gera um id de
+  // indicador por setor — o setor só aparece como sufixo do id de EVIDÊNCIA
+  // (`db:...:saldo_emprego_formal:NOVO_CAGED:{period}:{setor}`), nunca em
+  // `derivedIndicatorRefs`/`unitIndicators()`; adicionar entradas setoriais aqui seria
+  // inventar indicadores que o motor nunca produz.
+  saldo_emprego_formal: 'Saldo de Emprego Formal (CAGED)',
+  saldo_emprego_formal_mom: 'Variação Mensal (MoM) do Saldo de Emprego Formal (CAGED)',
+  saldo_emprego_formal_yoy: 'Variação Interanual (YoY) do Saldo de Emprego Formal (CAGED)',
+  saldo_emprego_formal_rolling12: 'Saldo de Emprego Formal Acumulado em 12 Meses (CAGED)',
+  admissoes_emprego_formal: 'Admissões de Emprego Formal (CAGED)',
+  desligamentos_emprego_formal: 'Desligamentos de Emprego Formal (CAGED)',
 };
 
 export function friendlyNameForIndicator(indicatorId: string): string | null {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import ExecutiveTerritoryHeader from './ExecutiveTerritoryHeader';
 import TerritorySituationSummary from './TerritorySituationSummary';
+import CommandCenterKpiStrip, { ExecutiveKpiItem } from './CommandCenterKpiStrip';
 import PrioritySignalsSection from './PrioritySignalsSection';
 import RiskOpportunitySummary, { RiskItem, OpportunityItem } from './RiskOpportunitySummary';
 import TerritoryAgendaSummary from './TerritoryAgendaSummary';
@@ -24,6 +25,7 @@ export interface TerritoryCommandCenterViewModel {
   headline: string;
   situationSummaryText: string;
   keyFinding?: string;
+  kpiStrip?: ExecutiveKpiItem[];
   signals: PrioritizedSignal[];
   risks: RiskItem[];
   opportunities: OpportunityItem[];
@@ -63,7 +65,7 @@ export default function TerritoryCommandCenter({
         isRefreshing={isRefreshing}
       />
 
-      {/* 2. Situation Summary (30-Second Briefing) */}
+      {/* 2. Situation Summary (30-Second Executive Reading) */}
       <TerritorySituationSummary
         headline={viewModel.headline}
         summaryText={viewModel.situationSummaryText}
@@ -71,10 +73,15 @@ export default function TerritoryCommandCenter({
         statusText={viewModel.statusLabel}
       />
 
-      {/* 3. Engine Coverage Summary Bar */}
+      {/* 3. Executive Real KPI Strip (Multi-Engine Mini Sparklines & Deltas) */}
+      {viewModel.kpiStrip && viewModel.kpiStrip.length > 0 && (
+        <CommandCenterKpiStrip kpis={viewModel.kpiStrip} />
+      )}
+
+      {/* 4. Engine Coverage Summary Bar */}
       <AnalysisStatusSummary domains={viewModel.domains} />
 
-      {/* 4. Priority Signals */}
+      {/* 5. Priority Signals */}
       {viewModel.signals.length > 0 && (
         <PrioritySignalsSection
           signals={viewModel.signals}
@@ -83,10 +90,10 @@ export default function TerritoryCommandCenter({
         />
       )}
 
-      {/* 5. Risks vs Opportunities */}
+      {/* 6. Risks vs Opportunities */}
       <RiskOpportunitySummary risks={viewModel.risks} opportunities={viewModel.opportunities} />
 
-      {/* 6. Territory Agenda Summary */}
+      {/* 7. Territory Agenda Summary */}
       {viewModel.agendaItems.length > 0 && (
         <TerritoryAgendaSummary
           municipioName={viewModel.cityName}
@@ -95,7 +102,7 @@ export default function TerritoryCommandCenter({
         />
       )}
 
-      {/* 7. Thematic Notebooks Navigator */}
+      {/* 8. Thematic Notebooks Navigator */}
       <TerritoryNotebookNavigator ibge={viewModel.ibge} />
 
       {/* Evidence Trace Drawer Modal */}

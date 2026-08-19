@@ -50,12 +50,27 @@ function claim(overrides: Partial<InterpretationClaim>, refs: { signalRefs: stri
 }
 
 describe('INDICATOR_FRIENDLY_NAMES — catálogo fechado (Etapa 2 do gate)', () => {
-  it('cobre exatamente os 19 indicadores definidos em economy/engine.ts (7 FISCAL + 8 PIB_VAB + 4 OFFICIAL_SHARE)', () => {
-    expect(Object.keys(INDICATOR_FRIENDLY_NAMES)).toHaveLength(19);
+  it('cobre exatamente os 19 indicadores definidos em economy/engine.ts (7 FISCAL + 8 PIB_VAB + 4 OFFICIAL_SHARE) + os 6 indicadores CAGED do INTEL-DOMAIN-02', () => {
+    expect(Object.keys(INDICATOR_FRIENDLY_NAMES)).toHaveLength(25);
   });
 
   it('indicador desconhecido (fora do catálogo) retorna null, nunca inventa um nome', () => {
     expect(friendlyNameForIndicator('indicador_que_nao_existe')).toBeNull();
+  });
+
+  // INTEL-DOMAIN-02 — os 6 indicatorId realmente emitidos por caged-adapter.ts/caged-facts.ts.
+  it('resolve os 6 indicadores CAGED (saldo/mom/yoy/rolling12/admissões/desligamentos) por extenso', () => {
+    expect(friendlyNameForIndicator('saldo_emprego_formal')).toBe('Saldo de Emprego Formal (CAGED)');
+    expect(friendlyNameForIndicator('saldo_emprego_formal_mom')).toContain('Variação Mensal');
+    expect(friendlyNameForIndicator('saldo_emprego_formal_yoy')).toContain('Variação Interanual');
+    expect(friendlyNameForIndicator('saldo_emprego_formal_rolling12')).toContain('Acumulado em 12 Meses');
+    expect(friendlyNameForIndicator('admissoes_emprego_formal')).toBe('Admissões de Emprego Formal (CAGED)');
+    expect(friendlyNameForIndicator('desligamentos_emprego_formal')).toBe('Desligamentos de Emprego Formal (CAGED)');
+  });
+
+  it('não inclui variante setorial como indicatorId (o adapter nunca gera id de indicador por setor)', () => {
+    expect(friendlyNameForIndicator('saldo_emprego_formal_servicos')).toBeNull();
+    expect(friendlyNameForIndicator('saldo_emprego_formal:servicos')).toBeNull();
   });
 });
 

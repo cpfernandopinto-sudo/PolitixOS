@@ -121,6 +121,36 @@ export interface Evidence {
 }
 
 // ---------------------------------------------------------------------------
+// Fact (INTEL-DOMAIN-02, seção "Princípio" do gate): ponte legível entre L1/L2 e L3.
+// Um Fact é uma leitura factual única e autocontida (ex.: "saldo atual", "melhor mês",
+// "setor líder") — nunca uma interpretação, nunca um julgamento de magnitude/threshold
+// (isso é papel do AnalyticalSignal). Todo Fact é rastreável 1:1 a Evidence/DerivedIndicator
+// reais; `supported=false` sinaliza explicitamente quando o dado disponível NÃO sustenta
+// matematicamente o fact (nunca omitido silenciosamente — ver seção 14 do INTEL-01).
+// Aditivo ao contrato canônico: não substitui nem altera Evidence/DerivedIndicator/
+// AnalyticalSignal, apenas empacota-os de forma consumível por L3 (detecção de signal)
+// e L4 (prompt).
+// ---------------------------------------------------------------------------
+
+export interface Fact {
+  id: string;
+  territoryId: string;
+  domain: IntelligenceDomain;
+  /** Chave estável do fact dentro do domínio (ex.: 'current_balance', 'best_month', 'sector_leader') — nunca um texto livre. */
+  key: string;
+  /** Rótulo humano/LLM-legível, nunca um identificador técnico (regra 18 do Prompt V2/V3). */
+  label: string;
+  value: number | string | null;
+  unit: string | null;
+  period: string;
+  evidenceRefs: string[];
+  derivedIndicatorRefs: string[];
+  /** Falso quando o dado disponível é matematicamente insuficiente para sustentar este fact (ex.: MoM sem mês anterior) — o fact ainda existe no registro, mas nunca deve ser exposto como afirmação. */
+  supported: boolean;
+  limitations: Limitation[];
+}
+
+// ---------------------------------------------------------------------------
 // L2 — DerivedIndicator: resultado determinístico. NUNCA é interpretação política.
 // ---------------------------------------------------------------------------
 

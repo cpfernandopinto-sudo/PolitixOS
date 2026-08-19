@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { consolidateConfidence, type AnalyticalSignal, type Coverage, type Recommendation } from './contracts';
+import { consolidateConfidence, type AnalyticalSignal, type Coverage, type Fact, type Recommendation } from './contracts';
 import { pocEvidence, pocEvidenceIndex, pocImplication, pocInterpretation, pocRecommendation, pocSignal, POC_TERRITORY_ID } from './poc-fixture';
 
 describe('INTEL-01 contratos — formato e separação de camadas', () => {
@@ -48,5 +48,15 @@ describe('INTEL-01 contratos — formato e separação de camadas', () => {
   it('Recommendation fictícia resolve por completo dentro do índice de evidência fornecido', () => {
     const rec: Recommendation = pocRecommendation;
     expect(rec.evidenceRefs.every((ref) => Boolean(pocEvidenceIndex[ref]))).toBe(true);
+  });
+
+  // INTEL-DOMAIN-02 — Fact é aditivo: ponte legível L1/L2 -> L3, nunca uma interpretação.
+  it('Fact nunca carrega assertionClass (não é L4) e declara explicitamente quando não é suportado por dado suficiente', () => {
+    const supported: Fact = { id: 'fact:1', territoryId: POC_TERRITORY_ID, domain: 'economia', key: 'current_balance', label: 'Saldo atual', value: 100, unit: 'vagas', period: '202606', evidenceRefs: ['ev:1'], derivedIndicatorRefs: [], supported: true, limitations: [] };
+    const unsupported: Fact = { ...supported, id: 'fact:2', key: 'mom_change', supported: false, value: null };
+    expect('assertionClass' in supported).toBe(false);
+    expect(supported.supported).toBe(true);
+    expect(unsupported.supported).toBe(false);
+    expect(unsupported.value).toBeNull();
   });
 });
