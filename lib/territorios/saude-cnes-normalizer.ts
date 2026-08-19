@@ -15,6 +15,10 @@ const CAPABILITIES: Array<[string, (row: CnesEstablishment) => boolean]> = [
   ['estabelecimentos_centro_cirurgico', (r) => r.estabelecimento_possui_centro_cirurgico === 1],
   ['estabelecimentos_centro_obstetrico', (r) => r.estabelecimento_possui_centro_obstetrico === 1],
   ['estabelecimentos_centro_neonatal', (r) => r.estabelecimento_possui_centro_neonatal === 1],
+  ['estabelecimentos_unidades_basicas', (r) => r.codigo_tipo_unidade === 2],
+  ['estabelecimentos_atencao_primaria', (r) => [1, 2, 15, 71].includes(r.codigo_tipo_unidade)],
+  ['estabelecimentos_hospitalares_por_tipo', (r) => [5, 7, 62].includes(r.codigo_tipo_unidade)],
+  ['estabelecimentos_urgencia_emergencia', (r) => [20, 21, 42, 73, 76].includes(r.codigo_tipo_unidade)],
 ];
 
 export function normalizeReferenceDate(referenceDate: string): string {
