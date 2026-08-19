@@ -108,8 +108,11 @@ describe('Analytical Component Library — Unit Tests', () => {
     expect(screen.getByText('12.000')).toBeInTheDocument();
     expect(screen.getByText('9.500')).toBeInTheDocument();
     expect(screen.getByText('+2.500')).toBeInTheDocument();
-    expect(screen.getByText('Agropecuária')).toBeInTheDocument();
-    expect(screen.getByText('Indústria')).toBeInTheDocument();
+    // Agropecuária (menor saldo) e Indústria (maior saldo) agora também aparecem nos
+    // cards de destaque "Setor Líder"/"Setor em Maior Retração", além da tabela — por
+    // isso usamos getAllByText em vez de getByText (que exige ocorrência única).
+    expect(screen.getAllByText('Agropecuária').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Indústria').length).toBeGreaterThan(0);
     expect(screen.getByText(/METHODOLOGY_PENDING/i)).toBeInTheDocument();
   });
 

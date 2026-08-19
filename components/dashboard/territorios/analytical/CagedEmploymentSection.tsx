@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Briefcase, UserPlus, UserMinus, Scale, Clock, AlertCircle } from 'lucide-react';
+import { Briefcase, UserPlus, UserMinus, Scale, Clock, Award, AlertTriangle } from 'lucide-react';
 import type { CagedEmploymentViewModel } from '@/lib/territorios/intelligence/frontend-adapters';
 import DefasagemStatusBadge from './DefasagemStatusBadge';
 
@@ -13,6 +13,13 @@ export default function CagedEmploymentSection({ cagedData }: CagedEmploymentSec
   const { period, totalAdmissions, totalDismissals, totalBalance, sectors, pendingMetrics } = cagedData;
 
   const isBalancePositive = totalBalance >= 0;
+
+  // Calculate sector leader and worst sector
+  const sortedSectors = [...sectors].sort((a, b) => b.balance - a.balance);
+  const leaderSector = sortedSectors[0];
+  const worstSector = sortedSectors.at(-1);
+
+  const maxAbsBalance = Math.max(...sectors.map((s) => Math.abs(s.balance)), 1);
 
   return (
     <div className="bg-[#111726] border border-white/5 rounded-xl p-5 md:p-6 space-y-6">
@@ -40,7 +47,7 @@ export default function CagedEmploymentSection({ cagedData }: CagedEmploymentSec
         </span>
       </div>
 
-      {/* 3 Main KPIs */}
+      {/* Primary KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Admissões */}
         <div className="bg-[#0B0F19] border border-white/5 rounded-xl p-4 space-y-1">
@@ -79,10 +86,50 @@ export default function CagedEmploymentSection({ cagedData }: CagedEmploymentSec
         </div>
       </div>
 
-      {/* 5 Sectors Table / Heatmap */}
+      {/* Mathematical Derived Highlights */}
+      {leaderSector && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+          <div className="p-3.5 bg-[#0B0F19] border border-emerald-500/20 rounded-xl flex items-center justify-between text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <Award size={16} className="text-emerald-400 shrink-0" />
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold block">Setor Líder em Empregos</span>
+                <span className="text-white font-bold">{leaderSector.sector}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-emerald-400 font-bold block">
+                {leaderSector.balance >= 0 ? `+${leaderSector.balance.toLocaleString('pt-BR')}` : leaderSector.balance.toLocaleString('pt-BR')} vagas
+              </span>
+              <span className="text-[10px] text-slate-500">Maior saldo do período</span>
+            </div>
+          </div>
+
+          {worstSector && (
+            <div className="p-3.5 bg-[#0B0F19] border border-rose-500/20 rounded-xl flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-rose-400 shrink-0" />
+                <div>
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Setor em Maior Retração / Menor Saldo</span>
+                  <span className="text-white font-bold">{worstSector.sector}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-rose-400 font-bold block">
+                  {worstSector.balance >= 0 ? `+${worstSector.balance.toLocaleString('pt-BR')}` : worstSector.balance.toLocaleString('pt-BR')} vagas
+                </span>
+                <span className="text-[10px] text-slate-500">Menor saldo do período</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5 Sectors Table with Visual Bar */}
       <div className="space-y-3">
-        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono">
-          Desempenho por Cinco Setores Econômicos
+        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono flex items-center justify-between">
+          <span>Desempenho por Cinco Setores Econômicos</span>
+          <span className="text-slate-500 text-[10px]">Proporção de Saldo</span>
         </h4>
 
         <div className="overflow-x-auto border border-white/5 rounded-xl">
@@ -93,11 +140,14 @@ export default function CagedEmploymentSection({ cagedData }: CagedEmploymentSec
                 <th className="p-3 text-right">Admissões</th>
                 <th className="p-3 text-right">Desligamentos</th>
                 <th className="p-3 text-right">Saldo Líquido</th>
+                <th className="p-3 w-40">Representação Visual</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-slate-200">
               {sectors.map((sec) => {
                 const secBalancePositive = sec.balance >= 0;
+                const pct = Math.min(100, Math.round((Math.abs(sec.balance) / maxAbsBalance) * 100));
+
                 return (
                   <tr key={sec.sector} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-3 font-semibold text-white">{sec.sector}</td>
@@ -105,6 +155,14 @@ export default function CagedEmploymentSection({ cagedData }: CagedEmploymentSec
                     <td className="p-3 text-right">{sec.dismissals.toLocaleString('pt-BR')}</td>
                     <td className={`p-3 text-right font-bold ${secBalancePositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {secBalancePositive ? `+${sec.balance.toLocaleString('pt-BR')}` : sec.balance.toLocaleString('pt-BR')}
+                    </td>
+                    <td className="p-3">
+                      <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${secBalancePositive ? 'bg-emerald-400' : 'bg-rose-400'}`}
+                          style={{ width: `${Math.max(5, pct)}%` }}
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
