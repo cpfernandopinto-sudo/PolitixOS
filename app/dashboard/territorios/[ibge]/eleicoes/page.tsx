@@ -3,7 +3,7 @@ import DossierNotebookContainer from '@/components/dashboard/territorios/Dossier
 import { ContextualKPI, PolitixInsight } from '@/components/dashboard/territorios/AnalyticalComponents';
 import AnalyticalEmptyState from '@/components/dashboard/territorios/analytical/AnalyticalEmptyState';
 import { LineChart, HorizontalBarChart, BarChart } from '@/components/dashboard/territorios/PolitixCharts';
-import { Vote, UserCheck, UserX, Target, GitBranch, Info } from 'lucide-react';
+import { Vote, UserCheck, UserX, Target, GitBranch, Info, Calendar } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabaseClient';
 import { loadElectoralNotebook } from '@/lib/territorios/tse-notebook-repository';
 import { getTerritoryByIbgeCode } from '@/lib/queries/territories';
@@ -35,6 +35,9 @@ export default async function EleicoesPage({ params }: { params: Promise<{ ibge:
   const statusKey = data ? (isDemo ? 'PARCIAL' : 'CONCLUIDO') : 'SEM_DADOS';
   const cityName = territory?.municipio ?? (ibge === '3118601' ? 'Contagem' : 'Município');
 
+  // Comparative Matrix Rows for 2016 x 2020 x 2024
+  const hasHistoricalSeries = Boolean(data?.historicalElectorate && data.historicalElectorate.length > 0);
+
   return (
     <DossierNotebookContainer
       title={`Perfil Eleitoral e Competitividade — ${cityName}`}
@@ -46,7 +49,7 @@ export default async function EleicoesPage({ params }: { params: Promise<{ ibge:
       {isDemo && (
         <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-mono flex items-center justify-between">
           <span>Selo de Transparência: Dados demonstrativos pré-carregados (Fixture Contagem).</span>
-          <span className="px-2 py-0.5 bg-amber-500/20 rounded font-bold uppercase">DEMONSTRATIVO</span>
+          <span className="px-2 py-0.5 bg-amber-500/20 rounded font-bold uppercase font-mono">DEMONSTRATIVO</span>
         </div>
       )}
 
@@ -98,6 +101,43 @@ export default async function EleicoesPage({ params }: { params: Promise<{ ibge:
               </div>
             </div>
           </div>
+
+          {/* Comparative Election Matrix (2016 x 2020 x 2024) */}
+          {hasHistoricalSeries && (
+            <div className="surface-primary rounded-xl p-5 border border-white/5 space-y-3">
+              <h3 className="text-xs font-bold text-white uppercase tracking-widest font-mono flex items-center gap-2">
+                <Calendar size={14} className="text-cyan-400" />
+                <span>Matriz Comparativa de Pleitos Municipais</span>
+              </h3>
+
+              <div className="overflow-x-auto border border-white/5 rounded-lg">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-[#0B0F19] text-slate-400 text-[10px] uppercase border-b border-white/5">
+                    <tr>
+                      <th className="p-3">Pleito</th>
+                      <th className="p-3 text-right">Eleitorado Apto</th>
+                      <th className="p-3 text-right">Comparecimento (%)</th>
+                      <th className="p-3 text-right">Abstenção (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-slate-200">
+                    {data.historicalElectorate.map((el: any, idx: number) => {
+                      const part = data.historicalParticipation?.[idx];
+                      const abs = data.historicalAbstention?.[idx];
+                      return (
+                        <tr key={el.period} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="p-3 font-bold text-cyan-300">{el.period}</td>
+                          <td className="p-3 text-right font-bold text-white">{Number(el.value).toLocaleString('pt-BR')}</td>
+                          <td className="p-3 text-right text-emerald-400">{part ? `${part.value}%` : '—'}</td>
+                          <td className="p-3 text-right text-rose-400">{abs ? `${abs.value}%` : '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Gráficos de Evolução Temporais */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
