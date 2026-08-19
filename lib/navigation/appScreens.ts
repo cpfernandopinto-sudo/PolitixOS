@@ -7,6 +7,7 @@ import {
   UserCog,
   Settings,
   MapPin,
+  LineChart,
 } from 'lucide-react';
 import type { NavIcon } from './navIcons';
 import { InstagramNavIcon, XNavIcon } from './navIcons';
@@ -123,6 +124,23 @@ export const APP_SCREENS: AppScreen[] = [
     group: 'Inteligência',
     description: 'Dossiês e investigações profundas',
     implemented: true,
+    supportsGlobalCandidate: false,
+    supportsGlobalPeriod: false,
+    showInNav: true,
+  },
+  {
+    key: 'pesquisas',
+    label: 'Pesquisas Eleitorais',
+    route: '/dashboard/pesquisas',
+    icon: LineChart,
+    group: 'Inteligência',
+    description: 'Monitor oficial de pesquisas registradas no TSE/PesqEle',
+    implemented: true,
+    // Sem candidato/período globais nesta rodada — registro de pesquisa não
+    // tem hoje um vínculo verificado com `targets` (candidatos monitorados),
+    // e não há resultado real ainda para filtrar por período. Reavaliar
+    // quando PESQUISAS-01B confirmar o mapeamento de schema (ver
+    // docs/relatorios/CLAUDE_PESQUISAS_01A_CORE_TSE.md).
     supportsGlobalCandidate: false,
     supportsGlobalPeriod: false,
     showInNav: true,
