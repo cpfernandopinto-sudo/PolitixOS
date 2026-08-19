@@ -154,6 +154,8 @@ export default async function ExecutivoPage({ searchParams }: { searchParams: Pr
                 horizontal
                 isPercent
                 height={Math.max(180, ranked.length * 34)}
+                gridLeft={150}
+                labelWidth={135}
               />
             </section>
           )}
