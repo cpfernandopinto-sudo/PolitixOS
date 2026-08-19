@@ -90,7 +90,26 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   } : null;
 
   const filters = parseGlobalFilters(searchParams);
-  const selectedCandidateIds = filters.candidateMode === 'SELECTED' ? filters.candidateIds : [];
+  const urlCandidateIds = filters.candidateMode === 'SELECTED' ? filters.candidateIds : [];
+
+  // BUG (UX-ACCESS-FILTERS-01C): `selectedCandidateIds` não pode ser derivado
+  // diretamente de `searchParams` a cada render. `router.replace` (abaixo)
+  // navega via App Router — a URL só reflete a seleção DEPOIS que o
+  // round-trip de navegação (busca de RSC no servidor) termina. Um segundo
+  // clique (ex.: marcar Michelle) que chegue antes desse round-trip terminar
+  // lia `selectedCandidateIds` ainda vazio/desatualizado e SUBSTITUÍA a
+  // seleção em vez de somar a ela — na prática só o último clique "vencia",
+  // exatamente o comportamento de single-select relatado. Correção: estado
+  // local otimista, atualizado de forma síncrona no clique, resincronizado a
+  // partir da URL somente quando ela muda por uma causa EXTERNA (mesmo
+  // padrão syncKey já usado antes desta reescrita para candidato único).
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>(urlCandidateIds);
+  const [candidateSyncKey, setCandidateSyncKey] = useState(`${pathname}?${searchParams.toString()}`);
+  const currentCandidateSyncKey = `${pathname}?${searchParams.toString()}`;
+  if (candidateSyncKey !== currentCandidateSyncKey) {
+    setCandidateSyncKey(currentCandidateSyncKey);
+    setSelectedCandidateIds(urlCandidateIds);
+  }
 
   // Fecha o dropdown de candidatos ao clicar fora ou pressionar Escape.
   useEffect(() => {
@@ -112,12 +131,16 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   }, [candidateMenuOpen]);
 
   const updateFilters = (next: Partial<{ candidateIds: string[]; period: GlobalPeriod }>) => {
+    const nextCandidateIds = next.candidateIds !== undefined ? next.candidateIds : selectedCandidateIds;
+    // Atualização local SÍNCRONA (fora de startTransition) — é isto que faz
+    // o próximo clique compor sobre esta seleção em vez de ler o estado
+    // desatualizado da URL enquanto a navegação anterior ainda está em voo.
+    if (next.candidateIds !== undefined) setSelectedCandidateIds(nextCandidateIds);
+
     startTransition(() => {
       const nextState = {
-        candidateMode: (next.candidateIds ?? selectedCandidateIds).length > 0
-          ? ('SELECTED' as const)
-          : ('ALL_ALLOWED' as const),
-        candidateIds: next.candidateIds ?? selectedCandidateIds,
+        candidateMode: nextCandidateIds.length > 0 ? ('SELECTED' as const) : ('ALL_ALLOWED' as const),
+        candidateIds: nextCandidateIds,
         period: next.period ?? filters.period,
       };
       const params = serializeGlobalFilters(nextState, searchParams);
