@@ -150,7 +150,7 @@ Rotas confirmadas: /dashboard/pesquisas, /dashboard/pesquisas/[id], /dashboard/p
 Um commit local único convergindo CORE + RESULTS + DATA + UX + SHARED (autorizado explicitamente por esta brief, item ETAPA 8: "arquivos de Pesquisas pertencentes ao UX-02 ainda não commitados... AGORA fazem parte da convergência"):
 
 ```
-<hash a ser preenchido após commit>
+9431b38 feat(pesquisas): converge electoral intelligence cockpit for presentation
 ```
 
 ## 17. Pendências reais
@@ -201,11 +201,11 @@ BUILD: PASS
 
 GIT DIFF CHECK: PASS
 
-WORKING TREE: CLEAN (após commit desta rodada)
+WORKING TREE: CLEAN
 
 MANUAL VISUAL CHECK: REQUIRED
 
-COMMIT: <preencher após commit>
+COMMIT: 9431b38
 
 P0: 0 (todos os 5 P0 encontrados nesta auditoria — itens 4.1 a 4.5 — foram corrigidos e verificados contra o banco real antes deste relatório)
 P1: 2 — (1) verificação visual autenticada pendente por falta de credenciais; (2) inconsistência de nome de candidato entre rodadas de ingestão (item 4.6) é uma classe de erro que pode se repetir em ingestões futuras — recomenda-se um passo de normalização/dedupe de candidate_name antes da próxima expansão de dados
