@@ -2,30 +2,40 @@
 
 import { useState, useMemo } from 'react';
 import type { ElectoralPoll, ElectoralPollResultWithPoll, PesquisasKpis, PesquisasFilters } from '@/lib/pesquisas/types';
-import { calculateCockpitMetrics, getCandidateRanking, getInstituteComparisonPoints } from '@/lib/pesquisas/cockpitAnalytics';
+import { calculateCockpitMetrics, getCandidateRanking, getInstituteComparisonPoints, getRaceCandidates } from '@/lib/pesquisas/cockpitAnalytics';
+import { buildTemporalSeries } from '@/lib/pesquisas/results-repository';
+import { calculateAnalyticalStatus, calculateScenarioSignals, generatePolitixInsight } from '@/lib/pesquisas/analyticsEngine';
 
 import { LineChart, AlertTriangle, ExternalLink } from 'lucide-react';
 import CollectButton from '../CollectButton';
 import { PesquisasFilterBar } from './PesquisasFilterBar';
-import { ExecutiveKpiCards } from './ExecutiveKpiCards';
-import { SegundoTurnoToggle } from './SegundoTurnoToggle';
-import { EvolucaoTemporalChart } from './EvolucaoTemporalChart';
+import { ExecutiveSnapshotCards } from './ExecutiveSnapshotCards';
+import { IndicadoresMovimentoCards } from './IndicadoresMovimentoCards';
+import { PolitixAiCard } from './PolitixAiCard';
+import { CenarioEleitoralChart } from './CenarioEleitoralChart';
 import { RankingCandidatos } from './RankingCandidatos';
+import { SegundoTurnoSection } from './SegundoTurnoSection';
+import { EvolucaoTemporalChart } from './EvolucaoTemporalChart';
+import { EvolucaoGapChart } from './EvolucaoGapChart';
+import { SinaisCenarioCard } from './SinaisCenarioCard';
 import { ComparacaoInstitutos } from './ComparacaoInstitutos';
 import { PerfilAmostralCard } from './PerfilAmostralCard';
 import { IntencaoPorPerfilPlaceholder } from './IntencaoPorPerfilPlaceholder';
-import { ListaPesquisasRecentes } from './ListaPesquisasRecentes';
+import { PesquisasExplicamCenario } from './PesquisasExplicamCenario';
+
+import { PesquisasListView } from './PesquisasListView';
+import { PesquisasComparativoView } from './PesquisasComparativoView';
 
 interface Props {
-  initialPolls: ElectoralPoll[];
-  initialResults: ElectoralPollResultWithPoll[];
-  kpis: PesquisasKpis;
-  source: { portalUrl: string; sourceUrl: string };
+  registeredPolls: ElectoralPoll[];
+  allResults: ElectoralPollResultWithPoll[];
   filterOptions: {
     ufs: string[];
     cargos: string[];
     institutos: string[];
   };
+  kpis: PesquisasKpis;
+  source: { portalUrl: string; sourceUrl: string };
   isAdmin: boolean;
 }
 
@@ -38,47 +48,58 @@ function formatDate(iso: string | null): string {
   }
 }
 
+const DEFAULT_FILTERS: PesquisasFilters = {
+  uf: 'DF',
+  cargo: 'Governador',
+  period: 'all',
+  instituto: null,
+  turno: 1,
+  tipoPergunta: 'estimulada',
+  candidateNames: null,
+};
+
 export function PesquisasCockpitView({
-  initialPolls,
-  initialResults,
+  registeredPolls,
+  allResults,
+  filterOptions,
   kpis,
   source,
-  filterOptions,
   isAdmin,
 }: Props) {
   const isBlocked = kpis.sourceStatus === 'BLOCKED_BY_SOURCE_ACCESS';
   const neverRun = kpis.sourceStatus === 'NEVER_RUN';
 
-  // Default filters prioritizes Brasilia presentation (P0: DF - Governador)
-  const [filters, setFilters] = useState<PesquisasFilters>({
-    uf: 'DF',
-    cargo: 'Governador',
-    period: null,
-    instituto: null,
-    turno: 1,
-    tipoPergunta: 'estimulada',
-    candidateNames: null,
-  });
+  const [activeTab, setActiveTab] = useState<'cockpit' | 'lista' | 'comparativo'>('cockpit');
 
-  // Filter polls according to active filters
-  const filteredPolls = useMemo(() => {
-    return initialPolls.filter((p) => {
+  const [filters, setFilters] = useState<PesquisasFilters>(DEFAULT_FILTERS);
+
+  const handleResetDefault = () => {
+    setFilters(DEFAULT_FILTERS);
+  };
+
+  // Derive reference candidate from candidate filter popover
+  const referenceCandidate = useMemo(() => {
+    if (filters.candidateNames && filters.candidateNames.length > 0) {
+      return filters.candidateNames[0];
+    }
+    return null;
+  }, [filters.candidateNames]);
+
+  // Filter registered polls matching dynamic filters
+  const filteredRegisteredPolls = useMemo(() => {
+    return registeredPolls.filter((p) => {
       if (filters.uf && p.uf !== filters.uf && p.abrangencia !== filters.uf) return false;
       if (filters.cargo && p.cargo && !p.cargo.toLowerCase().includes(filters.cargo.toLowerCase())) return false;
       if (filters.instituto && p.instituto !== filters.instituto) return false;
       return true;
     });
-  }, [initialPolls, filters.uf, filters.cargo, filters.instituto]);
+  }, [registeredPolls, filters.uf, filters.cargo, filters.instituto]);
 
-  // Filter results according to active filters
+  // Filter results matching dynamic filters (NÃO remover concorrentes ao selecionar um candidato)
   const filteredResults = useMemo(() => {
-    return initialResults.filter((r) => {
+    return allResults.filter((r) => {
       if (filters.turno && r.turno !== filters.turno) return false;
       if (filters.tipoPergunta && r.tipoPergunta !== filters.tipoPergunta) return false;
-
-      if (filters.candidateNames && filters.candidateNames.length > 0) {
-        if (!filters.candidateNames.includes(r.candidateName)) return false;
-      }
 
       if (r.poll) {
         if (filters.uf && r.poll.uf !== filters.uf && r.poll.abrangencia !== filters.uf) return false;
@@ -87,32 +108,75 @@ export function PesquisasCockpitView({
       }
       return true;
     });
-  }, [initialResults, filters]);
+  }, [allResults, filters.turno, filters.tipoPergunta, filters.uf, filters.cargo, filters.instituto]);
 
-  // Available candidate names for multi-select
+  // Candidate names list for candidate filter popover (real candidates only for active UF + Cargo)
   const availableCandidates = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of initialResults) {
-      if (r.candidateName) set.add(r.candidateName);
-    }
-    return Array.from(set).sort();
-  }, [initialResults]);
+    const matchingResults = allResults.filter((r) => {
+      if (!r.poll) return false;
+      if (filters.uf && r.poll.uf !== filters.uf && r.poll.abrangencia !== filters.uf) return false;
+      if (filters.cargo && r.poll.cargo && !r.poll.cargo.toLowerCase().includes(filters.cargo.toLowerCase())) return false;
+      return true;
+    });
+    return getRaceCandidates(matchingResults);
+  }, [allResults, filters.uf, filters.cargo]);
 
-  // Calculate executive metrics
-  const metrics = useMemo(() => {
-    return calculateCockpitMetrics(filteredPolls, filteredResults);
-  }, [filteredPolls, filteredResults]);
-
-  // Active poll for methodology profile
-  const activePoll = useMemo(() => {
-    if (filteredPolls.length > 0) return filteredPolls[0];
+  // Single context contract: latestResultPoll = poll with verified results for active slice
+  const latestResultPoll = useMemo(() => {
+    if (filteredResults.length > 0 && filteredResults[0].poll) return filteredResults[0].poll;
+    if (filteredRegisteredPolls.length > 0) return filteredRegisteredPolls[0];
     return null;
-  }, [filteredPolls]);
+  }, [filteredResults, filteredRegisteredPolls]);
 
-  // Candidate ranking for active scenario
-  const candidateRanking = useMemo(() => {
-    return getCandidateRanking(filteredResults, activePoll?.id);
-  }, [filteredResults, activePoll]);
+  // Priority polls derived dynamically for active UF + Cargo
+  const priorityPollsForRace = useMemo(() => {
+    const pollMap = new Map<string, ElectoralPoll>();
+    const resMap = new Map<string, ElectoralPollResultWithPoll[]>();
+
+    for (const r of filteredResults) {
+      if (r.poll) {
+        pollMap.set(r.poll.id, r.poll);
+        const list = resMap.get(r.poll.id) ?? [];
+        list.push(r);
+        resMap.set(r.poll.id, list);
+      }
+    }
+
+    return Array.from(pollMap.values())
+      .map((p) => ({ ...p, results: resMap.get(p.id) ?? [] }))
+      .sort((a, b) => (b.dataRegistro ?? '').localeCompare(a.dataRegistro ?? ''));
+  }, [filteredResults]);
+
+  // Calculate executive KPI metrics passing referenceCandidate
+  const metrics = useMemo(() => {
+    return calculateCockpitMetrics(filteredRegisteredPolls, filteredResults, referenceCandidate);
+  }, [filteredRegisteredPolls, filteredResults, referenceCandidate]);
+
+  // Temporal series built via canonical buildTemporalSeries
+  const temporalSeries = useMemo(() => {
+    return buildTemporalSeries(priorityPollsForRace);
+  }, [priorityPollsForRace]);
+
+  // Candidate ranking for active result poll
+  const rankingData = useMemo(() => {
+    return getCandidateRanking(filteredResults, latestResultPoll?.id);
+  }, [filteredResults, latestResultPoll]);
+
+  // Operational analytical status (Estável / Atenção / Crítico)
+  const analyticalStatus = useMemo(() => {
+    return calculateAnalyticalStatus(rankingData, metrics, referenceCandidate);
+  }, [rankingData, metrics, referenceCandidate]);
+
+  // Scenario signals & alerts
+  const scenarioSignals = useMemo(() => {
+    return calculateScenarioSignals(metrics, temporalSeries, rankingData);
+  }, [metrics, temporalSeries, rankingData]);
+
+  // Politix AI Insight synthesis
+  const activeRaceLabel = `${filters.cargo ?? 'Governador'} — ${filters.uf ?? 'DF'}`;
+  const politixInsight = useMemo(() => {
+    return generatePolitixInsight(activeRaceLabel, metrics, latestResultPoll, temporalSeries, rankingData);
+  }, [activeRaceLabel, metrics, latestResultPoll, temporalSeries, rankingData]);
 
   // Institute comparison points
   const instituteComparisonPoints = useMemo(() => {
@@ -120,20 +184,21 @@ export function PesquisasCockpitView({
   }, [filteredResults]);
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-4 pb-16">
       {/* Cabeçalho Executivo */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <LineChart size={28} className="text-blue-500" />
-            Cockpit Executivo de Pesquisas Eleitorais
+          <h1 className="text-xl md:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <LineChart size={24} className="text-blue-500" />
+            Cockpit de Inteligência Eleitoral
           </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Monitoramento de Inteligência Política — Prioridade Brasília / DF (Governador, Presidente & MG).
+          <p className="text-gray-400 text-xs mt-0.5">
+            Inteligência Política — Pesquisas e Tendências ({activeRaceLabel})
+            {referenceCandidate ? ` · Candidato Analisado: ${referenceCandidate}` : ''}.
           </p>
-          <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-500">
             <span>
-              Fonte oficial: <a href={source.portalUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">TSE / PesqEle <ExternalLink size={11} /></a>
+              Fonte oficial: <a href={source.portalUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">TSE / PesqEle <ExternalLink size={10} /></a>
             </span>
             <span className="text-gray-700">•</span>
             <span>Última verificação: {formatDate(kpis.lastSyncAt)}</span>
@@ -144,13 +209,13 @@ export function PesquisasCockpitView({
 
       {/* Aviso de Fonte Indisponível (quando aplicável) */}
       {(isBlocked || neverRun) && (
-        <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3.5">
-          <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
-          <div className="text-sm">
+        <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3">
+          <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-xs">
             <p className="text-amber-300 font-semibold">
               {neverRun ? 'Coleta ainda não executada' : 'Fonte oficial indisponível'}
             </p>
-            <p className="text-amber-200/70 text-xs mt-1">
+            <p className="text-amber-200/70 text-[11px] mt-0.5">
               {neverRun
                 ? 'Nenhuma execução do coletor foi registrada ainda. Use "Verificar fonte oficial" para tentar.'
                 : 'O Portal de Dados Abertos do TSE (dadosabertos.tse.jus.br) não respondeu à última tentativa de coleta. Os números abaixo refletem o que já está no banco.'}
@@ -159,7 +224,7 @@ export function PesquisasCockpitView({
         </div>
       )}
 
-      {/* Barra de Filtros Executiva (Default DF / Governador) */}
+      {/* Barra de Filtros Dinâmicos Encadeados */}
       <PesquisasFilterBar
         filters={filters}
         onChange={setFilters}
@@ -167,45 +232,88 @@ export function PesquisasCockpitView({
         availableCargos={filterOptions.cargos}
         availableInstitutos={filterOptions.institutos}
         availableCandidates={availableCandidates}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onResetDefault={handleResetDefault}
       />
 
-      {/* Alternador de Turno (1º Turno vs 2º Turno) */}
-      <SegundoTurnoToggle
-        turno={filters.turno ?? 1}
-        onChange={(t) => setFilters({ ...filters, turno: t })}
-      />
+      {/* ABA 1: COCKPIT EXECUTIVO */}
+      {activeTab === 'cockpit' && (
+        <div className="space-y-4">
+          {/* 1. Executive Snapshot Cards (8 KPIs Densos) */}
+          <ExecutiveSnapshotCards metrics={metrics} statusResult={analyticalStatus} />
 
-      {/* Grid de Cards Executivos */}
-      <ExecutiveKpiCards metrics={metrics} />
+          {/* 2. Segunda Faixa: Indicadores de Movimento */}
+          <IndicadoresMovimentoCards metrics={metrics} />
 
-      {/* Grid de Análise Temporal & Ranking (7/12 e 5/12) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7">
-          <EvolucaoTemporalChart
-            results={filteredResults}
-            hasSufficientSeries={metrics.hasSufficientSeries}
-          />
+          {/* 3. Card Principal: Inteligência Politix IA (Síntese Curta Factual) */}
+          <PolitixAiCard insight={politixInsight} raceLabel={activeRaceLabel} />
+
+          {/* 4. GRADE DOS GRÁFICOS - LINHA 1 (2/3 Cenário Eleitoral + 1/3 Ranking) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <CenarioEleitoralChart results={filteredResults} referenceCandidate={referenceCandidate} />
+            </div>
+            <div className="lg:col-span-1">
+              <RankingCandidatos
+                realCandidates={rankingData.realCandidates}
+                nonCandidates={rankingData.nonCandidates}
+                cenarioLabel={latestResultPoll?.cargo ? `${latestResultPoll.cargo} — ${latestResultPoll.abrangencia ?? latestResultPoll.uf}` : null}
+                pollInstituto={latestResultPoll?.instituto}
+                pollDate={latestResultPoll?.dataRegistro}
+                referenceCandidate={referenceCandidate}
+              />
+            </div>
+          </div>
+
+          {/* 5. GRADE DOS GRÁFICOS - LINHA 2 (2/3 Evolução Temporal + 1/3 Pesquisas Explicam) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <EvolucaoTemporalChart
+                temporalSeries={temporalSeries}
+                comparablePollsCount={metrics.pesquisasComparaveisCount}
+              />
+            </div>
+            <div className="lg:col-span-1">
+              <PesquisasExplicamCenario
+                polls={priorityPollsForRace}
+                latestPoll={latestResultPoll}
+                onNavigateToLista={() => setActiveTab('lista')}
+              />
+            </div>
+          </div>
+
+          {/* 6. BLOCO TRIPLO - MESMA LINHA NO DESKTOP (3 Colunas: Gap, 2º Turno, Sinais) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <EvolucaoGapChart temporalSeries={temporalSeries} />
+            <SegundoTurnoSection results={filteredResults} />
+            <SinaisCenarioCard signals={scenarioSignals} />
+          </div>
+
+          {/* 7. Comparação Entre Institutos */}
+          <ComparacaoInstitutos comparisonPoints={instituteComparisonPoints} />
+
+          {/* 8. Perfil da Amostra & Placeholder Crosstabs */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <PerfilAmostralCard poll={latestResultPoll} />
+            <IntencaoPorPerfilPlaceholder />
+          </div>
         </div>
-        <div className="lg:col-span-5">
-          <RankingCandidatos
-            ranking={candidateRanking}
-            pollInstituto={activePoll?.instituto}
-            pollDate={activePoll?.dataRegistro}
-          />
-        </div>
-      </div>
+      )}
 
-      {/* Comparação entre Institutos */}
-      <ComparacaoInstitutos comparisonPoints={instituteComparisonPoints} />
+      {/* ABA 2: BASE DE PESQUISAS (LISTA & TRIAGEM) */}
+      {activeTab === 'lista' && (
+        <PesquisasListView
+          polls={filteredRegisteredPolls}
+          allResults={allResults}
+          kpis={kpis}
+        />
+      )}
 
-      {/* Perfil Metodológico da Amostra (Pesquisa Ativa) */}
-      <PerfilAmostralCard poll={activePoll} />
-
-      {/* Placeholder de Contrato para Intenção por Perfil (Crosstabs) */}
-      <IntencaoPorPerfilPlaceholder />
-
-      {/* Lista de Pesquisas Registradas */}
-      <ListaPesquisasRecentes polls={filteredPolls} />
+      {/* ABA 3: COMPARATIVO ENTRE INSTITUTOS */}
+      {activeTab === 'comparativo' && (
+        <PesquisasComparativoView results={filteredResults} referenceCandidate={referenceCandidate} />
+      )}
     </div>
   );
 }

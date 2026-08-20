@@ -66,6 +66,26 @@ export interface ExtractedPollMetadata {
 
 export type TipoPergunta = 'espontanea' | 'estimulada';
 
+/** Categorias que não representam candidatos reais — excluídas de rankings de liderança e filtros. */
+export const NON_CANDIDATE_LABELS = new Set([
+  'branco/nulo',
+  'branco/nulo/não vai votar',
+  'nulo/branco',
+  'branco/nulo/nenhum',
+  'indecisos',
+  'indecisos/brancos/nulos',
+  'não sabe',
+  'não respondeu',
+  'não sabe/não respondeu',
+  'ns/nr',
+  'outros',
+]);
+
+export function isRealCandidate(name: string): boolean {
+  if (!name) return false;
+  return !NON_CANDIDATE_LABELS.has(name.trim().toLowerCase());
+}
+
 /**
  * PESQUISAS-01B — nunca populada sem proveniência verificável (fonte real,
  * URL, data). `office`/`resultType` complementam (não substituem) o par
@@ -134,13 +154,24 @@ export interface InstituteComparisonPoint {
 
 export interface ExecutiveCockpitMetrics {
   intencaoMaisRecente: { candidateName: string; percentage: number; pollDate: string | null; instituto: string } | null;
+  runnerUpResult: { candidateName: string; percentage: number } | null;
+  referenceCandidate: string | null;
+  analyzedCandidateResult: { candidateName: string; percentage: number; rank: number; gapToLeader: number } | null;
   gapConcorrente: { gap: number; leader: string; runnerUp: string } | null;
   variacaoAnterior: { diff: number; candidateName: string; previousPollDate: string | null } | null;
   maximoPeriodo: { percentage: number; candidateName: string; pollDate: string | null } | null;
   minimoPeriodo: { percentage: number; candidateName: string; pollDate: string | null } | null;
+  totalPollsInSlice: number;
+  pollsWithResultsCount: number;
   pesquisasComparaveisCount: number;
+  trendPollsCount: number;
   lastUpdateDate: string | null;
   hasSufficientSeries: boolean;
+  leaderMovement: 'UP' | 'DOWN' | 'STABLE' | 'UNAVAILABLE';
+  runnerUpMovement: 'UP' | 'DOWN' | 'STABLE' | 'UNAVAILABLE';
+  gapBehavior: 'EXPANDING' | 'NARROWING' | 'STABLE' | 'UNAVAILABLE';
+  volatility: 'BAIXA' | 'MODERADA' | 'ALTA' | 'UNAVAILABLE';
+  instituteConsistency: 'CONVERGENTE' | 'MODERADA' | 'DIVERGENTE' | 'UNAVAILABLE';
 }
 
 export type ElectoralPollUpsert = Omit<ElectoralPoll, 'id' | 'createdAt' | 'updatedAt'> & {

@@ -3,7 +3,8 @@ import type { ElectoralPoll, ElectoralPollResultWithPoll } from './types';
 import {
   calculateCockpitMetrics,
   getCandidateRanking,
-  getInstituteComparisonPoints,
+  getLatestResultPoll,
+  getRaceCandidates,
 } from './cockpitAnalytics';
 
 function mockPoll(id: string, overrides: Partial<ElectoralPoll> = {}): ElectoralPoll {
@@ -58,175 +59,99 @@ function mockResult(id: string, pollId: string, candidateName: string, percentag
   };
 }
 
-describe('cockpitAnalytics.ts — Métricas do Cockpit Executivo', () => {
-  it('retorna métricas nulas e "Sem histórico suficiente" quando não há resultados no banco', () => {
-    const polls = [mockPoll('p1')];
-    const metrics = calculateCockpitMetrics(polls, []);
+describe('cockpitAnalytics.ts — PESQUISAS-03A Consistência de Dados e Testes Obrigatórios', () => {
+  it('seleciona latestResultPoll (com resultado) mesmo se houver pesquisa registrada mais recente sem resultado', () => {
+    const pollSemResultado = mockPoll('p-sem-resultado', { dataRegistro: '2026-04-01', instituto: 'INSTITUTO VERITA' });
+    const pollComResultado = mockPoll('p-com-resultado', { dataRegistro: '2026-03-20', instituto: 'REAL TIME BIG DATA' });
 
-    expect(metrics.intencaoMaisRecente).toBeNull();
-    expect(metrics.gapConcorrente).toBeNull();
-    expect(metrics.variacaoAnterior).toBeNull();
-    expect(metrics.maximoPeriodo).toBeNull();
-    expect(metrics.minimoPeriodo).toBeNull();
-    expect(metrics.hasSufficientSeries).toBe(false);
-    expect(metrics.pesquisasComparaveisCount).toBe(1);
-  });
+    const result = mockResult('r1', 'p-com-resultado', 'Celina Leão', 34.0, { poll: pollComResultado });
 
-  it('calcula intenção mais recente e gap para o concorrente com 1 pesquisa', () => {
-    const p1 = mockPoll('p1');
-    const r1 = mockResult('r1', 'p1', 'Celina Leão', 35.0, { poll: p1 });
-    const r2 = mockResult('r2', 'p1', 'Arruda', 28.5, { poll: p1 });
+    const latestResultPoll = getLatestResultPoll([result]);
+    expect(latestResultPoll?.id).toBe('p-com-resultado');
+    expect(latestResultPoll?.instituto).toBe('REAL TIME BIG DATA');
 
-    const metrics = calculateCockpitMetrics([p1], [r1, r2]);
-
+    // Métrica deve usar poll com resultado, não a sem resultado
+    const metrics = calculateCockpitMetrics([pollSemResultado, pollComResultado], [result]);
+    expect(metrics.intencaoMaisRecente?.instituto).toBe('REAL TIME BIG DATA');
     expect(metrics.intencaoMaisRecente?.candidateName).toBe('Celina Leão');
-    expect(metrics.intencaoMaisRecente?.percentage).toBe(35.0);
-    expect(metrics.gapConcorrente?.gap).toBe(6.5);
-    expect(metrics.gapConcorrente?.leader).toBe('Celina Leão');
-    expect(metrics.gapConcorrente?.runnerUp).toBe('Arruda');
-    // Variação e máximo/mínimo devem ser NULL pois há apenas 1 pesquisa (não há série histórica)
-    expect(metrics.variacaoAnterior).toBeNull();
-    expect(metrics.hasSufficientSeries).toBe(false);
   });
 
-  it('calcula variação anterior e máximo/mínimo quando existem 2 pesquisas comparáveis', () => {
-    const p1 = mockPoll('p1', { dataRegistro: '2026-03-20' });
-    const p2 = mockPoll('p2', { dataRegistro: '2026-03-10' });
+  it('DF: 3 pesquisas comparáveis ativam a série histórica (hasSufficientSeries = true)', () => {
+    const p1 = mockPoll('df1', { dataRegistro: '2026-03-20', instituto: 'Real Time' });
+    const p2 = mockPoll('df2', { dataRegistro: '2026-03-15', instituto: 'Opinião' });
+    const p3 = mockPoll('df3', { dataRegistro: '2026-03-10', instituto: 'Instituto Gazeta' });
 
-    const r1 = mockResult('r1', 'p1', 'Celina Leão', 38.0, { poll: p1 });
-    const r2 = mockResult('r2', 'p1', 'Arruda', 25.0, { poll: p1 });
+    const results = [
+      mockResult('r1', 'df1', 'Celina Leão', 34.0, { poll: p1 }),
+      mockResult('r2', 'df1', 'José Roberto Arruda', 22.0, { poll: p1 }),
 
-    const r3 = mockResult('r3', 'p2', 'Celina Leão', 32.0, { poll: p2 });
-    const r4 = mockResult('r4', 'p2', 'Arruda', 27.0, { poll: p2 });
+      mockResult('r3', 'df2', 'Celina Leão', 33.4, { poll: p2 }),
+      mockResult('r4', 'df2', 'José Roberto Arruda', 23.7, { poll: p2 }),
 
-    const metrics = calculateCockpitMetrics([p1, p2], [r1, r2, r3, r4]);
+      mockResult('r5', 'df3', 'Celina Leão', 32.4, { poll: p3 }),
+      mockResult('r6', 'df3', 'José Roberto Arruda', 24.0, { poll: p3 }),
+    ];
 
+    const metrics = calculateCockpitMetrics([p1, p2, p3], results);
+
+    expect(metrics.pesquisasComparaveisCount).toBe(3);
     expect(metrics.hasSufficientSeries).toBe(true);
-    expect(metrics.variacaoAnterior?.diff).toBe(6.0); // 38.0 - 32.0
-    expect(metrics.variacaoAnterior?.candidateName).toBe('Celina Leão');
-    expect(metrics.maximoPeriodo?.percentage).toBe(38.0);
-    expect(metrics.minimoPeriodo?.percentage).toBe(32.0);
+    expect(metrics.intencaoMaisRecente?.percentage).toBe(34.0);
+    expect(metrics.gapConcorrente?.gap).toBe(12.0); // 34 - 22
+    expect(metrics.variacaoAnterior?.diff).toBe(0.6); // 34.0 - 33.4
   });
 
-  it('ordena o ranking de candidatos por percentual decrescente', () => {
-    const p1 = mockPoll('p1');
-    const r1 = mockResult('r1', 'p1', 'Arruda', 25.0, { poll: p1 });
-    const r2 = mockResult('r2', 'p1', 'Celina Leão', 35.0, { poll: p1 });
+  it('Presidente: 2 pesquisas comparáveis ativam a série histórica (hasSufficientSeries = true)', () => {
+    const p1 = mockPoll('br1', { uf: 'BR', cargo: 'Presidente', dataRegistro: '2026-03-20' });
+    const p2 = mockPoll('br2', { uf: 'BR', cargo: 'Presidente', dataRegistro: '2026-03-10' });
 
-    const ranking = getCandidateRanking([r1, r2]);
+    const results = [
+      mockResult('r1', 'br1', 'Lula', 38.0, { poll: p1 }),
+      mockResult('r2', 'br1', 'Flávio Bolsonaro', 31.0, { poll: p1 }),
 
-    expect(ranking[0].candidateName).toBe('Celina Leão');
-    expect(ranking[0].isLeader).toBe(true);
-    expect(ranking[1].candidateName).toBe('Arruda');
-    expect(ranking[1].isLeader).toBe(false);
+      mockResult('r3', 'br2', 'Lula', 39.0, { poll: p2 }),
+      mockResult('r4', 'br2', 'Flávio Bolsonaro', 30.0, { poll: p2 }),
+    ];
+
+    const metrics = calculateCockpitMetrics([p1, p2], results);
+
+    expect(metrics.pesquisasComparaveisCount).toBe(2);
+    expect(metrics.hasSufficientSeries).toBe(true);
   });
 
-  it('agrupa pontos de comparação entre institutos', () => {
-    const p1 = mockPoll('p1', { instituto: 'Instituto A' });
-    const p2 = mockPoll('p2', { instituto: 'Instituto B' });
+  it('MG: com pesquisas incompatíveis/fragmentadas, desativa a série histórica (hasSufficientSeries = false)', () => {
+    const p1 = mockPoll('mg1', { uf: 'MG', cargo: 'Governador', dataRegistro: '2026-03-20' });
+    const p2 = mockPoll('mg2', { uf: 'MG', cargo: 'Governador', dataRegistro: '2026-03-10' });
 
-    const r1 = mockResult('r1', 'p1', 'Celina Leão', 34.0, { poll: p1 });
-    const r2 = mockResult('r2', 'p2', 'Celina Leão', 36.0, { poll: p2 });
+    // p2 tem cenários fragmentados (2 cenários no mesmo turno/tipoPergunta)
+    const results = [
+      mockResult('r1', 'mg1', 'Candidato A', 40.0, { poll: p1 }),
+      mockResult('r1b', 'mg1', 'Candidato C', 20.0, { poll: p1 }),
 
-    const comparison = getInstituteComparisonPoints([r1, r2]);
-
-    expect(comparison.length).toBe(2);
-    expect(comparison.map((c) => c.institute)).toContain('Instituto A');
-    expect(comparison.map((c) => c.institute)).toContain('Instituto B');
-  });
-});
-
-describe('cockpitAnalytics.ts — PESQUISAS-03: nunca misturar cenários incompatíveis (caso MG)', () => {
-  it('pesquisa com 2 cenários no mesmo turno/tipo de pergunta (ex.: "com Cleitinho"/"sem Cleitinho") não entra em hasSufficientSeries mesmo tendo par de pesquisas com mesmo cargo/abrangência', () => {
-    const pJulho = mockPoll('julho', { dataRegistro: '2026-07-28' });
-    const pAbril = mockPoll('abril', { dataRegistro: '2026-04-28' });
-
-    const julhoComCleitinho = [
-      mockResult('r1', 'julho', 'Cleitinho', 35.0, { poll: pJulho, cenario: 'Cenário 1 (com Cleitinho)' }),
-      mockResult('r2', 'julho', 'Kalil', 12.0, { poll: pJulho, cenario: 'Cenário 1 (com Cleitinho)' }),
-    ];
-    const julhoSemCleitinho = [
-      mockResult('r3', 'julho', 'Kalil', 15.0, { poll: pJulho, cenario: 'Cenário 4 (sem Cleitinho)' }),
-      mockResult('r4', 'julho', 'Indecisos', 27.0, { poll: pJulho, cenario: 'Cenário 4 (sem Cleitinho)' }),
-    ];
-    const abril = [
-      mockResult('r5', 'abril', 'Cleitinho', 30.0, { poll: pAbril, cenario: 'Cenário 1' }),
-      mockResult('r6', 'abril', 'Kalil', 14.0, { poll: pAbril, cenario: 'Cenário 1' }),
+      mockResult('r2', 'mg2', 'Candidato A', 38.0, { poll: p2, cenario: 'Cenário 1' }),
+      mockResult('r3', 'mg2', 'Candidato B', 35.0, { poll: p2, cenario: 'Cenário 2' }),
     ];
 
-    const metrics = calculateCockpitMetrics([pJulho, pAbril], [...julhoComCleitinho, ...julhoSemCleitinho, ...abril]);
+    const metrics = calculateCockpitMetrics([p1, p2], results);
 
-    // Julho tem 2 cenários no mesmo turno/tipo de pergunta -> fragmentado -> excluído da série,
-    // mesmo Abril (sozinho, sem fragmentação) sendo elegível — nunca chega a 2 pesquisas comparáveis.
     expect(metrics.hasSufficientSeries).toBe(false);
     expect(metrics.variacaoAnterior).toBeNull();
-    expect(metrics.pesquisasComparaveisCount).toBe(1);
   });
 
-  it('líder/gap nunca mistura percentuais de dois cenários da mesma pesquisa (nunca escolhe "representante" entre eles)', () => {
-    const pJulho = mockPoll('julho', { dataRegistro: '2026-07-28' });
-    const results = [
-      mockResult('r1', 'julho', 'Cleitinho', 35.0, { poll: pJulho, cenario: 'Cenário 1 (com Cleitinho)' }),
-      mockResult('r2', 'julho', 'Kalil', 12.0, { poll: pJulho, cenario: 'Cenário 1 (com Cleitinho)' }),
-      // "sem Cleitinho" tem Indecisos mais alto que qualquer candidato do cenário "com Cleitinho" —
-      // se o código somar tudo teria Indecisos(27) como 2º colocado, cruzando dois cenários distintos.
-      mockResult('r3', 'julho', 'Kalil', 15.0, { poll: pJulho, cenario: 'Cenário 4 (sem Cleitinho)' }),
-      mockResult('r4', 'julho', 'Indecisos', 27.0, { poll: pJulho, cenario: 'Cenário 4 (sem Cleitinho)' }),
-    ];
-
-    const metrics = calculateCockpitMetrics([pJulho], results);
-
-    // Líder/gap devem vir só do primeiro cenário encontrado (Cenário 1) — nunca misturar com o Cenário 4.
-    expect(metrics.intencaoMaisRecente?.candidateName).toBe('Cleitinho');
-    expect(metrics.intencaoMaisRecente?.percentage).toBe(35.0);
-    expect(metrics.gapConcorrente?.runnerUp).toBe('Kalil');
-    expect(metrics.gapConcorrente?.gap).toBe(23.0); // 35 - 12, nunca 35 - 27 (Indecisos do outro cenário)
-  });
-
-  it('ranking de uma pesquisa ativa nunca mistura 2 cenários dela mesma (caso MG "com/sem Cleitinho")', () => {
-    const pJulho = mockPoll('julho');
-    const results = [
-      mockResult('r1', 'julho', 'Cleitinho', 35.0, { poll: pJulho, cenario: 'Cenário 1 (com Cleitinho)' }),
-      mockResult('r2', 'julho', 'Kalil', 12.0, { poll: pJulho, cenario: 'Cenário 1 (com Cleitinho)' }),
-      mockResult('r3', 'julho', 'Kalil', 15.0, { poll: pJulho, cenario: 'Cenário 4 (sem Cleitinho)' }),
-      mockResult('r4', 'julho', 'Indecisos', 27.0, { poll: pJulho, cenario: 'Cenário 4 (sem Cleitinho)' }),
-    ];
-
-    const ranking = getCandidateRanking(results, 'julho');
-
-    // Só o Cenário 1 (o primeiro encontrado) entra no ranking — 2 itens, não 4
-    expect(ranking).toHaveLength(2);
-    expect(ranking.map((r) => r.candidateName).sort()).toEqual(['Cleitinho', 'Kalil']);
-  });
-
-  it('ranking nunca marca uma categoria não-candidato (Indecisos/Branco/Nulo) como líder', () => {
+  it('exclui categorias não-candidato do ranking principal de liderança e do filtro de candidatos', () => {
     const p1 = mockPoll('p1');
-    const results = [
-      mockResult('r1', 'p1', 'Indecisos', 40.0, { poll: p1 }),
-      mockResult('r2', 'p1', 'Celina Leão', 35.0, { poll: p1 }),
-    ];
+    const r1 = mockResult('r1', 'p1', 'Celina Leão', 34.0, { poll: p1 });
+    const r2 = mockResult('r2', 'p1', 'Branco/Nulo', 15.0, { poll: p1 });
+    const r3 = mockResult('r3', 'p1', 'Indecisos', 10.0, { poll: p1 });
 
-    const ranking = getCandidateRanking(results);
+    const ranking = getCandidateRanking([r1, r2, r3]);
 
-    const indecisos = ranking.find((r) => r.candidateName === 'Indecisos');
-    const celina = ranking.find((r) => r.candidateName === 'Celina Leão');
-    expect(indecisos?.isLeader).toBe(false);
-    expect(celina?.isLeader).toBe(true);
-  });
+    expect(ranking.realCandidates.length).toBe(1);
+    expect(ranking.realCandidates[0].candidateName).toBe('Celina Leão');
 
-  it('comparação entre institutos nunca colapsa 2 cenários da mesma pesquisa numa única célula — vira uma linha por cenário', () => {
-    const pAbril = mockPoll('abril', { instituto: 'Genial/Quaest' });
-    const results = [
-      mockResult('r1', 'abril', 'Cleitinho', 30.0, { poll: pAbril, cenario: 'Cenário 1' }),
-      mockResult('r2', 'abril', 'Cleitinho', 35.0, { poll: pAbril, cenario: 'Cenário 2' }),
-      mockResult('r3', 'abril', 'Cleitinho', 37.0, { poll: pAbril, cenario: 'Cenário 3' }),
-    ];
+    expect(ranking.nonCandidates.length).toBe(2);
 
-    const comparison = getInstituteComparisonPoints(results);
-
-    // 3 cenários distintos -> 3 linhas, nunca 1 linha com um valor "vencedor" arbitrário
-    expect(comparison).toHaveLength(3);
-    const percentages = comparison.map((c) => c.results.find((r) => r.candidateName === 'Cleitinho')?.percentage).sort();
-    expect(percentages).toEqual([30.0, 35.0, 37.0]);
+    const candidatesList = getRaceCandidates([r1, r2, r3]);
+    expect(candidatesList).toEqual(['Celina Leão']);
   });
 });

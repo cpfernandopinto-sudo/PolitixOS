@@ -22,22 +22,22 @@ export default async function PesquisasPage() {
     redirect('/dashboard/sem-permissao');
   }
 
-  const [kpis, polls, filterOptions, results] = await Promise.all([
+  const [kpis, registeredPolls, results, filterOptions] = await Promise.all([
     getPesquisasKpis(),
     listPolls(),
-    getAvailableFilterOptions(),
     listPollResultsWithPoll(),
+    getAvailableFilterOptions(),
   ]);
 
   const source = getPesquisasSourceDescriptor();
 
   return (
     <PesquisasCockpitView
-      initialPolls={polls}
-      initialResults={results}
+      registeredPolls={registeredPolls}
+      allResults={results}
+      filterOptions={filterOptions}
       kpis={kpis}
       source={{ portalUrl: source.portalUrl, sourceUrl: source.sourceUrl }}
-      filterOptions={filterOptions}
       isAdmin={session.role === 'admin'}
     />
   );

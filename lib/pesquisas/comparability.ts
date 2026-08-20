@@ -1,16 +1,31 @@
 import type { ElectoralPoll, ElectoralPollResult } from './types';
+import { isRealCandidate } from './types';
 
-/**
- * PARTE 20 do briefing PESQUISAS-01A: nunca comparar cegamente pesquisas com
- * cargo/abrangência diferentes, nem resultados com cenário/turno/tipo de
- * pergunta diferentes (espontânea vs. estimulada, 1º vs. 2º turno).
- */
 export function arePollsComparable(
-  a: Pick<ElectoralPoll, 'cargo' | 'abrangencia'>,
-  b: Pick<ElectoralPoll, 'cargo' | 'abrangencia'>
+  a: Pick<ElectoralPoll, 'cargo' | 'abrangencia'> & { uf?: string | null },
+  b: Pick<ElectoralPoll, 'cargo' | 'abrangencia'> & { uf?: string | null }
 ): boolean {
   if (!a.cargo || !b.cargo) return false;
-  return a.cargo === b.cargo && a.abrangencia === b.abrangencia;
+  const cargoMatch =
+    a.cargo.toLowerCase().trim() === b.cargo.toLowerCase().trim() ||
+    a.cargo.toLowerCase().includes(b.cargo.toLowerCase()) ||
+    b.cargo.toLowerCase().includes(a.cargo.toLowerCase());
+  const ufA = a.uf ?? a.abrangencia ?? 'BR';
+  const ufB = b.uf ?? b.abrangencia ?? 'BR';
+  return cargoMatch && ufA === ufB;
+}
+
+export function areScenariosEquivalent(resultsA: ElectoralPollResult[], resultsB: ElectoralPollResult[]): boolean {
+  const setA = new Set(resultsA.filter((r) => isRealCandidate(r.candidateName)).map((r) => r.candidateName.toLowerCase().trim()));
+  const setB = new Set(resultsB.filter((r) => isRealCandidate(r.candidateName)).map((r) => r.candidateName.toLowerCase().trim()));
+
+  if (setA.size === 0 || setB.size === 0) return false;
+  if (setA.size !== setB.size) return false;
+
+  for (const item of setA) {
+    if (!setB.has(item)) return false;
+  }
+  return true;
 }
 
 export function areResultsComparable(
@@ -20,7 +35,44 @@ export function areResultsComparable(
   return a.cenario === b.cenario && a.turno === b.turno && a.tipoPergunta === b.tipoPergunta;
 }
 
-/** Maior subconjunto comparável entre si, ancorado na primeira pesquisa da lista. */
+export function explainComparabilityReason(
+  anchorPoll: ElectoralPoll | null,
+  targetPoll: ElectoralPoll,
+  anchorResults: ElectoralPollResult[],
+  targetResults: ElectoralPollResult[]
+): { isComparable: boolean; reason: string } {
+  if (!anchorPoll) {
+    return { isComparable: false, reason: 'Sem pesquisa de referência para comparação' };
+  }
+
+  if (anchorResults.length === 0 || targetResults.length === 0) {
+    return { isComparable: false, reason: 'Ausência de resultados integrados nesta pesquisa' };
+  }
+
+  if (!arePollsComparable(anchorPoll, targetPoll)) {
+    return { isComparable: false, reason: `Cargo/UF incompatível (${targetPoll.cargo} / ${targetPoll.uf ?? targetPoll.abrangencia})` };
+  }
+
+  const turnA = anchorResults[0]?.turno;
+  const turnB = targetResults[0]?.turno;
+  if (turnA !== turnB) {
+    return { isComparable: false, reason: `Turnos diferentes (${turnA}º Turno vs ${turnB}º Turno)` };
+  }
+
+  const typeA = anchorResults[0]?.tipoPergunta;
+  const typeB = targetResults[0]?.tipoPergunta;
+  if (typeA !== typeB) {
+    return { isComparable: false, reason: `Tipo de pergunta diferente (${typeA} vs ${typeB})` };
+  }
+
+  const isEquiv = areScenariosEquivalent(anchorResults, targetResults);
+  if (!isEquiv) {
+    return { isComparable: false, reason: 'Cenário com conjunto de candidatos diferente' };
+  }
+
+  return { isComparable: true, reason: 'Pesquisa comparável (mesmo cargo, UF, turno, tipo e candidatos)' };
+}
+
 export function filterComparablePolls(polls: ElectoralPoll[]): ElectoralPoll[] {
   if (polls.length === 0) return [];
   const anchor = polls[0];

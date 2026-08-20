@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { ElectoralPoll } from '@/lib/pesquisas/types';
 import { FileText, ChevronRight, MapPin, Calendar, Building2 } from 'lucide-react';
 import Link from 'next/link';
@@ -9,42 +10,51 @@ interface Props {
 }
 
 export function ListaPesquisasRecentes({ polls }: Props) {
+  const [showAll, setShowAll] = useState(false);
+
+  const visiblePolls = showAll ? polls : polls.slice(0, 5);
+
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+    <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
       <div className="flex items-center justify-between pb-3 border-b border-white/5">
         <div className="flex items-center gap-2">
           <FileText size={16} className="text-blue-400" />
           <h3 className="text-white font-bold text-sm uppercase tracking-wider">
-            Pesquisas Registradas ({polls.length})
+            Pesquisas Registradas no TSE ({polls.length})
           </h3>
         </div>
-        <span className="text-[10px] text-gray-500 font-mono">
-          Exibindo 10 mais recentes
-        </span>
+        {polls.length > 5 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-xs text-blue-400 hover:underline font-semibold"
+          >
+            {showAll ? 'Mostrar 5 mais recentes' : `Ver todas (${polls.length})`}
+          </button>
+        )}
       </div>
 
       {polls.length === 0 ? (
-        <p className="text-gray-500 text-sm py-8 text-center">
-          Nenhuma pesquisa disponível para os filtros selecionados.
+        <p className="text-gray-500 text-xs py-6 text-center italic">
+          Nenhuma pesquisa registrada no banco para os filtros selecionados.
         </p>
       ) : (
         <div className="space-y-2">
-          {polls.slice(0, 10).map((poll) => (
+          {visiblePolls.map((poll) => (
             <Link
               key={poll.id}
               href={`/dashboard/pesquisas/${poll.id}`}
-              className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 transition-colors group"
+              className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 transition-colors group text-xs"
             >
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-semibold text-sm truncate">
+                  <span className="text-white font-semibold truncate">
                     {poll.instituto ?? 'Instituto não informado'}
                   </span>
-                  <span className="text-xs text-gray-400 font-medium truncate">
+                  <span className="text-gray-400 font-medium truncate">
                     — {poll.cargo ?? 'Cargo não informado'}
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-500">
                   <span className="inline-flex items-center gap-1">
                     <Building2 size={11} className="text-blue-400" /> TSE: <strong className="text-gray-300">{poll.tseRegistrationNumber}</strong>
                   </span>
@@ -63,6 +73,6 @@ export function ListaPesquisasRecentes({ polls }: Props) {
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

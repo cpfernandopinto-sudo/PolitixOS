@@ -1,137 +1,186 @@
 'use client';
 
-import type { ElectoralPollResultWithPoll } from '@/lib/pesquisas/types';
-import { TrendingUp, AlertCircle, Info } from 'lucide-react';
+import React from 'react';
+import ReactECharts from 'echarts-for-react';
+import type { TemporalSeriesEntry } from '@/lib/pesquisas/results-repository';
+import { TrendingUp, Info } from 'lucide-react';
 
 interface Props {
-  results: ElectoralPollResultWithPoll[];
-  hasSufficientSeries: boolean;
+  temporalSeries: TemporalSeriesEntry[];
+  comparablePollsCount: number;
 }
 
-const CANDIDATE_COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#8b5cf6', // purple
-  '#06b6d4', // cyan
-];
+export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: Props) {
+  const hasSufficientSeries = temporalSeries.length > 0 && comparablePollsCount >= 2;
 
-export function EvolucaoTemporalChart({ results, hasSufficientSeries }: Props) {
-  if (!hasSufficientSeries || results.length === 0) {
+  if (temporalSeries.length === 0) {
     return (
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl p-6 space-y-4 shadow-xl">
-        <div className="flex items-center justify-between pb-3 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <TrendingUp size={18} className="text-blue-400" />
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider">
-              Evolução Temporal das Intenções de Voto
-            </h3>
-          </div>
-          <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-medium">
-            Série Incompleta
+      <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between pb-2 border-b border-white/5">
+          <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp size={15} className="text-blue-500" /> Evolução Temporal de Intenções de Voto
+          </h3>
+          <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">
+            Sem Histórico Comparável
           </span>
         </div>
 
-        <div className="py-12 px-4 text-center rounded-xl bg-white/[0.02] border border-white/5 space-y-3">
-          <AlertCircle size={28} className="text-amber-400/80 mx-auto" />
-          <div className="space-y-1">
-            <h4 className="text-sm font-semibold text-gray-200">
-              Aguardando série histórica comparável (mínimo de 2 pesquisas)
-            </h4>
-            <p className="text-xs text-gray-400 max-w-lg mx-auto leading-relaxed">
-              O gráfico de evolução temporal é renderizado exclusivamente quando existem 2 ou mais pesquisas registradas e comparáveis no mesmo cargo, território, turno e tipo de pergunta.
-            </p>
-          </div>
-          <div className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-            <Info size={12} className="text-blue-400" />
-            Regra Metodológica: Impedir linhas artificiais entre pesquisas incomparáveis.
-          </div>
+        <div className="py-8 px-4 text-center rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+          <p className="text-gray-300 text-xs font-semibold">
+            Não há pesquisas comparáveis suficientes para determinar tendência nesta corrida.
+          </p>
+          <p className="text-gray-500 text-[11px] max-w-lg mx-auto leading-relaxed">
+            Requer 2 ou mais pesquisas com resultado verificado no mesmo cargo, UF e cenário de candidatos.
+          </p>
         </div>
-      </div>
+      </section>
     );
   }
 
-  // Aggregate data points by poll/date
-  const pollsMap = new Map<string, { date: string; institute: string; results: Map<string, number> }>();
-  const candidateNamesSet = new Set<string>();
+  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
+  const candidates = temporalSeries.map((s) => s.candidateName);
 
-  for (const r of results) {
-    const pollId = r.pollId;
-    const date = r.poll?.dataRegistro ?? r.sourceDate ?? 'Não informada';
-    const institute = r.poll?.instituto ?? 'Instituto';
+  // Build line series for ECharts
+  const seriesList = temporalSeries.map((s, idx) => {
+    const dataPoints = s.points.map((p) => [p.date ?? '2026-01-01', p.percentage]);
 
-    candidateNamesSet.add(r.candidateName);
+    return {
+      name: s.candidateName,
+      type: 'line',
+      smooth: true,
+      symbolSize: 8,
+      data: dataPoints,
+      itemStyle: {
+        color: colors[idx % colors.length],
+      },
+      lineStyle: {
+        width: 3,
+      },
+    };
+  });
 
-    const entry = pollsMap.get(pollId) ?? { date, institute, results: new Map() };
-    entry.results.set(r.candidateName, r.percentage);
-    pollsMap.set(pollId, entry);
-  }
-
-  const seriesPoints = Array.from(pollsMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-  const candidateList = Array.from(candidateNamesSet);
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#12192A',
+      borderColor: 'rgba(255,255,255,0.1)',
+      textStyle: { color: '#FFFFFF' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      formatter: function (params: any) {
+        if (!params || params.length === 0) return '';
+        const dateStr = params[0].axisValue;
+        let html = `
+          <div style="font-family: sans-serif; padding: 4px; max-width: 240px;">
+            <div style="font-size: 11px; color: #9CA3AF; font-weight: bold; margin-bottom: 4px;">
+              Data: ${dateStr}
+            </div>
+        `;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        params.forEach((item: any) => {
+          html += `
+            <div style="font-size: 12px; color: ${item.color}; font-weight: font-extrabold; margin-bottom: 2px;">
+              ${item.seriesName}: ${item.value[1]}%
+            </div>
+          `;
+        });
+        html += `</div>`;
+        return html;
+      },
+    },
+    legend: {
+      data: candidates,
+      textStyle: { color: '#9CA3AF', fontSize: 11 },
+      top: 0,
+    },
+    grid: {
+      left: '4%',
+      right: '4%',
+      top: 40,
+      bottom: 30,
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      axisLabel: { color: '#9CA3AF', fontSize: 10 },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#9CA3AF', formatter: '{value}%' },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
+    },
+    series: seriesList,
+  };
 
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-2xl p-6 space-y-5 shadow-xl">
-      <div className="flex items-center justify-between pb-3 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <TrendingUp size={18} className="text-blue-400" />
-          <h3 className="text-white font-bold text-sm uppercase tracking-wider">
-            Evolução Temporal das Intenções de Voto
+    <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+        <div>
+          <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp size={15} className="text-blue-500" /> Evolução Temporal de Intenções de Voto
           </h3>
+          <p className="text-gray-400 text-xs mt-0.5">
+            Série temporal comparativa plota a trajetória de intenção de voto dos candidatos ao longo dos levantamentos.
+          </p>
         </div>
-        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-medium">
-          {seriesPoints.length} Leituras Comparáveis
+        <span
+          className={`text-[10px] px-2.5 py-0.5 rounded font-bold ${
+            hasSufficientSeries
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+          }`}
+        >
+          {hasSufficientSeries ? `${comparablePollsCount} Pesquisas Comparáveis` : 'Série Limitada'}
         </span>
       </div>
 
-      {/* Legenda de Candidatos */}
-      <div className="flex flex-wrap items-center gap-4 text-xs pt-1">
-        {candidateList.map((cand, idx) => {
-          const color = CANDIDATE_COLORS[idx % CANDIDATE_COLORS.length];
-          return (
-            <div key={cand} className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
-              <span className="text-gray-200 font-medium">{cand}</span>
-            </div>
-          );
-        })}
-      </div>
+      <p className="text-gray-500 text-[11px] flex items-center gap-1.5">
+        <Info size={12} className="text-blue-400 shrink-0" />
+        Pontos conectados indicam pesquisas comparáveis (mesmo cargo, UF, turno, tipo de pergunta e conjunto de candidatos).
+      </p>
 
-      {/* Visualização de Série em Grid / Tabela Temporal */}
-      <div className="overflow-x-auto">
-        <div className="min-w-[600px] space-y-4 pt-2">
-          <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider pb-2 border-b border-white/5">
-            <span className="col-span-3">Data / Instituto</span>
-            <span className="col-span-9">Intenção de Voto por Candidato</span>
-          </div>
+      <ReactECharts option={option} notMerge lazyUpdate style={{ height: 280, width: '100%' }} />
 
-          {seriesPoints.map((pt, pIdx) => (
-            <div key={pIdx} className="grid grid-cols-12 gap-2 items-center text-xs py-2 border-b border-white/5 last:border-0">
-              <div className="col-span-3">
-                <span className="font-semibold text-white block">{pt.date}</span>
-                <span className="text-[10px] text-gray-400 block truncate">{pt.institute}</span>
+      {/* Resumo textual dos deltas */}
+      <div className="pt-2 border-t border-white/5 space-y-2">
+        {temporalSeries
+          .sort((a, b) => (b.points.at(-1)?.percentage ?? 0) - (a.points.at(-1)?.percentage ?? 0))
+          .map((s) => {
+            const first = s.points[0]?.percentage ?? 0;
+            const last = s.points.at(-1)?.percentage ?? 0;
+            const delta = Math.round((last - first) * 10) / 10;
+
+            return (
+              <div
+                key={s.candidateName}
+                className="flex items-center justify-between text-xs bg-white/5 border border-white/5 rounded-xl px-4 py-2.5"
+              >
+                <span className="text-gray-200 font-semibold">{s.candidateName}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 font-mono text-xs">
+                    {s.points.map((p) => `${p.percentage}%`).join(' → ')}
+                  </span>
+                  {delta !== 0 ? (
+                    <span
+                      className={`text-xs font-extrabold font-mono px-2 py-0.5 rounded ${
+                        delta > 0
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}
+                    >
+                      {delta > 0 ? `+${delta}` : delta} p.p.
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-gray-500 font-mono">0,0 p.p.</span>
+                  )}
+                </div>
               </div>
-              <div className="col-span-9 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {candidateList.map((cand, cIdx) => {
-                  const pct = pt.results.get(cand);
-                  const color = CANDIDATE_COLORS[cIdx % CANDIDATE_COLORS.length];
-                  return (
-                    <div key={cand} className="p-2 rounded-lg bg-white/5 border border-white/5 flex items-center justify-between">
-                      <span className="text-[11px] text-gray-300 truncate" title={cand}>
-                        {cand}
-                      </span>
-                      <span className="font-bold font-mono text-xs ml-2" style={{ color }}>
-                        {pct !== undefined ? `${pct}%` : '-'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+            );
+          })}
       </div>
-    </div>
+    </section>
   );
 }

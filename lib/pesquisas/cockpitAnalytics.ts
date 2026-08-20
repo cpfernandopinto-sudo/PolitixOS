@@ -5,80 +5,112 @@ import type {
   CandidateRankingItem,
   InstituteComparisonPoint,
 } from './types';
-import { arePollsComparable, areResultsComparable } from './comparability';
+import { isRealCandidate } from './types';
+import { arePollsComparable, areResultsComparable, areScenariosEquivalent } from './comparability';
 
-// Categorias que não são candidatos reais — nunca devem ser tratadas como
-// "líder" ou entrar no ranking/gap (mesmo critério de app/dashboard/pesquisas/executivo/page.tsx).
-const NON_CANDIDATE_LABELS = new Set([
-  'branco/nulo', 'branco/nulo/não vai votar', 'branco/nulo/nenhum', 'nulo/branco',
-  'indecisos', 'indecisos/brancos/nulos', 'não sabe/não respondeu', 'outros',
-]);
-function isRealCandidate(name: string): boolean {
-  return !NON_CANDIDATE_LABELS.has(name.toLowerCase());
+export function getLatestResultPoll(results: ElectoralPollResultWithPoll[]): ElectoralPoll | null {
+  if (results.length === 0) return null;
+  const pollMap = new Map<string, ElectoralPoll>();
+  for (const r of results) {
+    if (r.poll) pollMap.set(r.poll.id, r.poll);
+  }
+  const pollList = Array.from(pollMap.values()).sort((a, b) => (b.dataRegistro ?? '').localeCompare(a.dataRegistro ?? ''));
+  return pollList[0] ?? null;
 }
 
-/**
- * Uma pesquisa só entra em comparação temporal/liderança quando tem
- * exatamente 1 cenário para o turno/tipo de pergunta filtrado — pesquisas
- * com cenários fragmentados (ex.: MG/abril testando Cleitinho contra um
- * adversário por vez, ou MG/julho com "com Cleitinho"/"sem Cleitinho")
- * nunca têm um cenário "escolhido automaticamente" (PESQUISAS-03).
- */
-function hasUnambiguousScenario(results: ElectoralPollResultWithPoll[]): boolean {
-  const cenarios = new Set(results.map((r) => r.cenario));
-  return cenarios.size === 1;
+export function getRaceCandidates(results: ElectoralPollResultWithPoll[]): string[] {
+  const set = new Set<string>();
+  for (const r of results) {
+    if (r.candidateName && isRealCandidate(r.candidateName)) {
+      set.add(r.candidateName);
+    }
+  }
+  return Array.from(set).sort();
 }
 
 export function calculateCockpitMetrics(
   polls: ElectoralPoll[],
-  results: ElectoralPollResultWithPoll[]
+  results: ElectoralPollResultWithPoll[],
+  referenceCandidateName?: string | null
 ): ExecutiveCockpitMetrics {
-  const lastUpdateDate = polls.length > 0 && polls[0].dataRegistro ? polls[0].dataRegistro : null;
+  const totalPollsInSlice = polls.length;
+  const fallbackLastUpdate = polls.length > 0 && polls[0].dataRegistro ? polls[0].dataRegistro : null;
 
   if (results.length === 0) {
     return {
       intencaoMaisRecente: null,
+      runnerUpResult: null,
+      referenceCandidate: referenceCandidateName ?? null,
+      analyzedCandidateResult: null,
       gapConcorrente: null,
       variacaoAnterior: null,
       maximoPeriodo: null,
       minimoPeriodo: null,
-      pesquisasComparaveisCount: polls.length,
-      lastUpdateDate,
+      totalPollsInSlice,
+      pollsWithResultsCount: 0,
+      pesquisasComparaveisCount: 0,
+      trendPollsCount: 0,
+      lastUpdateDate: fallbackLastUpdate,
       hasSufficientSeries: false,
+      leaderMovement: 'UNAVAILABLE',
+      runnerUpMovement: 'UNAVAILABLE',
+      gapBehavior: 'UNAVAILABLE',
+      volatility: 'UNAVAILABLE',
+      instituteConsistency: 'UNAVAILABLE',
     };
   }
 
-  // Group results by poll ID
+  const pollMap = new Map<string, ElectoralPoll>();
   const resultsByPoll = new Map<string, ElectoralPollResultWithPoll[]>();
+
   for (const res of results) {
     const list = resultsByPoll.get(res.pollId) ?? [];
     list.push(res);
     resultsByPoll.set(res.pollId, list);
+
+    if (res.poll && !pollMap.has(res.pollId)) {
+      pollMap.set(res.pollId, res.poll);
+    }
   }
 
-  // Get list of polls that have results, sorted by date descending
-  const pollsWithResults = polls
-    .filter((p) => resultsByPoll.has(p.id))
-    .sort((a, b) => (b.dataRegistro ?? '').localeCompare(a.dataRegistro ?? ''));
+  for (const p of polls) {
+    if (resultsByPoll.has(p.id) && !pollMap.has(p.id)) {
+      pollMap.set(p.id, p);
+    }
+  }
+
+  const pollsWithResults = Array.from(pollMap.values()).sort(
+    (a, b) => (b.dataRegistro ?? '').localeCompare(a.dataRegistro ?? '')
+  );
+
+  const pollsWithResultsCount = pollsWithResults.length;
 
   if (pollsWithResults.length === 0) {
     return {
       intencaoMaisRecente: null,
+      runnerUpResult: null,
+      referenceCandidate: referenceCandidateName ?? null,
+      analyzedCandidateResult: null,
       gapConcorrente: null,
       variacaoAnterior: null,
       maximoPeriodo: null,
       minimoPeriodo: null,
-      pesquisasComparaveisCount: polls.length,
-      lastUpdateDate,
+      totalPollsInSlice,
+      pollsWithResultsCount: 0,
+      pesquisasComparaveisCount: 0,
+      trendPollsCount: 0,
+      lastUpdateDate: fallbackLastUpdate,
       hasSufficientSeries: false,
+      leaderMovement: 'UNAVAILABLE',
+      runnerUpMovement: 'UNAVAILABLE',
+      gapBehavior: 'UNAVAILABLE',
+      volatility: 'UNAVAILABLE',
+      instituteConsistency: 'UNAVAILABLE',
     };
   }
 
   const latestPoll = pollsWithResults[0];
   const latestPollAllResults = resultsByPoll.get(latestPoll.id) ?? [];
-  // Ranking/líder nunca mistura cenários dentro da mesma pesquisa (ex.: MG
-  // tem "com Cleitinho" e "sem Cleitinho" no mesmo turno/tipo de pergunta) —
-  // usa apenas o primeiro cenário retornado, mesmo critério do executivo/page.tsx.
   const primaryCenario = latestPollAllResults[0]?.cenario ?? null;
   const latestResults = latestPollAllResults
     .filter((r) => r.cenario === primaryCenario)
@@ -86,7 +118,7 @@ export function calculateCockpitMetrics(
 
   const realCandidateResults = latestResults.filter((r) => isRealCandidate(r.candidateName));
   const topCandidateResult = realCandidateResults[0] ?? null;
-  const runnerUpResult = realCandidateResults[1] ?? null;
+  const runnerUpCandidateResult = realCandidateResults[1] ?? null;
 
   const intencaoMaisRecente = topCandidateResult
     ? {
@@ -97,56 +129,133 @@ export function calculateCockpitMetrics(
       }
     : null;
 
-  const gapConcorrente = topCandidateResult && runnerUpResult
+  const runnerUpResult = runnerUpCandidateResult
     ? {
-        gap: Number((topCandidateResult.percentage - runnerUpResult.percentage).toFixed(2)),
-        leader: topCandidateResult.candidateName,
-        runnerUp: runnerUpResult.candidateName,
+        candidateName: runnerUpCandidateResult.candidateName,
+        percentage: runnerUpCandidateResult.percentage,
       }
     : null;
 
-  // Filter comparable polls to latestPoll — exige, além de cargo/abrangência
-  // iguais, que a própria pesquisa tenha um único cenário (sem fragmentação)
-  // para o turno/tipo de pergunta já filtrado; caso contrário não há como
-  // saber qual cenário comparar, e a resposta correta é excluir a pesquisa.
+  const gapConcorrente = topCandidateResult && runnerUpCandidateResult
+    ? {
+        gap: Number((topCandidateResult.percentage - runnerUpCandidateResult.percentage).toFixed(2)),
+        leader: topCandidateResult.candidateName,
+        runnerUp: runnerUpCandidateResult.candidateName,
+      }
+    : null;
+
+  // Analisa se um candidato específico foi selecionado no filtro (referenceCandidate)
+  let referenceCandidate: string | null = null;
+  let analyzedCandidateResult: ExecutiveCockpitMetrics['analyzedCandidateResult'] = null;
+
+  if (referenceCandidateName) {
+    const matchIdx = realCandidateResults.findIndex(
+      (r) => r.candidateName.toLowerCase() === referenceCandidateName.toLowerCase()
+    );
+    if (matchIdx >= 0) {
+      const matchObj = realCandidateResults[matchIdx];
+      referenceCandidate = matchObj.candidateName;
+      if (topCandidateResult && matchObj.candidateName !== topCandidateResult.candidateName) {
+        analyzedCandidateResult = {
+          candidateName: matchObj.candidateName,
+          percentage: matchObj.percentage,
+          rank: matchIdx + 1,
+          gapToLeader: Number((topCandidateResult.percentage - matchObj.percentage).toFixed(2)),
+        };
+      }
+    }
+  }
+
+  // Comparabilidade inteligente por cenário
   const comparablePolls = pollsWithResults.filter((p) => {
     if (!arePollsComparable(latestPoll, p)) return false;
-    return hasUnambiguousScenario(resultsByPoll.get(p.id) ?? []);
+    const pResults = resultsByPoll.get(p.id) ?? [];
+    if (pResults.length === 0) return false;
+
+    const cenariosInP = Array.from(new Set(pResults.map((r) => r.cenario)));
+    for (const cen of cenariosInP) {
+      const cenResults = pResults.filter((r) => r.cenario === cen);
+      if (areScenariosEquivalent(latestResults, cenResults)) {
+        return true;
+      }
+    }
+    return false;
   });
+
   const hasSufficientSeries = comparablePolls.length >= 2;
+  const trendPollsCount = comparablePolls.length;
 
   let variacaoAnterior: ExecutiveCockpitMetrics['variacaoAnterior'] = null;
   let maximoPeriodo: ExecutiveCockpitMetrics['maximoPeriodo'] = null;
   let minimoPeriodo: ExecutiveCockpitMetrics['minimoPeriodo'] = null;
 
-  if (topCandidateResult) {
-    const candidateName = topCandidateResult.candidateName;
+  let leaderMovement: ExecutiveCockpitMetrics['leaderMovement'] = 'UNAVAILABLE';
+  let runnerUpMovement: ExecutiveCockpitMetrics['runnerUpMovement'] = 'UNAVAILABLE';
+  let gapBehavior: ExecutiveCockpitMetrics['gapBehavior'] = 'UNAVAILABLE';
+  let volatility: ExecutiveCockpitMetrics['volatility'] = 'BAIXA';
+  let instituteConsistency: ExecutiveCockpitMetrics['instituteConsistency'] = 'CONVERGENTE';
 
-    // Collect percentages for this candidate across comparable polls
+  // Candidato alvo para cálculo de variação: se houver um candidato analisado não-líder, calcula para ele; caso contrário, para o líder.
+  const targetForVariation = analyzedCandidateResult ? analyzedCandidateResult.candidateName : topCandidateResult?.candidateName;
+
+  if (targetForVariation) {
+    const candidateName = targetForVariation;
     const candidateSeries: { percentage: number; pollDate: string | null }[] = [];
+    const runnerUpSeries: { percentage: number; pollDate: string | null }[] = [];
 
     for (const poll of comparablePolls) {
       const pollResList = resultsByPoll.get(poll.id) ?? [];
-      const match = pollResList.find(
-        (r) => r.candidateName.toLowerCase() === candidateName.toLowerCase() && areResultsComparable(topCandidateResult, r)
+      const matchLeader = pollResList.find(
+        (r) => r.candidateName.toLowerCase() === candidateName.toLowerCase()
       );
-      if (match) {
-        candidateSeries.push({ percentage: match.percentage, pollDate: poll.dataRegistro });
+      if (matchLeader) {
+        candidateSeries.push({ percentage: matchLeader.percentage, pollDate: poll.dataRegistro });
+      }
+
+      if (runnerUpCandidateResult) {
+        const matchRunner = pollResList.find(
+          (r) => r.candidateName.toLowerCase() === runnerUpCandidateResult.candidateName.toLowerCase()
+        );
+        if (matchRunner) {
+          runnerUpSeries.push({ percentage: matchRunner.percentage, pollDate: poll.dataRegistro });
+        }
       }
     }
 
     if (candidateSeries.length >= 2) {
       const latestVal = candidateSeries[0].percentage;
       const prevVal = candidateSeries[1].percentage;
+      const diff = Number((latestVal - prevVal).toFixed(2));
+
       variacaoAnterior = {
-        diff: Number((latestVal - prevVal).toFixed(2)),
+        diff,
         candidateName,
         previousPollDate: candidateSeries[1].pollDate,
       };
 
+      leaderMovement = diff > 0.5 ? 'UP' : diff < -0.5 ? 'DOWN' : 'STABLE';
+
+      if (runnerUpSeries.length >= 2) {
+        const latestRunner = runnerUpSeries[0].percentage;
+        const prevRunner = runnerUpSeries[1].percentage;
+        const runnerDiff = Number((latestRunner - prevRunner).toFixed(2));
+
+        runnerUpMovement = runnerDiff > 0.5 ? 'UP' : runnerDiff < -0.5 ? 'DOWN' : 'STABLE';
+
+        const prevGap = prevVal - prevRunner;
+        const currGap = latestVal - latestRunner;
+        const gapDiff = currGap - prevGap;
+
+        gapBehavior = gapDiff > 0.5 ? 'EXPANDING' : gapDiff < -0.5 ? 'NARROWING' : 'STABLE';
+      }
+
       const pcts = candidateSeries.map((s) => s.percentage);
       const maxVal = Math.max(...pcts);
       const minVal = Math.min(...pcts);
+      const range = maxVal - minVal;
+
+      volatility = range > 4.0 ? 'ALTA' : range > 2.0 ? 'MODERADA' : 'BAIXA';
+      instituteConsistency = range <= 3.0 ? 'CONVERGENTE' : range <= 5.0 ? 'MODERADA' : 'DIVERGENTE';
 
       const maxItem = candidateSeries.find((s) => s.percentage === maxVal);
       const minItem = candidateSeries.find((s) => s.percentage === minVal);
@@ -167,44 +276,60 @@ export function calculateCockpitMetrics(
 
   return {
     intencaoMaisRecente,
+    runnerUpResult,
+    referenceCandidate,
+    analyzedCandidateResult,
     gapConcorrente,
     variacaoAnterior,
     maximoPeriodo,
     minimoPeriodo,
+    totalPollsInSlice,
+    pollsWithResultsCount,
     pesquisasComparaveisCount: comparablePolls.length,
-    lastUpdateDate,
+    trendPollsCount,
+    lastUpdateDate: latestPoll.dataRegistro ?? fallbackLastUpdate,
     hasSufficientSeries,
+    leaderMovement,
+    runnerUpMovement,
+    gapBehavior,
+    volatility,
+    instituteConsistency,
   };
 }
 
 export function getCandidateRanking(
   results: ElectoralPollResultWithPoll[],
   activePollId?: string
-): CandidateRankingItem[] {
-  if (results.length === 0) return [];
+): { realCandidates: CandidateRankingItem[]; nonCandidates: CandidateRankingItem[] } {
+  if (results.length === 0) return { realCandidates: [], nonCandidates: [] };
 
   let targetResults = results;
   if (activePollId) {
     targetResults = results.filter((r) => r.pollId === activePollId);
-    // Uma pesquisa pode ter mais de um cenário no mesmo turno/tipo de
-    // pergunta (ex.: MG "com Cleitinho"/"sem Cleitinho") — o ranking nunca
-    // mistura os dois; usa apenas o primeiro cenário encontrado, mesmo
-    // critério de calculateCockpitMetrics (PESQUISAS-03).
     const primaryCenario = targetResults[0]?.cenario ?? null;
     targetResults = targetResults.filter((r) => r.cenario === primaryCenario);
   }
 
-  const sorted = [...targetResults].sort((a, b) => b.percentage - a.percentage);
-  // "Líder" nunca é uma categoria não-candidato (Indecisos/Branco/Nulo) —
-  // essas linhas continuam listadas (transparência), só não recebem o badge.
-  const maxRealCandidatePct = sorted.find((r) => isRealCandidate(r.candidateName))?.percentage ?? 0;
+  const realList = targetResults.filter((r) => isRealCandidate(r.candidateName)).sort((a, b) => b.percentage - a.percentage);
+  const nonCandidateList = targetResults.filter((r) => !isRealCandidate(r.candidateName)).sort((a, b) => b.percentage - a.percentage);
 
-  return sorted.map((r) => ({
+  const maxRealPct = realList[0]?.percentage ?? 0;
+
+  const realCandidates = realList.map((r) => ({
     candidateName: r.candidateName,
     percentage: r.percentage,
     candidateId: r.candidateId,
-    isLeader: isRealCandidate(r.candidateName) && r.percentage === maxRealCandidatePct && maxRealCandidatePct > 0,
+    isLeader: r.percentage === maxRealPct && maxRealPct > 0,
   }));
+
+  const nonCandidates = nonCandidateList.map((r) => ({
+    candidateName: r.candidateName,
+    percentage: r.percentage,
+    candidateId: r.candidateId,
+    isLeader: false,
+  }));
+
+  return { realCandidates, nonCandidates };
 }
 
 export function getInstituteComparisonPoints(
@@ -212,10 +337,6 @@ export function getInstituteComparisonPoints(
 ): InstituteComparisonPoint[] {
   if (results.length === 0) return [];
 
-  // Agrupa por (pollId + cenario), nunca só por pollId — uma pesquisa com
-  // cenários múltiplos (ex.: MG "com Cleitinho"/"sem Cleitinho") vira uma
-  // linha por cenário, para nunca colapsar dois percentuais incompatíveis
-  // do mesmo candidato numa única célula (PESQUISAS-03).
   const byPollAndScenario = new Map<string, { poll: ElectoralPoll | null; cenario: string | null; results: ElectoralPollResultWithPoll[] }>();
 
   for (const r of results) {
