@@ -203,7 +203,15 @@ export async function listPollResultsWithPoll(filters?: PesquisasFilters): Promi
   return mapped.filter((r) => {
     if (!r.poll) return true;
     if (filters?.uf && r.poll.uf !== filters.uf && r.poll.abrangencia !== filters.uf) return false;
-    if (filters?.cargo && r.poll.cargo && !r.poll.cargo.toLowerCase().includes(filters.cargo.toLowerCase())) return false;
+    if (filters?.cargo) {
+      const targetCargo = filters.cargo.toLowerCase().trim();
+      if (r.office) {
+        const resOffice = r.office.toLowerCase().trim();
+        if (!resOffice.includes(targetCargo) && !targetCargo.includes(resOffice)) return false;
+      } else if (r.poll.cargo && !r.poll.cargo.toLowerCase().includes(targetCargo)) {
+        return false;
+      }
+    }
     if (filters?.instituto && r.poll.instituto !== filters.instituto) return false;
     return true;
   });

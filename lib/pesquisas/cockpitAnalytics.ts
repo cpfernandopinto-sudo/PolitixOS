@@ -340,7 +340,7 @@ export function getInstituteComparisonPoints(
   const byPollAndScenario = new Map<string, { poll: ElectoralPoll | null; cenario: string | null; results: ElectoralPollResultWithPoll[] }>();
 
   for (const r of results) {
-    const key = `${r.pollId}::${r.cenario}`;
+    const key = `${r.pollId}::${r.office ?? ''}::${r.cenario}`;
     const existing = byPollAndScenario.get(key) ?? { poll: r.poll ?? null, cenario: r.cenario ?? null, results: [] };
     existing.results.push(r);
     byPollAndScenario.set(key, existing);

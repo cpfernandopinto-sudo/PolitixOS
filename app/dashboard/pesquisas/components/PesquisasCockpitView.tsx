@@ -95,15 +95,29 @@ export function PesquisasCockpitView({
     });
   }, [registeredPolls, filters.uf, filters.cargo, filters.instituto]);
 
+  // Helper para verificar se um resultado corresponde ao cargo selecionado (priorizando r.office)
+  const matchesCargo = (r: ElectoralPollResultWithPoll, targetCargo?: string | null) => {
+    if (!targetCargo) return true;
+    const target = targetCargo.toLowerCase().trim();
+    if (r.office) {
+      const resOffice = r.office.toLowerCase().trim();
+      return resOffice.includes(target) || target.includes(resOffice);
+    }
+    if (r.poll?.cargo) {
+      return r.poll.cargo.toLowerCase().includes(target);
+    }
+    return true;
+  };
+
   // Filter results matching dynamic filters (NÃO remover concorrentes ao selecionar um candidato)
   const filteredResults = useMemo(() => {
     return allResults.filter((r) => {
       if (filters.turno && r.turno !== filters.turno) return false;
       if (filters.tipoPergunta && r.tipoPergunta !== filters.tipoPergunta) return false;
+      if (!matchesCargo(r, filters.cargo)) return false;
 
       if (r.poll) {
         if (filters.uf && r.poll.uf !== filters.uf && r.poll.abrangencia !== filters.uf) return false;
-        if (filters.cargo && r.poll.cargo && !r.poll.cargo.toLowerCase().includes(filters.cargo.toLowerCase())) return false;
         if (filters.instituto && r.poll.instituto !== filters.instituto) return false;
       }
       return true;
@@ -115,7 +129,7 @@ export function PesquisasCockpitView({
     const matchingResults = allResults.filter((r) => {
       if (!r.poll) return false;
       if (filters.uf && r.poll.uf !== filters.uf && r.poll.abrangencia !== filters.uf) return false;
-      if (filters.cargo && r.poll.cargo && !r.poll.cargo.toLowerCase().includes(filters.cargo.toLowerCase())) return false;
+      if (!matchesCargo(r, filters.cargo)) return false;
       return true;
     });
     return getRaceCandidates(matchingResults);
@@ -258,7 +272,7 @@ export function PesquisasCockpitView({
               <RankingCandidatos
                 realCandidates={rankingData.realCandidates}
                 nonCandidates={rankingData.nonCandidates}
-                cenarioLabel={latestResultPoll?.cargo ? `${latestResultPoll.cargo} — ${latestResultPoll.abrangencia ?? latestResultPoll.uf}` : null}
+                cenarioLabel={latestResultPoll ? `${filters.cargo ?? latestResultPoll.cargo} — ${latestResultPoll.abrangencia ?? latestResultPoll.uf}` : null}
                 pollInstituto={latestResultPoll?.instituto}
                 pollDate={latestResultPoll?.dataRegistro}
                 referenceCandidate={referenceCandidate}
@@ -307,6 +321,7 @@ export function PesquisasCockpitView({
           polls={filteredRegisteredPolls}
           allResults={allResults}
           kpis={kpis}
+          activeCargo={filters.cargo}
         />
       )}
 

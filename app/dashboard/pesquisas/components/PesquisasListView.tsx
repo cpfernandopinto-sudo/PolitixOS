@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { ElectoralPoll, ElectoralPollResultWithPoll, PesquisasKpis } from '@/lib/pesquisas/types';
 import { isRealCandidate } from '@/lib/pesquisas/types';
 import { calculateAnalyticalStatus, type AnalyticalStatusResult } from '@/lib/pesquisas/analyticsEngine';
@@ -13,13 +13,20 @@ interface Props {
   polls: ElectoralPoll[];
   allResults: ElectoralPollResultWithPoll[];
   kpis: PesquisasKpis;
+  activeCargo?: string | null;
 }
 
-export function PesquisasListView({ polls, allResults, kpis }: Props) {
+export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUf, setSelectedUf] = useState<string>('all');
-  const [selectedCargo, setSelectedCargo] = useState<string>('all');
+  const [selectedCargo, setSelectedCargo] = useState<string>(activeCargo ?? 'all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+
+  useEffect(() => {
+    if (activeCargo) {
+      setSelectedCargo(activeCargo);
+    }
+  }, [activeCargo]);
 
   // Map results to polls
   const resultsByPoll = useMemo(() => {
@@ -41,14 +48,43 @@ export function PesquisasListView({ polls, allResults, kpis }: Props) {
 
   const cargos = useMemo(() => {
     const set = new Set<string>();
-    for (const p of polls) if (p.cargo) set.add(p.cargo);
+    for (const p of polls) {
+      if (p.cargo) {
+        p.cargo.split(',').forEach((c) => set.add(c.trim()));
+      }
+    }
     return Array.from(set).sort();
   }, [polls]);
 
-  // Enriched polls with analytics status
+  // Helper para corresponder r.office ou r.poll.cargo ao cargo alvo
+  const matchesCargo = (r: ElectoralPollResultWithPoll, targetCargo?: string | null) => {
+    if (!targetCargo || targetCargo === 'all') return true;
+    const target = targetCargo.toLowerCase().trim();
+    if (r.office) {
+      const resOffice = r.office.toLowerCase().trim();
+      return resOffice.includes(target) || target.includes(resOffice);
+    }
+    if (r.poll?.cargo) {
+      return r.poll.cargo.toLowerCase().includes(target);
+    }
+    return true;
+  };
+
+  // Enriched polls with analytics status (escopados por cargo/office)
   const enrichedPolls = useMemo(() => {
     return polls.map((poll) => {
-      const pollResults = resultsByPoll.get(poll.id) ?? [];
+      const allPollResults = resultsByPoll.get(poll.id) ?? [];
+
+      let effectiveCargo: string | null = null;
+      if (selectedCargo !== 'all') {
+        effectiveCargo = selectedCargo;
+      } else if (activeCargo && activeCargo !== 'all') {
+        effectiveCargo = activeCargo;
+      } else if (poll.cargo) {
+        effectiveCargo = poll.cargo.split(',')[0].trim();
+      }
+
+      const pollResults = allPollResults.filter((r) => matchesCargo(r, effectiveCargo));
       const hasResults = pollResults.length > 0;
 
       let statusResult: AnalyticalStatusResult = {
@@ -79,13 +115,18 @@ export function PesquisasListView({ polls, allResults, kpis }: Props) {
         leaderPct,
       };
     });
-  }, [polls, resultsByPoll]);
+  }, [polls, resultsByPoll, selectedCargo, activeCargo]);
 
   // Filtered polls
   const filteredPolls = useMemo(() => {
     return enrichedPolls.filter(({ poll, statusResult }) => {
       if (selectedUf !== 'all' && poll.uf !== selectedUf && poll.abrangencia !== selectedUf) return false;
-      if (selectedCargo !== 'all' && poll.cargo && !poll.cargo.toLowerCase().includes(selectedCargo.toLowerCase())) return false;
+      if (selectedCargo !== 'all') {
+        const target = selectedCargo.toLowerCase().trim();
+        const pollMatch = poll.cargo && poll.cargo.toLowerCase().includes(target);
+        const resultMatch = (resultsByPoll.get(poll.id) ?? []).some((r) => r.office && r.office.toLowerCase().includes(target));
+        if (!pollMatch && !resultMatch) return false;
+      }
       if (selectedStatus !== 'all' && statusResult.status !== selectedStatus) return false;
 
       if (searchTerm.trim()) {
@@ -99,7 +140,7 @@ export function PesquisasListView({ polls, allResults, kpis }: Props) {
 
       return true;
     });
-  }, [enrichedPolls, selectedUf, selectedCargo, selectedStatus, searchTerm]);
+  }, [enrichedPolls, selectedUf, selectedCargo, selectedStatus, searchTerm, resultsByPoll]);
 
   const countWithResults = useMemo(() => enrichedPolls.filter((p) => p.hasResults).length, [enrichedPolls]);
   const countPending = useMemo(() => enrichedPolls.filter((p) => !p.hasResults).length, [enrichedPolls]);

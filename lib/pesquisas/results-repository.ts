@@ -174,17 +174,26 @@ export async function getPriorityRacePolls(uf: string, cargoLike: string): Promi
 
   if (error || !rows) return [];
 
+  const targetCargo = cargoLike.toLowerCase().trim();
   const pollsById = new Map<string, ElectoralPoll>();
   const resultsByPoll = new Map<string, ElectoralPollResult[]>();
   for (const row of rows as Record<string, unknown>[]) {
+    const res = mapResultRow(row);
+    if (res.office) {
+      const resOffice = res.office.toLowerCase().trim();
+      if (!resOffice.includes(targetCargo) && !targetCargo.includes(resOffice)) {
+        continue;
+      }
+    }
     const poll = mapPollRow(row.poll as Record<string, unknown>);
     pollsById.set(poll.id, poll);
     const list = resultsByPoll.get(poll.id) ?? [];
-    list.push(mapResultRow(row));
+    list.push(res);
     resultsByPoll.set(poll.id, list);
   }
 
   return Array.from(pollsById.values())
     .map((poll) => ({ ...poll, results: resultsByPoll.get(poll.id) ?? [] }))
+    .filter((poll) => poll.results.length > 0)
     .sort((a, b) => (b.dataRegistro ?? '').localeCompare(a.dataRegistro ?? ''));
 }

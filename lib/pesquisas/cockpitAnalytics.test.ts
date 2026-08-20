@@ -154,4 +154,148 @@ describe('cockpitAnalytics.ts — PESQUISAS-03A Consistência de Dados e Testes 
     const candidatesList = getRaceCandidates([r1, r2, r3]);
     expect(candidatesList).toEqual(['Celina Leão']);
   });
+
+  it('TESTE OBRIGATÓRIO (Requisito 8) — impede contaminação entre cargos numa pesquisa multi-cargo', () => {
+    const multiPoll = mockPoll('multi-1', {
+      uf: 'DF',
+      cargo: 'Governador, Senador',
+      tseRegistrationNumber: 'DF078492026',
+    });
+
+    const allResults = [
+      // Governador
+      mockResult('r1', 'multi-1', 'Candidato A', 40.0, { poll: multiPoll, office: 'Governador', cenario: 'Cenário 1 — Governador' }),
+      mockResult('r2', 'multi-1', 'Candidato B', 30.0, { poll: multiPoll, office: 'Governador', cenario: 'Cenário 1 — Governador' }),
+      // Senador
+      mockResult('r3', 'multi-1', 'Candidato C', 25.0, { poll: multiPoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+      mockResult('r4', 'multi-1', 'Candidato D', 20.0, { poll: multiPoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+    ];
+
+    // Helper de filtragem idêntico ao do componente
+    const matchesCargo = (r: ElectoralPollResultWithPoll, targetCargo: string) => {
+      const target = targetCargo.toLowerCase().trim();
+      if (r.office) {
+        const resOffice = r.office.toLowerCase().trim();
+        return resOffice.includes(target) || target.includes(resOffice);
+      }
+      return r.poll?.cargo ? r.poll.cargo.toLowerCase().includes(target) : true;
+    };
+
+    // 1. Filtro Governador
+    const govResults = allResults.filter((r) => matchesCargo(r, 'Governador'));
+    const govCandidates = getRaceCandidates(govResults);
+    const govRanking = getCandidateRanking(govResults, multiPoll.id);
+
+    expect(govCandidates).toEqual(['Candidato A', 'Candidato B']);
+    expect(govRanking.realCandidates.map((c) => c.candidateName)).toEqual(['Candidato A', 'Candidato B']);
+    expect(govRanking.realCandidates[0].percentage).toBe(40.0);
+    expect(govRanking.realCandidates[1].percentage).toBe(30.0);
+    expect(govCandidates.includes('Candidato C')).toBe(false);
+    expect(govCandidates.includes('Candidato D')).toBe(false);
+
+    // 2. Filtro Senador
+    const senResults = allResults.filter((r) => matchesCargo(r, 'Senador'));
+    const senCandidates = getRaceCandidates(senResults);
+    const senRanking = getCandidateRanking(senResults, multiPoll.id);
+
+    expect(senCandidates).toEqual(['Candidato C', 'Candidato D']);
+    expect(senRanking.realCandidates.map((c) => c.candidateName)).toEqual(['Candidato C', 'Candidato D']);
+    expect(senRanking.realCandidates[0].percentage).toBe(25.0);
+    expect(senRanking.realCandidates[1].percentage).toBe(20.0);
+    expect(senCandidates.includes('Candidato A')).toBe(false);
+    expect(senCandidates.includes('Candidato B')).toBe(false);
+  });
+
+  it('valida alternância DF + Senador (Michelle 25%) vs DF + Governador (Celina 34%)', () => {
+    const realTimePoll = mockPoll('rt-df', {
+      uf: 'DF',
+      cargo: 'Governador, Senador',
+      tseRegistrationNumber: 'DF078492026',
+      instituto: 'REAL TIME MIDIA LTDA',
+    });
+
+    const results = [
+      // Scenario Governador
+      mockResult('g1', 'rt-df', 'Celina Leão', 34.0, { poll: realTimePoll, office: 'Governador', cenario: 'Cenário 1 — Governador' }),
+      mockResult('g2', 'rt-df', 'José Roberto Arruda', 22.0, { poll: realTimePoll, office: 'Governador', cenario: 'Cenário 1 — Governador' }),
+      mockResult('g3', 'rt-df', 'Leandro Grass', 18.0, { poll: realTimePoll, office: 'Governador', cenario: 'Cenário 1 — Governador' }),
+
+      // Scenario Senador
+      mockResult('s1', 'rt-df', 'Michelle Bolsonaro', 25.0, { poll: realTimePoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+      mockResult('s2', 'rt-df', 'Leila do Vôlei', 17.0, { poll: realTimePoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+      mockResult('s3', 'rt-df', 'Bia Kicis', 15.0, { poll: realTimePoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+      mockResult('s4', 'rt-df', 'Erika Kokay', 15.0, { poll: realTimePoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+    ];
+
+    const matchesCargo = (r: ElectoralPollResultWithPoll, targetCargo: string) => {
+      const target = targetCargo.toLowerCase().trim();
+      return r.office ? r.office.toLowerCase().includes(target) : r.poll?.cargo?.toLowerCase().includes(target) ?? true;
+    };
+
+    // Teste A: Senador
+    const senadorSlice = results.filter((r) => matchesCargo(r, 'Senador'));
+    const senadorMetrics = calculateCockpitMetrics([realTimePoll], senadorSlice);
+    const senadorCandidates = getRaceCandidates(senadorSlice);
+
+    expect(senadorMetrics.intencaoMaisRecente?.candidateName).toBe('Michelle Bolsonaro');
+    expect(senadorMetrics.intencaoMaisRecente?.percentage).toBe(25.0);
+    expect(senadorCandidates).toEqual(['Bia Kicis', 'Erika Kokay', 'Leila do Vôlei', 'Michelle Bolsonaro']);
+    expect(senadorCandidates.includes('Celina Leão')).toBe(false);
+    expect(senadorCandidates.includes('José Roberto Arruda')).toBe(false);
+
+    // Teste B: Governador
+    const govSlice = results.filter((r) => matchesCargo(r, 'Governador'));
+    const govMetrics = calculateCockpitMetrics([realTimePoll], govSlice);
+    const govCandidates = getRaceCandidates(govSlice);
+
+    expect(govMetrics.intencaoMaisRecente?.candidateName).toBe('Celina Leão');
+    expect(govMetrics.intencaoMaisRecente?.percentage).toBe(34.0);
+    expect(govCandidates).toEqual(['Celina Leão', 'José Roberto Arruda', 'Leandro Grass']);
+    expect(govCandidates.includes('Michelle Bolsonaro')).toBe(false);
+  });
+
+  it('TESTE OBRIGATÓRIO (Base de Pesquisas / PesquisasListView) — determina Líder Atual com filtro de office/cargo', () => {
+    const realTimePoll = mockPoll('rt-df', {
+      uf: 'DF',
+      cargo: 'Governador, Senador',
+      tseRegistrationNumber: 'DF078492026',
+      instituto: 'REAL TIME MIDIA LTDA',
+    });
+
+    const allPollResults = [
+      mockResult('g1', 'rt-df', 'Celina Leão', 34.0, { poll: realTimePoll, office: 'Governador', cenario: 'Cenário 1 — Governador' }),
+      mockResult('g2', 'rt-df', 'José Roberto Arruda', 22.0, { poll: realTimePoll, office: 'Governador', cenario: 'Cenário 1 — Governador' }),
+      mockResult('s1', 'rt-df', 'Michelle Bolsonaro', 25.0, { poll: realTimePoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+      mockResult('s2', 'rt-df', 'Leila do Vôlei', 17.0, { poll: realTimePoll, office: 'Senador', cenario: 'Cenário 1 — Senador' }),
+    ];
+
+    const matchesCargo = (r: ElectoralPollResultWithPoll, targetCargo?: string | null) => {
+      if (!targetCargo || targetCargo === 'all') return true;
+      const target = targetCargo.toLowerCase().trim();
+      if (r.office) {
+        const resOffice = r.office.toLowerCase().trim();
+        return resOffice.includes(target) || target.includes(resOffice);
+      }
+      return r.poll?.cargo ? r.poll.cargo.toLowerCase().includes(target) : true;
+    };
+
+    const getEnrichedLeader = (targetCargo: string) => {
+      const filteredResults = allPollResults.filter((r) => matchesCargo(r, targetCargo));
+      const ranking = getCandidateRanking(filteredResults, realTimePoll.id);
+      return {
+        leaderName: ranking.realCandidates[0]?.candidateName ?? null,
+        leaderPct: ranking.realCandidates[0]?.percentage ?? null,
+      };
+    };
+
+    // Governador => Celina Leão 34%
+    const govEnriched = getEnrichedLeader('Governador');
+    expect(govEnriched.leaderName).toBe('Celina Leão');
+    expect(govEnriched.leaderPct).toBe(34.0);
+
+    // Senador => Michelle Bolsonaro 25%
+    const senEnriched = getEnrichedLeader('Senador');
+    expect(senEnriched.leaderName).toBe('Michelle Bolsonaro');
+    expect(senEnriched.leaderPct).toBe(25.0);
+  });
 });

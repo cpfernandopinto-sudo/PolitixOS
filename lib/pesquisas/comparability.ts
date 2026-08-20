@@ -29,9 +29,12 @@ export function areScenariosEquivalent(resultsA: ElectoralPollResult[], resultsB
 }
 
 export function areResultsComparable(
-  a: Pick<ElectoralPollResult, 'cenario' | 'turno' | 'tipoPergunta'>,
-  b: Pick<ElectoralPollResult, 'cenario' | 'turno' | 'tipoPergunta'>
+  a: Pick<ElectoralPollResult, 'cenario' | 'turno' | 'tipoPergunta'> & { office?: string | null },
+  b: Pick<ElectoralPollResult, 'cenario' | 'turno' | 'tipoPergunta'> & { office?: string | null }
 ): boolean {
+  if (a.office && b.office && a.office.toLowerCase().trim() !== b.office.toLowerCase().trim()) {
+    return false;
+  }
   return a.cenario === b.cenario && a.turno === b.turno && a.tipoPergunta === b.tipoPergunta;
 }
 
@@ -51,6 +54,12 @@ export function explainComparabilityReason(
 
   if (!arePollsComparable(anchorPoll, targetPoll)) {
     return { isComparable: false, reason: `Cargo/UF incompatível (${targetPoll.cargo} / ${targetPoll.uf ?? targetPoll.abrangencia})` };
+  }
+
+  const officeA = anchorResults[0]?.office;
+  const officeB = targetResults[0]?.office;
+  if (officeA && officeB && officeA.toLowerCase().trim() !== officeB.toLowerCase().trim()) {
+    return { isComparable: false, reason: `Cargo do resultado incompatível (${officeA} vs ${officeB})` };
   }
 
   const turnA = anchorResults[0]?.turno;
