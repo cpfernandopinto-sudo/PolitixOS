@@ -1,4 +1,10 @@
-import { createClient } from '@/lib/supabaseClient';
+import { createAdminClient } from '@/lib/supabaseClient';
+// NOTA (hardening P0 — bloco de segurança Instagram): trocado de createClient()
+// (chave anon, sujeita à RLS pública) para createAdminClient() (service_role,
+// server-only). A autorização por target_id continua feita 100% em código,
+// via `allowedTargetIds` — isso não muda; só deixa de depender de policies
+// RLS acessíveis pela chave anônima, que hoje não corresponde a nenhuma
+// sessão real (este projeto não usa Supabase Auth).
 import { withTiming } from '@/lib/perf/timing';
 // NOTA: React.cache() foi REMOVIDO propositalmente.
 // O cache do React deduplicava chamadas com objetos diferentes de filtros,
@@ -59,7 +65,7 @@ export async function fetchInstagramData(filters?: InstagramFilters) {
     period: filters?.period,
   }));
 
-  const client = createClient();
+  const client = createAdminClient();
 
   // ── Aplicar restrição de targets ANTES de qualquer query ─────────────────
   // Regras:
@@ -362,7 +368,7 @@ export async function getInstagramChartData(filters?: InstagramFilters) {
  * Tópicos/Posts: extraídos dos posts já filtrados.
  */
 export async function getInstagramFiltersOptions(allowedTargetIds?: string[] | null) {
-  const client = createClient();
+  const client = createAdminClient();
 
   // Candidatos visíveis: respeitar allowedTargetIds
   let targetsQuery = client.from('targets').select('id, candidate_name').order('candidate_name');

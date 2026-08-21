@@ -1,5 +1,10 @@
-import { createClient } from '@/lib/supabaseClient';
+import { createAdminClient } from '@/lib/supabaseClient';
 import { withTiming } from '@/lib/perf/timing';
+// NOTA (hardening P0 — bloco de segurança Instagram): trocado de createClient()
+// (chave anon) para createAdminClient() (service_role, server-only) pelo mesmo
+// motivo de lib/queries/instagram.ts — social_posts/ai_analysis/targets são
+// compartilhadas entre Instagram e X, e a policy pública "Allow anon read"
+// dessas tabelas foi removida. A autorização por allowedTargetIds não muda.
 
 export interface XFilters {
   period?: string | null;
@@ -42,7 +47,7 @@ function normalizeRisk(value: string | null | undefined) {
 }
 
 export async function fetchXData(filters?: XFilters) {
-  const client = createClient();
+  const client = createAdminClient();
 
   const restricted = filters?.allowedTargetIds !== null && filters?.allowedTargetIds !== undefined;
   if (restricted && (filters!.allowedTargetIds!.length === 0)) {
@@ -363,7 +368,7 @@ export async function getXAlert(filters?: XFilters) {
 }
 
 export async function getXFiltersOptions(allowedTargetIds?: string[] | null) {
-  const client = createClient();
+  const client = createAdminClient();
   let targetsQuery = client.from('targets').select('id, candidate_name').order('candidate_name');
   if (allowedTargetIds !== null && allowedTargetIds !== undefined) {
     targetsQuery = targetsQuery.in('id', allowedTargetIds);

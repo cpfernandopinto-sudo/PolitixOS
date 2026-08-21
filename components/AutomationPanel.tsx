@@ -6,7 +6,7 @@ import {
   Newspaper, MessageSquare, BrainCircuit, RefreshCw,
   CheckCircle, XCircle, Loader2, Play, Clock, X,
 } from 'lucide-react';
-import { triggerN8nWebhook, WEBHOOKS, type WebhookKey } from '@/lib/n8n';
+import { triggerN8nWebhook, triggerInstagramAutomation, isInstagramFlowKey, WEBHOOKS, type WebhookKey } from '@/lib/n8n';
 
 // ---------------------------------------------------------------------------
 // Flow definitions
@@ -342,7 +342,13 @@ export default function AutomationPanel() {
       setFlowState(key, { status: 'loading', message: null });
 
       try {
-        await triggerN8nWebhook(webhookUrl);
+        // Instagram passa pela rota server-side autenticada (hardening P0);
+        // Notícias e X/Twitter continuam disparando o webhook n8n direto.
+        if (isInstagramFlowKey(key)) {
+          await triggerInstagramAutomation(key);
+        } else {
+          await triggerN8nWebhook(webhookUrl);
+        }
         setFlowState(key, {
           status: 'success',
           message: 'Fluxo iniciado com sucesso',
