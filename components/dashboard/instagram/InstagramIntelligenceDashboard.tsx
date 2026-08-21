@@ -114,7 +114,6 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
     if (targetPost) {
       setSelectedPost(targetPost);
     } else {
-      // Fallback synthetic post container for context
       setSelectedPost({
         id: comment.postId,
         targetId: '',
@@ -153,54 +152,54 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
   if (contract.summary.posts === 0) return <EmptyState />;
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-5 pb-12">
       {/* 03 — ALERTA PRIORITÁRIO (CRÍSE / ALTO RISCO) */}
       {criticalCount > 0 && criticalPost ? (
-        <section aria-label="Alerta prioritário" className="rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-[#0d1423] p-5 shadow-lg backdrop-blur">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="p-3.5 rounded-xl bg-rose-500 text-white shrink-0 animate-pulse mt-0.5">
-                <AlertTriangle size={26} />
+        <section aria-label="Alerta prioritário" className="rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-[#0d1423] p-4 shadow-md backdrop-blur">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <div className="p-2.5 rounded-lg bg-rose-500 text-white shrink-0 animate-pulse mt-0.5">
+                <AlertTriangle size={22} />
               </div>
-              <div className="space-y-1.5 flex-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded bg-rose-600 text-white">
+              <div className="space-y-1 flex-1 min-w-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-rose-600 text-white">
                     Alerta Crítico de Inteligência
                   </span>
                   <span className="text-xs font-bold text-rose-300">
                     {criticalCount} {criticalCount === 1 ? 'publicação com risco elevado' : 'publicações com risco elevado'} ({criticalPct}% do escopo)
                   </span>
                 </div>
-                <h3 className="text-white font-bold text-base md:text-lg line-clamp-1">
+                <h3 className="text-white font-bold text-sm md:text-base line-clamp-1">
                   {criticalPost.caption || 'Publicação sob monitoramento de risco'}
                 </h3>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
                   <span className="font-semibold text-cyan-300">{criticalPost.candidateName || 'Candidato'}</span>
                   <span>•</span>
                   <span>Formato: <strong className="text-white">{criticalPost.contentType}</strong></span>
                   <span>•</span>
                   <span>Interações: <strong className="text-white">{metric(criticalPost.metrics.likes)} likes, {metric(criticalPost.metrics.comments)} com.</strong></span>
                   <span>•</span>
-                  <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold ${riskTone(criticalPost.analysis.risk)}`}>
+                  <span className={`px-2 py-0.5 rounded border text-[9px] uppercase font-bold ${riskTone(criticalPost.analysis.risk)}`}>
                     Risco {label(criticalPost.analysis.risk)}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedPost(criticalPost)}
-                className="px-5 py-2.5 rounded-lg bg-cyan-400 text-black text-xs font-bold hover:bg-cyan-300 transition-colors shadow-md uppercase tracking-wider flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-cyan-400 text-black text-xs font-bold hover:bg-cyan-300 transition-colors shadow-md uppercase tracking-wider flex items-center gap-1.5"
               >
-                <Zap size={14} /> Análise de IA
+                <Zap size={13} /> Análise de IA
               </button>
               {criticalPost.url ? (
                 <a
                   href={criticalPost.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-slate-200 text-xs font-medium hover:bg-white/10 transition-colors uppercase tracking-wider flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 text-xs font-medium hover:bg-white/10 transition-colors uppercase tracking-wider flex items-center gap-1.5"
                 >
                   <ExternalLink size={13} /> Abrir Post
                 </a>
@@ -210,18 +209,18 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
         </section>
       ) : null}
 
-      {/* 04 — KPIS EXECUTIVOS (5 CARDS) */}
-      <section aria-label="Indicadores principais" className="grid grid-cols-2 gap-3.5 lg:grid-cols-5">
+      {/* 04 — KPIS EXECUTIVOS (5 CARDS NORMATIZADOS COM A OVERVIEW) */}
+      <section aria-label="Indicadores principais" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi title="Posts monitorados" value={nf.format(contract.summary.posts)} detail={`${contract.summary.analyzedPosts} analisados por IA`} />
-        <Kpi title="Interações totais" value={`${nf.format(totalLikes)} likes`} detail={`${nf.format(totalPostComments)} comentários declarados`} />
-        <Kpi title="Risco elevado" value={`${criticalPct}%`} detail={`${criticalCount} publicações críticas`} tone={criticalCount ? 'rose' : 'cyan'} />
-        <Kpi title="Sentimento dominante" value={label(dominantSentiment)} detail={`${dominantSentimentItem ? Math.round((dominantSentimentItem.count / (contract.summary.analyzedPosts || 1)) * 100) : 0}% dos analisados`} />
-        <Kpi title="Formato em destaque" value={topFormat ?? '—'} detail="Maior engajamento no recorte" />
+        <Kpi title="Interações totais" value={`${nf.format(totalLikes)} likes`} detail={`${nf.format(totalPostComments)} comentários`} />
+        <Kpi title="Risco elevado" value={`${criticalPct}%`} detail={`${criticalCount} críticas`} tone={criticalCount ? 'rose' : 'cyan'} />
+        <Kpi title="Sentimento dominante" value={label(dominantSentiment)} detail={`${dominantSentimentItem ? Math.round((dominantSentimentItem.count / (contract.summary.analyzedPosts || 1)) * 100) : 0}% da amostra`} />
+        <Kpi title="Formato em destaque" value={topFormat ?? '—'} detail="Maior engajamento" />
       </section>
 
-      {/* 05 — PANORAMA 1: PRESSÃO SOCIAL NO PERÍODO + TERMÔMETRO DE RISCO */}
-      <section aria-label="Panorama de pressão e risco" className="grid gap-4 xl:grid-cols-12">
-        <Panel title="Pressão Social no Período" subtitle="Evolução temporal de engajamento e comentários no recorte ativo" className="xl:col-span-8">
+      {/* 05 — PANORAMA ANALÍTICO EXECUTIVO (4 CARDS COMPACTOS NA MESMA FILEIRA EM DESKTOP WIDESCREEN) */}
+      <section aria-label="Panorama analítico executivo" className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+        <Panel title="Pressão Social" subtitle="Evolução temporal no recorte" className="min-h-[240px]">
           {pressureSeriesData.dates.length > 0 ? (
             <LineChart
               dates={pressureSeriesData.dates}
@@ -229,28 +228,25 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
                 { name: 'Volume de Comentários', data: pressureSeriesData.comments, color: '#00FFFF' },
                 { name: 'Engajamento Total', data: pressureSeriesData.engagement, color: '#3B82F6' },
               ]}
-              height={250}
+              height={160}
             />
           ) : (
-            <div className="flex h-56 flex-col items-center justify-center text-slate-500 text-xs gap-2">
-              <TrendingUp size={28} className="opacity-30" />
-              <span>Sem séries temporais disponíveis no período selecionado</span>
+            <div className="flex h-36 flex-col items-center justify-center text-slate-500 text-xs gap-1.5">
+              <TrendingUp size={24} className="opacity-30" />
+              <span className="text-[11px]">Sem séries temporais disponíveis</span>
             </div>
           )}
         </Panel>
 
-        <Panel title="Termômetro de Risco" subtitle="Índice sintético de vulnerabilidade política" className="xl:col-span-4">
+        <Panel title="Termômetro de Risco" subtitle="Vulnerabilidade política" className="min-h-[240px]">
           <RiskPanel contract={contract} />
         </Panel>
-      </section>
 
-      {/* 06 — PANORAMA 2: EVOLUÇÃO DE SENTIMENTO + TEMAS INSTAGRAM IA */}
-      <section aria-label="Sentimento e Temas" className="grid gap-4 xl:grid-cols-12">
-        <Panel title="Distribuição de Sentimento" subtitle="Percepção pública agregada entre os posts analisados" className="xl:col-span-6">
+        <Panel title="Distribuição de Sentimento" subtitle="Percepção da amostra" className="min-h-[240px]">
           <SentimentDistribution contract={contract} />
         </Panel>
 
-        <Panel title="Temas do Instagram (IA)" subtitle="Ranking das pautas dominantes identificadas por IA (clique para filtrar)" className="xl:col-span-6">
+        <Panel title="Temas do Instagram (IA)" subtitle="Pautas dominantes (Top 5)" className="min-h-[240px]">
           <ThemesRanking themes={contract.themes} totalPosts={contract.summary.posts} onSelectTopic={handleTopicClick} />
         </Panel>
       </section>
@@ -267,7 +263,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
 
       {/* 09 — FEED EXECUTIVO COMPACTO (4 COLUNAS DESKTOP) */}
       <Panel title="Feed Executivo" subtitle="Clique em qualquer publicação para abrir a investigação completa (4 colunas em widescreen)">
-        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {contract.recentPosts.map((post) => (
             <CompactPostCard key={post.id} post={post} onOpen={() => setSelectedPost(post)} />
           ))}
@@ -276,30 +272,30 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
 
       {/* 10 — SINAIS RELEVANTES EM COMENTÁRIOS */}
       <Panel title="Sinais Relevantes em Comentários" subtitle="Comentários de destaque ordenados por likes — clique em 'Ver Contexto' para investigar o post">
-        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {contract.comments.relevant.length > 0 ? (
             contract.comments.relevant.slice(0, 8).map((comment) => (
-              <article key={comment.id} className="flex flex-col justify-between rounded-lg border border-white/10 bg-[#080d18] p-3.5 transition-all hover:border-cyan-400/40">
+              <article key={comment.id} className="flex flex-col justify-between rounded-lg border border-white/10 bg-[#080d18] p-3 transition-all hover:border-cyan-400/40">
                 <div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
                     <span className="font-semibold text-slate-300">@{comment.author || 'usuário'}</span>
                     <span className="text-cyan-400 font-bold">{metric(comment.likeCount)} likes</span>
                   </div>
-                  <p className="line-clamp-3 text-xs leading-5 text-slate-200 font-normal">
+                  <p className="line-clamp-3 text-xs leading-4 text-slate-200 font-normal">
                     "{comment.text || 'Comentário sem texto.'}"
                   </p>
                   {comment.postCaption ? (
-                    <p className="mt-2.5 line-clamp-2 border-l-2 border-cyan-400/50 pl-2 text-[10px] text-slate-400 italic">
+                    <p className="mt-2 line-clamp-2 border-l-2 border-cyan-400/50 pl-2 text-[10px] text-slate-400 italic">
                       Post: {comment.postCaption}
                     </p>
                   ) : null}
                 </div>
-                <div className="mt-3.5 border-t border-white/5 pt-2.5 flex items-center justify-between">
+                <div className="mt-3 border-t border-white/5 pt-2 flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-400">{comment.candidateName || '—'}</span>
                   <button
                     type="button"
                     onClick={() => handleOpenCommentContext(comment)}
-                    className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 uppercase tracking-wider"
+                    className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 uppercase tracking-wider"
                   >
                     Ver Contexto →
                   </button>
@@ -307,7 +303,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
               </article>
             ))
           ) : (
-            <div className="col-span-full py-12 text-center text-sm text-slate-500 italic">
+            <div className="col-span-full py-8 text-center text-xs text-slate-500 italic">
               Nenhum comentário com sinal objetivo de relevância no recorte atual.
             </div>
           )}
@@ -336,25 +332,25 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
 
 function Kpi({ title, value, detail, tone = 'cyan' }: { title: string; value: string; detail: string; tone?: 'cyan' | 'rose' }) {
   return (
-    <article className="rounded-lg border border-white/10 bg-[#0d1423] p-4 shadow-sm">
-      <p className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-500">{title}</p>
-      <p className={`mt-2 text-xl font-bold tracking-tight ${tone === 'rose' ? 'text-rose-400' : 'text-white'}`}>{value}</p>
-      <p className="mt-1 text-[11px] text-slate-400">{detail}</p>
+    <article className="rounded-lg border border-white/10 bg-[#0d1423] px-3.5 py-3 shadow-sm flex flex-col justify-between">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{title}</p>
+      <p className={`mt-1 text-xl font-black tracking-tight leading-none ${tone === 'rose' ? 'text-rose-400' : 'text-white'}`}>{value}</p>
+      <p className="mt-1 text-[10px] text-slate-400 truncate">{detail}</p>
     </article>
   );
 }
 
 function Panel({ title, subtitle, className = '', children }: { title: string; subtitle: string; className?: string; children: React.ReactNode }) {
   return (
-    <section className={`rounded-xl border border-white/10 bg-[#0d1423] p-4 sm:p-5 shadow-md ${className}`}>
-      <div className="border-b border-white/5 pb-3 mb-4">
-        <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-          <span className="w-1 h-3.5 bg-cyan-400 rounded-full" />
+    <section className={`rounded-xl border border-white/10 bg-[#0d1423] p-3.5 shadow-md flex flex-col justify-between ${className}`}>
+      <div className="border-b border-white/5 pb-2 mb-2.5">
+        <h2 className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
+          <span className="w-1 h-3 bg-cyan-400 rounded-full" />
           {title}
         </h2>
-        <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>
+        <p className="mt-0.5 text-[10px] text-slate-400 truncate">{subtitle}</p>
       </div>
-      <div>{children}</div>
+      <div className="flex-1 flex flex-col justify-center">{children}</div>
     </section>
   );
 }
@@ -387,33 +383,33 @@ function RiskPanel({ contract }: { contract: InstagramUiContract }) {
       : 'text-emerald-400';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 flex flex-col justify-between h-full py-1">
       <div className="flex items-end justify-between">
         <div>
           <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Índice Sintético</p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <strong className="text-3xl font-extrabold text-white">{score ?? '—'}</strong>
-            {score !== null ? <span className="text-xs text-slate-400 font-semibold">/ 100</span> : null}
+          <div className="mt-0.5 flex items-baseline gap-1.5">
+            <strong className="text-2xl font-extrabold text-white">{score ?? '—'}</strong>
+            {score !== null ? <span className="text-[10px] text-slate-400 font-semibold">/ 100</span> : null}
           </div>
         </div>
         <div className="text-right">
           <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Status</span>
-          <p className={`text-sm font-black tracking-wider uppercase ${statusColor}`}>{statusLabel}</p>
+          <p className={`text-xs font-black tracking-wider uppercase ${statusColor}`}>{statusLabel}</p>
         </div>
       </div>
 
-      <div className="h-2 w-full overflow-hidden rounded-full bg-white/5 border border-white/5">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5 border border-white/5">
         <div
           className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-500"
           style={{ width: `${score ?? 0}%` }}
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
+      <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-white/5 text-center">
         {contract.risk.map((item) => (
-          <div key={item.label} className="text-center p-2 rounded bg-white/[0.02] border border-white/5">
-            <span className={`text-[10px] font-bold block ${riskTone(item.label)}`}>{label(item.label)}</span>
-            <span className="text-xs font-bold text-white mt-1 block">{item.count} posts</span>
+          <div key={item.label} className="p-1.5 rounded bg-white/[0.02] border border-white/5">
+            <span className={`text-[9px] font-bold block ${riskTone(item.label)}`}>{label(item.label)}</span>
+            <span className="text-[11px] font-bold text-white mt-0.5 block">{item.count}</span>
           </div>
         ))}
       </div>
@@ -432,33 +428,34 @@ function SentimentDistribution({ contract }: { contract: InstagramUiContract }) 
   const maxItem = [...contract.sentiment].sort((a, b) => b.count - a.count)[0];
 
   return (
-    <div className="grid sm:grid-cols-2 items-center gap-4">
-      <div>
-        {sentimentData.length > 0 ? (
-          <DonutChart data={sentimentData} height={180} />
-        ) : (
-          <div className="flex h-44 items-center justify-center text-xs text-slate-500">Sem análise de sentimento</div>
-        )}
-      </div>
-      <div className="space-y-3">
-        <div className="p-3 rounded-lg bg-white/[0.03] border border-white/5">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Sentimento Predominante</span>
-          <span className="text-base font-black text-white mt-0.5 block">{label(maxItem?.label)}</span>
-          <span className="text-xs text-slate-400 font-semibold">
-            {total ? Math.round(((maxItem?.count ?? 0) / total) * 100) : 0}% da amostra analisada
+    <div className="flex flex-col justify-between h-full py-1 space-y-2">
+      <div className="grid grid-cols-2 items-center gap-2">
+        <div>
+          {sentimentData.length > 0 ? (
+            <DonutChart data={sentimentData} height={115} />
+          ) : (
+            <div className="flex h-24 items-center justify-center text-[10px] text-slate-500">Sem dados</div>
+          )}
+        </div>
+        <div className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-center">
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Predominante</span>
+          <span className="text-sm font-black text-white mt-0.5 block truncate">{label(maxItem?.label)}</span>
+          <span className="text-[10px] text-slate-400 font-semibold">
+            {total ? Math.round(((maxItem?.count ?? 0) / total) * 100) : 0}% da amostra
           </span>
         </div>
-        <div className="space-y-1.5">
-          {contract.sentiment.map((item) => (
-            <div key={item.label} className="flex justify-between items-center text-xs">
-              <span className="flex items-center gap-2 text-slate-300">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sentimentColors[item.label.toLowerCase()] ?? '#3b82f6' }} />
-                {label(item.label)}
-              </span>
-              <span className="font-bold text-white">{item.count}</span>
-            </div>
-          ))}
-        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1.5 border-t border-white/5">
+        {contract.sentiment.map((item) => (
+          <div key={item.label} className="flex justify-between items-center text-[10px]">
+            <span className="flex items-center gap-1.5 text-slate-300">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sentimentColors[item.label.toLowerCase()] ?? '#3b82f6' }} />
+              {label(item.label)}
+            </span>
+            <span className="font-bold text-white">{item.count}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -474,27 +471,28 @@ function ThemesRanking({
   onSelectTopic: (topic: string) => void;
 }) {
   if (!themes.length) {
-    return <div className="py-12 text-center text-xs text-slate-500 italic">Nenhum tema identificado pela IA no período.</div>;
+    return <div className="py-8 text-center text-xs text-slate-500 italic">Nenhum tema identificado.</div>;
   }
 
   const maxCount = themes[0]?.count || 1;
+  const topThemes = themes.slice(0, 5);
 
   return (
-    <div className="space-y-3">
-      {themes.slice(0, 6).map((theme) => {
+    <div className="space-y-1.5 flex flex-col justify-between h-full py-0.5">
+      {topThemes.map((theme) => {
         const pct = Math.min(100, Math.round((theme.count / maxCount) * 100));
         return (
           <button
             key={theme.label}
             type="button"
             onClick={() => onSelectTopic(theme.label)}
-            className="w-full text-left group space-y-1 p-1.5 rounded hover:bg-white/5 transition-colors focus:outline-none"
+            className="w-full text-left group space-y-0.5 p-1 rounded hover:bg-white/5 transition-colors focus:outline-none"
           >
-            <div className="flex justify-between text-xs font-semibold">
-              <span className="text-slate-200 group-hover:text-cyan-300 transition-colors line-clamp-1">{theme.label}</span>
-              <span className="text-cyan-400 font-bold ml-2 shrink-0">{theme.count} posts</span>
+            <div className="flex justify-between text-[11px] font-semibold">
+              <span className="text-slate-200 group-hover:text-cyan-300 transition-colors truncate max-w-[120px]">{theme.label}</span>
+              <span className="text-cyan-400 font-bold ml-1 shrink-0">{theme.count}</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5 border border-white/5">
+            <div className="h-1 w-full overflow-hidden rounded-full bg-white/5 border border-white/5">
               <div
                 className="h-full bg-cyan-400 group-hover:bg-cyan-300 transition-all duration-500 rounded-full"
                 style={{ width: `${pct}%` }}
@@ -518,10 +516,10 @@ function Performance({ contract }: { contract: InstagramUiContract }) {
   );
 
   return (
-    <div className="grid sm:grid-cols-3 gap-4">
+    <div className="grid sm:grid-cols-3 gap-3">
       {contract.performanceByType.map((group) => (
-        <div key={group.type} className="p-3.5 rounded-lg bg-[#080d18] border border-white/10 space-y-3">
-          <div className="flex items-center justify-between border-b border-white/5 pb-2">
+        <div key={group.type} className="p-3 rounded-lg bg-[#080d18] border border-white/10 space-y-2.5">
+          <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
             <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
               {group.type === 'REEL' ? <Play size={13} className="text-cyan-400" /> : group.type === 'CAROUSEL' ? <Layers size={13} className="text-purple-400" /> : null}
               {group.type}
@@ -559,22 +557,22 @@ function PriorityPostsTable({
   onOpen: (post: InstagramUiPost) => void;
   analyzedPostsCount: number;
 }) {
-  if (!posts.length) return <div className="py-8 text-center text-xs text-slate-500 italic">Sem posts prioritários no momento.</div>;
+  if (!posts.length) return <div className="py-6 text-center text-xs text-slate-500 italic">Sem posts prioritários no momento.</div>;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-xs text-slate-300">
         <thead className="border-b border-white/10 bg-white/[0.02] text-[10px] font-bold uppercase tracking-widest text-slate-400">
           <tr>
-            <th className="p-3">Post</th>
-            <th className="p-3">Candidato</th>
-            <th className="p-3">Formato</th>
-            <th className="p-3">Tema (IA)</th>
-            <th className="p-3">Engajamento</th>
-            <th className="p-3">Risco</th>
-            <th className="p-3">Sentimento</th>
-            <th className="p-3">Ação Recomendada</th>
-            <th className="p-3 text-right">Ação</th>
+            <th className="p-2.5">Post</th>
+            <th className="p-2.5">Candidato</th>
+            <th className="p-2.5">Formato</th>
+            <th className="p-2.5">Tema (IA)</th>
+            <th className="p-2.5">Engajamento</th>
+            <th className="p-2.5">Risco</th>
+            <th className="p-2.5">Sentimento</th>
+            <th className="p-2.5">Ação Recomendada</th>
+            <th className="p-2.5 text-right">Ação</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
@@ -583,49 +581,49 @@ function PriorityPostsTable({
             const actionText = recommendedActionText(p.analysis.recommendedAction, hasAnalysis);
             return (
               <tr key={p.id} className="hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => onOpen(p)}>
-                <td className="p-3 max-w-[200px] font-semibold text-white truncate group-hover:text-cyan-300">
+                <td className="p-2.5 max-w-[180px] font-semibold text-white truncate group-hover:text-cyan-300">
                   {p.caption || 'Sem legenda'}
                 </td>
-                <td className="p-3 font-semibold text-cyan-400 whitespace-nowrap">{p.candidateName || '—'}</td>
-                <td className="p-3 whitespace-nowrap">
+                <td className="p-2.5 font-semibold text-cyan-400 whitespace-nowrap">{p.candidateName || '—'}</td>
+                <td className="p-2.5 whitespace-nowrap">
                   <span className="px-2 py-0.5 rounded border border-cyan-400/20 bg-cyan-400/10 text-[10px] font-bold text-cyan-300">
                     {p.contentType}
                   </span>
                 </td>
-                <td className="p-3 max-w-[130px] truncate text-slate-300">
+                <td className="p-2.5 max-w-[120px] truncate text-slate-300">
                   {p.analysis.themes.length > 0 ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="truncate max-w-[95px] font-medium">{p.analysis.themes[0]}</span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="truncate max-w-[85px] font-medium">{p.analysis.themes[0]}</span>
                       {p.analysis.themes.length > 1 ? (
-                        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold text-cyan-300 shrink-0">
+                        <span className="rounded bg-white/10 px-1 py-0.2 text-[9px] font-bold text-cyan-300 shrink-0">
                           +{p.analysis.themes.length - 1}
                         </span>
                       ) : null}
                     </span>
                   ) : (
-                    <span className="text-slate-500 italic text-[11px]">TEMA INDISPONÍVEL</span>
+                    <span className="text-slate-500 italic text-[10px]">TEMA INDISPONÍVEL</span>
                   )}
                 </td>
-                <td className="p-3 font-bold text-white whitespace-nowrap">
+                <td className="p-2.5 font-bold text-white whitespace-nowrap">
                   {metric(p.metrics.likes)} likes / {metric(p.metrics.comments)} com.
                 </td>
-                <td className="p-3 whitespace-nowrap">
+                <td className="p-2.5 whitespace-nowrap">
                   <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold ${riskTone(p.analysis.risk)}`}>
                     {label(p.analysis.risk)}
                   </span>
                 </td>
-                <td className="p-3 whitespace-nowrap font-medium text-slate-300">{label(p.analysis.sentiment)}</td>
-                <td className="p-3 max-w-xs truncate text-slate-300 font-medium">
+                <td className="p-2.5 whitespace-nowrap font-medium text-slate-300">{label(p.analysis.sentiment)}</td>
+                <td className="p-2.5 max-w-xs truncate text-slate-300 font-medium">
                   {actionText}
                 </td>
-                <td className="p-3 text-right whitespace-nowrap">
+                <td className="p-2.5 text-right whitespace-nowrap">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onOpen(p);
                     }}
-                    className="px-3 py-1 rounded bg-cyan-400/10 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-400 hover:text-black font-bold uppercase text-[10px] tracking-wider transition-all"
+                    className="px-2.5 py-0.5 rounded bg-cyan-400/10 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-400 hover:text-black font-bold uppercase text-[10px] tracking-wider transition-all"
                   >
                     Detalhes
                   </button>
@@ -646,10 +644,10 @@ function CompactPostCard({ post, onOpen }: { post: InstagramUiPost; onOpen: () =
       <button
         type="button"
         onClick={onOpen}
-        className="p-3 text-left w-full focus:outline-none flex-1 flex flex-col justify-between"
+        className="p-2.5 text-left w-full focus:outline-none flex-1 flex flex-col justify-between"
       >
         <div>
-          <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
             <span className="rounded border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[9px] font-bold tracking-wider text-cyan-300">
               {post.contentType}
             </span>
@@ -661,9 +659,9 @@ function CompactPostCard({ post, onOpen }: { post: InstagramUiPost; onOpen: () =
             {post.caption || 'Publicação sem legenda.'}
           </p>
         </div>
-        <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2 text-[10px] text-slate-400">
+        <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-1.5 text-[10px] text-slate-400">
           <span className="truncate max-w-[100px] font-semibold text-slate-300">{post.candidateName || '—'}</span>
-          <span className="flex gap-2.5 font-bold">
+          <span className="flex gap-2 font-bold">
             <i className="flex items-center gap-1 not-italic"><Heart size={11} className="text-slate-400" />{metric(post.metrics.likes)}</i>
             <i className="flex items-center gap-1 not-italic"><MessageCircle size={11} className="text-slate-400" />{metric(post.metrics.comments)}</i>
           </span>
@@ -687,15 +685,15 @@ function StrategicPostsTable({
       <table className="w-full text-left text-xs text-slate-300">
         <thead className="border-b border-white/10 bg-white/[0.02] text-[10px] font-bold uppercase tracking-widest text-slate-400">
           <tr>
-            <th className="p-3">Data</th>
-            <th className="p-3">Candidato</th>
-            <th className="p-3">Conteúdo</th>
-            <th className="p-3">Tema IA</th>
-            <th className="p-3">Sentimento</th>
-            <th className="p-3">Risco</th>
-            <th className="p-3">Motivo Risco</th>
-            <th className="p-3">Ação Recomendada</th>
-            <th className="p-3 text-right">Ação</th>
+            <th className="p-2.5">Data</th>
+            <th className="p-2.5">Candidato</th>
+            <th className="p-2.5">Conteúdo</th>
+            <th className="p-2.5">Tema IA</th>
+            <th className="p-2.5">Sentimento</th>
+            <th className="p-2.5">Risco</th>
+            <th className="p-2.5">Motivo Risco</th>
+            <th className="p-2.5">Ação Recomendada</th>
+            <th className="p-2.5 text-right">Ação</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
@@ -705,19 +703,19 @@ function StrategicPostsTable({
             const actionText = recommendedActionText(p.analysis.recommendedAction, hasAnalysis);
             return (
               <tr key={p.id} className="hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onOpen(p)}>
-                <td className="p-3 whitespace-nowrap text-slate-400">{dateStr}</td>
-                <td className="p-3 font-semibold text-cyan-400 whitespace-nowrap">{p.candidateName || '—'}</td>
-                <td className="p-3 max-w-xs truncate font-medium text-white">{p.caption || 'Sem legenda'}</td>
-                <td className="p-3 max-w-[120px] truncate text-slate-300">{p.analysis.themes[0] || '—'}</td>
-                <td className="p-3 whitespace-nowrap">{label(p.analysis.sentiment)}</td>
-                <td className="p-3 whitespace-nowrap">
+                <td className="p-2.5 whitespace-nowrap text-slate-400">{dateStr}</td>
+                <td className="p-2.5 font-semibold text-cyan-400 whitespace-nowrap">{p.candidateName || '—'}</td>
+                <td className="p-2.5 max-w-[200px] truncate font-medium text-white">{p.caption || 'Sem legenda'}</td>
+                <td className="p-2.5 max-w-[120px] truncate text-slate-300">{p.analysis.themes[0] || '—'}</td>
+                <td className="p-2.5 whitespace-nowrap">{label(p.analysis.sentiment)}</td>
+                <td className="p-2.5 whitespace-nowrap">
                   <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold ${riskTone(p.analysis.risk)}`}>
                     {label(p.analysis.risk)}
                   </span>
                 </td>
-                <td className="p-3 max-w-xs truncate text-slate-400">{p.analysis.riskReason || '—'}</td>
-                <td className="p-3 max-w-xs truncate text-slate-300 italic">{actionText}</td>
-                <td className="p-3 text-right whitespace-nowrap">
+                <td className="p-2.5 max-w-xs truncate text-slate-400">{p.analysis.riskReason || '—'}</td>
+                <td className="p-2.5 max-w-xs truncate text-slate-300 font-medium">{actionText}</td>
+                <td className="p-2.5 text-right whitespace-nowrap">
                   <button
                     type="button"
                     onClick={(e) => {
