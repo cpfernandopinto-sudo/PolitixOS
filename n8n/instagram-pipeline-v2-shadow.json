@@ -1,0 +1,417 @@
+{
+  "name": "PolitixOS — Instagram — Pipeline V2",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "v2-manual-trigger",
+      "name": "Manual Shadow Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-1180, -120]
+    },
+    {
+      "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 6}]}},
+      "id": "v2-schedule-trigger",
+      "name": "Shadow Schedule — INTERNAL 6h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1180, 80],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{pipeline_version:'v2',shadow_mode:true,manual_test:true,max_targets_per_run:1,max_posts_per_target:3,max_comment_pages_per_post:1,max_reply_pages:1,max_enrichments_per_run:1,started_at:new Date().toISOString(),limits_kind:'INTERNAL_SAFETY_LIMIT'}}];"
+      },
+      "id": "v2-config",
+      "name": "V2 Config & Guardrails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-940, -20]
+    },
+    {
+      "parameters": {
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/social_accounts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [
+          {"name": "select", "value": "id,target_id,handle,client_id"},
+          {"name": "platform", "value": "eq.instagram"},
+          {"name": "is_active", "value": "eq.true"},
+          {"name": "order", "value": "created_at.asc"}
+        ]},
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-load-accounts",
+      "name": "Load Instagram Accounts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-700, -20],
+      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('V2 Config & Guardrails').first().json; const flat=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const valid=flat.filter(a=>a.id&&a.target_id&&a.client_id&&a.handle); if(!valid.length) throw new Error('STRUCTURAL: no valid Instagram account with client_id'); return valid.slice(0,cfg.max_targets_per_run).map(a=>({json:{...a,...cfg}}));"
+      },
+      "id": "v2-validate-accounts",
+      "name": "Validate Tenant Scope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, -20]
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-api18.p.rapidapi.com/user/posts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "username", "value": "={{ $json.handle }}"}]},
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-user-posts",
+      "name": "CORE — GET user posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, -420],
+      "credentials": {"httpHeaderAuth": {"id": "uFExF6u1ruQ1MUb1", "name": "x-rapidapi-key"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const account=$('Validate Tenant Scope').item.json; const r=$json; if(r.error||r.success===false) return [{json:{_v2_error:'user_posts_failed',account,raw_error:r.message||r.error||'provider error'}}]; const items=r.items||r.data?.items||r.data||[]; return items.slice(0,account.max_posts_per_target).map(p=>{const id=String(p.id||p.pk||p.media_id||''); if(!id)return null; const mt=Number(p.media_type); const mediaType=mt===1?'image':mt===2?'video':mt===8?'carousel':String(p.media_type||'other').toLowerCase(); const image=p.image_versions2?.candidates?.[0]?.url||p.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url||null; const video=p.video_versions?.[0]?.url||null; return {json:{target_id:account.target_id,social_account_id:account.id,client_id:account.client_id,platform:'instagram',platform_post_id:id,shortcode:p.code||p.shortcode||null,post_url:(p.code||p.shortcode)?`https://www.instagram.com/p/${p.code||p.shortcode}/`:null,caption:typeof p.caption==='string'?p.caption:(p.caption?.text||null),media_type:mediaType,media_url:video||image,like_count:p.like_count??null,comment_count:p.comment_count??null,share_count:p.share_count??null,view_count:p.play_count??p.view_count??null,taken_at:p.taken_at?new Date(Number(p.taken_at)*1000).toISOString():null,raw_json:p,collected_at:new Date().toISOString()}}}).filter(Boolean);"
+      },
+      "id": "v2-normalize-posts",
+      "name": "Normalize Posts — Canonical Contract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, -420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/social_posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "on_conflict", "value": "platform,platform_post_id"}]},
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Prefer", "value": "resolution=merge-duplicates,return=representation"}]},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-upsert-posts",
+      "name": "UPSERT social_posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, -420],
+      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/social_posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [
+          {"name": "select", "value": "id,target_id,social_account_id,client_id,platform_post_id,shortcode,content_type,raw_json"},
+          {"name": "platform", "value": "eq.instagram"},
+          {"name": "social_account_id", "value": "={{ 'eq.' + $json.id }}"},
+          {"name": "order", "value": "taken_at.desc"},
+          {"name": "limit", "value": "={{ $json.max_posts_per_target }}"}
+        ]},
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-load-posts",
+      "name": "Load Posts for Comments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, -100],
+      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"jsCode": "const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); return rows.filter(p=>p.id&&p.client_id&&p.shortcode).map(p=>({json:p}));"},
+      "id": "v2-prepare-comment-posts",
+      "name": "Prepare Comment Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, -100]
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-api18.p.rapidapi.com/post/comments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "shortcode", "value": "={{ $json.shortcode }}"}]},
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-post-comments",
+      "name": "CORE — GET post comments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, -100],
+      "credentials": {"httpHeaderAuth": {"id": "uFExF6u1ruQ1MUb1", "name": "x-rapidapi-key"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const post=$('Prepare Comment Sources').item.json; const r=$json; if(r.error||r.success===false)return []; const rows=r.comments||r.items||r.data?.comments||r.data?.items||r.data||[]; return (Array.isArray(rows)?rows:[]).map(c=>{const cid=String(c.pk||c.id||c.comment_id||''); if(!cid)return null; return {json:{post_id:post.id,target_id:post.target_id,client_id:post.client_id,instagram_comment_id:cid,comment_user:c.user?.username||c.username||c.user_name||null,comment_text:c.text||c.comment_text||null,like_count:c.comment_like_count??c.like_count??null,created_at_instagram:c.created_at||c.created_at_utc?new Date(Number(c.created_at||c.created_at_utc)*1000).toISOString():null,raw_json:c,collected_at:new Date().toISOString()}}}).filter(Boolean);"
+      },
+      "id": "v2-normalize-comments",
+      "name": "Normalize Comments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/instagram_comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "on_conflict", "value": "instagram_comment_id"}]},
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Prefer", "value": "resolution=merge-duplicates,return=representation"}]},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-upsert-comments",
+      "name": "UPSERT instagram_comments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, -100],
+      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('V2 Config & Guardrails').first().json; const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); return rows.filter(p=>['REEL','CAROUSEL'].includes(p.content_type)&&p.shortcode).slice(0,cfg.max_enrichments_per_run).map(p=>({json:p}));"
+      },
+      "id": "v2-enrichment-decision",
+      "name": "Enrichment Decision — Selective",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 180]
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-api18.p.rapidapi.com/post",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "shortcode", "value": "={{ $json.shortcode }}"}]},
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-post-enrichment",
+      "name": "ENRICH — GET post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, 180],
+      "credentials": {"httpHeaderAuth": {"id": "uFExF6u1ruQ1MUb1", "name": "x-rapidapi-key"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const source=$('Enrichment Decision — Selective').item.json; const r=$json; if(r.error||r.success===false)return []; const detail=r.data||r.item||r; return [{json:{id:source.id,raw_json:{...source.raw_json,_v2_enrichment:{collected_at:new Date().toISOString(),source:'/post',payload:detail}}}}];"
+      },
+      "id": "v2-merge-enrichment",
+      "name": "Merge Enrichment into raw_json",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 180]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/social_posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "id", "value": "={{ 'eq.' + $json.id }}"}]},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({raw_json:$json.raw_json}) }}",
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-save-enrichment",
+      "name": "PATCH enrichment raw_json only",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 180],
+      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('V2 Config & Guardrails').first().json; const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const candidates=rows.filter(c=>{const r=c.raw_json||{}; return Number(r.child_comment_count??r.reply_count??r.preview_child_comments?.length??0)>0;}); return candidates.slice(0,cfg.max_posts_per_target).map(c=>({json:{...c,max_reply_pages:cfg.max_reply_pages}}));"
+      },
+      "id": "v2-reply-decision",
+      "name": "Reply Decision — child count only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, -100]
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-api18.p.rapidapi.com/post/comment/replies",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "comment_id", "value": "={{ $json.instagram_comment_id }}"}]},
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-comment-replies",
+      "name": "SELECTIVE — GET comment replies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1260, -100],
+      "credentials": {"httpHeaderAuth": {"id": "uFExF6u1ruQ1MUb1", "name": "x-rapidapi-key"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parent=$('Reply Decision — child count only').item.json; const r=$json; if(r.error||r.success===false)return []; const rows=r.replies||r.items||r.data?.replies||r.data?.items||r.data||[]; return (Array.isArray(rows)?rows:[]).map(c=>{const cid=String(c.pk||c.id||c.comment_id||''); if(!cid)return null; return {json:{post_id:parent.post_id,target_id:parent.target_id,client_id:parent.client_id,parent_comment_id:parent.id,instagram_comment_id:cid,comment_user:c.user?.username||c.username||null,comment_text:c.text||null,like_count:c.comment_like_count??c.like_count??null,created_at_instagram:c.created_at?new Date(Number(c.created_at)*1000).toISOString():null,raw_json:c,collected_at:new Date().toISOString()}}}).filter(Boolean);"
+      },
+      "id": "v2-normalize-replies",
+      "name": "Normalize Replies with Parent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/instagram_comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "on_conflict", "value": "instagram_comment_id"}]},
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Prefer", "value": "resolution=merge-duplicates,return=representation"}]},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-upsert-replies",
+      "name": "UPSERT replies in instagram_comments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, -100],
+      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); const failed=rows.some(i=>i.json?.error); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:failed?'error':'success',posts_collected:rows.length,comments_collected:0,error_message:failed?'posts stage returned an error':null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'posts',calls_user_posts:1,calls_post_comments:0,calls_post_enrichment:0,calls_replies:0,ai_calls:0,limits_kind:a.limits_kind,max_posts_per_target:a.max_posts_per_target,max_comment_pages_per_post:a.max_comment_pages_per_post,max_reply_pages:a.max_reply_pages,max_enrichments_per_run:a.max_enrichments_per_run}}}];"
+      },
+      "id": "v2-prepare-log",
+      "name": "Prepare V2 Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, -420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/collection_logs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "v2-write-log",
+      "name": "Write collection_logs metadata=v2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, -420],
+      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:'success',posts_collected:0,comments_collected:rows.length,error_message:null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'comments',calls_user_posts:0,calls_post_comments:a.max_posts_per_target,calls_post_enrichment:0,calls_replies:0,ai_calls:0}}}];"
+      },
+      "id": "v2-comments-log",
+      "name": "Prepare V2 Comments Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, -260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:'success',posts_collected:0,comments_collected:0,error_message:null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'enrichment',enrichments:rows.length,calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:rows.length,calls_replies:0,ai_calls:0}}}];"
+      },
+      "id": "v2-enrichment-log",
+      "name": "Prepare V2 Enrichment Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:'success',posts_collected:0,comments_collected:rows.length,error_message:null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'replies',replies:rows.length,calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:0,calls_replies:1,ai_calls:0,max_reply_pages:a.max_reply_pages}}}];"
+      },
+      "id": "v2-replies-log",
+      "name": "Prepare V2 Replies Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, -100]
+    }
+  ],
+  "connections": {
+    "Manual Shadow Test": {"main": [[{"node": "V2 Config & Guardrails", "type": "main", "index": 0}]]},
+    "Shadow Schedule — INTERNAL 6h": {"main": [[{"node": "V2 Config & Guardrails", "type": "main", "index": 0}]]},
+    "V2 Config & Guardrails": {"main": [[{"node": "Load Instagram Accounts", "type": "main", "index": 0}]]},
+    "Load Instagram Accounts": {"main": [[{"node": "Validate Tenant Scope", "type": "main", "index": 0}]]},
+    "Validate Tenant Scope": {"main": [[{"node": "CORE — GET user posts", "type": "main", "index": 0},{"node": "Load Posts for Comments", "type": "main", "index": 0}]]},
+    "CORE — GET user posts": {"main": [[{"node": "Normalize Posts — Canonical Contract", "type": "main", "index": 0}]]},
+    "Normalize Posts — Canonical Contract": {"main": [[{"node": "UPSERT social_posts", "type": "main", "index": 0}]]},
+    "UPSERT social_posts": {"main": [[{"node": "Prepare V2 Log", "type": "main", "index": 0}]]},
+    "Prepare V2 Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
+    "Load Posts for Comments": {"main": [[{"node": "Prepare Comment Sources", "type": "main", "index": 0},{"node": "Enrichment Decision — Selective", "type": "main", "index": 0}]]},
+    "Prepare Comment Sources": {"main": [[{"node": "CORE — GET post comments", "type": "main", "index": 0}]]},
+    "CORE — GET post comments": {"main": [[{"node": "Normalize Comments", "type": "main", "index": 0}]]},
+    "Normalize Comments": {"main": [[{"node": "UPSERT instagram_comments", "type": "main", "index": 0}]]},
+    "UPSERT instagram_comments": {"main": [[{"node": "Reply Decision — child count only", "type": "main", "index": 0},{"node": "Prepare V2 Comments Log", "type": "main", "index": 0}]]},
+    "Prepare V2 Comments Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
+    "Reply Decision — child count only": {"main": [[{"node": "SELECTIVE — GET comment replies", "type": "main", "index": 0}]]},
+    "SELECTIVE — GET comment replies": {"main": [[{"node": "Normalize Replies with Parent", "type": "main", "index": 0}]]},
+    "Normalize Replies with Parent": {"main": [[{"node": "UPSERT replies in instagram_comments", "type": "main", "index": 0}]]},
+    "UPSERT replies in instagram_comments": {"main": [[{"node": "Prepare V2 Replies Log", "type": "main", "index": 0}]]},
+    "Prepare V2 Replies Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
+    "Enrichment Decision — Selective": {"main": [[{"node": "ENRICH — GET post", "type": "main", "index": 0}]]},
+    "ENRICH — GET post": {"main": [[{"node": "Merge Enrichment into raw_json", "type": "main", "index": 0}]]},
+    "Merge Enrichment into raw_json": {"main": [[{"node": "PATCH enrichment raw_json only", "type": "main", "index": 0}]]},
+    "PATCH enrichment raw_json only": {"main": [[{"node": "Prepare V2 Enrichment Log", "type": "main", "index": 0}]]},
+    "Prepare V2 Enrichment Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "America/Sao_Paulo", "saveExecutionProgress": true},
+  "pinData": {},
+  "meta": {"templateCredsSetupCompleted": true, "pipeline_version": "v2", "shadow_mode": true},
+  "tags": []
+}
