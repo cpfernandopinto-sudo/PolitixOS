@@ -569,6 +569,7 @@ function PriorityPostsTable({
             <th className="p-3">Post</th>
             <th className="p-3">Candidato</th>
             <th className="p-3">Formato</th>
+            <th className="p-3">Tema (IA)</th>
             <th className="p-3">Engajamento</th>
             <th className="p-3">Risco</th>
             <th className="p-3">Sentimento</th>
@@ -582,7 +583,7 @@ function PriorityPostsTable({
             const actionText = recommendedActionText(p.analysis.recommendedAction, hasAnalysis);
             return (
               <tr key={p.id} className="hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => onOpen(p)}>
-                <td className="p-3 max-w-xs font-semibold text-white truncate group-hover:text-cyan-300">
+                <td className="p-3 max-w-[200px] font-semibold text-white truncate group-hover:text-cyan-300">
                   {p.caption || 'Sem legenda'}
                 </td>
                 <td className="p-3 font-semibold text-cyan-400 whitespace-nowrap">{p.candidateName || '—'}</td>
@@ -590,6 +591,20 @@ function PriorityPostsTable({
                   <span className="px-2 py-0.5 rounded border border-cyan-400/20 bg-cyan-400/10 text-[10px] font-bold text-cyan-300">
                     {p.contentType}
                   </span>
+                </td>
+                <td className="p-3 max-w-[130px] truncate text-slate-300">
+                  {p.analysis.themes.length > 0 ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="truncate max-w-[95px] font-medium">{p.analysis.themes[0]}</span>
+                      {p.analysis.themes.length > 1 ? (
+                        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold text-cyan-300 shrink-0">
+                          +{p.analysis.themes.length - 1}
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 italic text-[11px]">TEMA INDISPONÍVEL</span>
+                  )}
                 </td>
                 <td className="p-3 font-bold text-white whitespace-nowrap">
                   {metric(p.metrics.likes)} likes / {metric(p.metrics.comments)} com.
@@ -600,7 +615,7 @@ function PriorityPostsTable({
                   </span>
                 </td>
                 <td className="p-3 whitespace-nowrap font-medium text-slate-300">{label(p.analysis.sentiment)}</td>
-                <td className="p-3 max-w-xs truncate text-slate-400 italic">
+                <td className="p-3 max-w-xs truncate text-slate-300 font-medium">
                   {actionText}
                 </td>
                 <td className="p-3 text-right whitespace-nowrap">
@@ -891,9 +906,9 @@ function PostDrawer({
             </div>
           </section>
 
-          {post.analysis.themes.length ? (
-            <section>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Temas Detectados</h3>
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Temas Detectados</h3>
+            {post.analysis.themes.length ? (
               <div className="flex flex-wrap gap-2">
                 {post.analysis.themes.map((theme) => (
                   <span key={theme} className="rounded bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-slate-300 font-medium">
@@ -901,8 +916,10 @@ function PostDrawer({
                   </span>
                 ))}
               </div>
-            </section>
-          ) : null}
+            ) : (
+              <p className="text-xs text-slate-500 italic">TEMA INDISPONÍVEL</p>
+            )}
+          </section>
 
           <section>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Comentários Coletados ({comments.length})</h3>

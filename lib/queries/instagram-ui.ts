@@ -11,7 +11,7 @@ const POSTGREST_IN_BATCH_SIZE = 150;
 
 const POST_FIELDS = 'id,target_id,client_id,platform,caption,content_type,media_type,media_url,post_url,taken_at,collected_at,like_count,comment_count,raw_json';
 const COMMENT_FIELDS = 'id,instagram_comment_id,post_id,parent_comment_id,comment_user,comment_text,like_count,created_at_instagram,collected_at,client_id,target_id';
-const ANALYSIS_FIELDS = 'content_id,sentiment,risk_level,ai_topics,summary,risk_reason,client_id,target_id';
+const ANALYSIS_FIELDS = 'content_id,sentiment,risk_level,ai_topics,summary,risk_reason,recommended_action,client_id,target_id';
 
 export function chunkInstagramPostIds(ids: string[], size = POSTGREST_IN_BATCH_SIZE): string[][] {
   const safeSize = Math.max(1, Math.floor(size));
