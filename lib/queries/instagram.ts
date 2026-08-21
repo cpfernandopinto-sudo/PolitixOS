@@ -7,6 +7,8 @@ import { createAdminClient } from '@/lib/supabaseClient';
 // sessão real (este projeto não usa Supabase Auth).
 import { withTiming } from '@/lib/perf/timing';
 import { withCanonicalContentType } from '@/lib/instagram/content-type';
+import { normalizeInstagramContentTypeFilter } from '@/lib/instagram/ui-contract';
+import type { InstagramContentType } from '@/lib/instagram/content-type';
 // NOTA: React.cache() foi REMOVIDO propositalmente.
 // O cache do React deduplicava chamadas com objetos diferentes de filtros,
 // causando retorno de dados sem restrição quando getInstagramFiltersOptions()
@@ -32,6 +34,8 @@ export interface InstagramFilters {
    * (só deve acontecer em contextos puramente internos sem usuário logado).
    */
   allowedTargetIds?: string[] | null;
+  /** Filtro canônico exclusivo do Instagram. Ausente preserva a UI atual. */
+  contentTypes?: InstagramContentType[] | null;
 }
 
 function parseJsonField(value: unknown): string[] {
@@ -94,6 +98,11 @@ export async function fetchInstagramData(filters?: InstagramFilters) {
 
   // 2. Posts Fetch — filtrar por allowedTargetIds + candidate(s)
   let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
+
+  const contentTypes = normalizeInstagramContentTypeFilter(filters?.contentTypes ?? undefined);
+  if (contentTypes.length > 0) {
+    pQuery = pQuery.in('content_type', contentTypes);
+  }
 
   // Restrição de acesso: aplica .in() apenas para não-admin com targets definidos
   if (restricted && filters!.allowedTargetIds!.length > 0) {
