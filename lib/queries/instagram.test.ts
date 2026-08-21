@@ -15,6 +15,7 @@ function post(overrides: Partial<{ like_count: number; comment_count: number; se
     video_url: null,
     thumbnail_url: null,
     media_type: null,
+    content_type: null,
     sentiment: 'neutro',
     risk: 'baixo',
     topic: 'Sem análise',

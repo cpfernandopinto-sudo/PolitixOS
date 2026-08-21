@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabaseClient';
 // RLS acessíveis pela chave anônima, que hoje não corresponde a nenhuma
 // sessão real (este projeto não usa Supabase Auth).
 import { withTiming } from '@/lib/perf/timing';
+import { withCanonicalContentType } from '@/lib/instagram/content-type';
 // NOTA: React.cache() foi REMOVIDO propositalmente.
 // O cache do React deduplicava chamadas com objetos diferentes de filtros,
 // causando retorno de dados sem restrição quando getInstagramFiltersOptions()
@@ -183,7 +184,8 @@ export async function fetchInstagramData(filters?: InstagramFilters) {
   for (const a of (aiResult.data as any[]) || []) aiMap.set(a.content_id, a);
 
   // 5. Map Posts + AI + candidate_name
-  let posts = postsData.map(p => {
+  let posts = postsData.map(rawPost => {
+    const p = withCanonicalContentType(rawPost);
     const ai = aiMap.get(p.id);
     return {
       id: p.id,
@@ -198,6 +200,7 @@ export async function fetchInstagramData(filters?: InstagramFilters) {
       video_url: p.video_url || null,
       thumbnail_url: p.thumbnail_url || null,
       media_type: p.media_type || null,
+      content_type: p.content_type,
       sentiment: ai?.sentiment || 'Sem análise',
       risk: ai?.risk_level || 'Sem análise',
       topic: (parseJsonField(ai?.ai_topics))[0] || 'Sem análise',
