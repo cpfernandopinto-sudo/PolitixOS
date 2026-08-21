@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{json:{pipeline_version:'v2',shadow_mode:true,manual_test:true,max_targets_per_run:1,max_posts_per_target:3,max_comment_pages_per_post:1,max_reply_pages:1,max_enrichments_per_run:1,started_at:new Date().toISOString(),limits_kind:'INTERNAL_SAFETY_LIMIT'}}];"
+        "jsCode": "return [{json:{pipeline_version:'v2',shadow_mode:true,manual_test:true,max_targets_per_run:1,max_posts_per_target:10,max_comment_pages_per_post:1,max_reply_pages:1,max_enrichments_per_run:1,started_at:new Date().toISOString(),limits_kind:'INTERNAL_SAFETY_LIMIT'}}];"
       },
       "id": "v2-config",
       "name": "V2 Config & Guardrails",
@@ -66,7 +66,7 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
-        "queryParameters": {"parameters": [{"name": "username", "value": "={{ $json.handle }}"}]},
+        "queryParameters": {"parameters": [{"name": "handle", "value": "={{ $json.handle }}"}]},
         "sendHeaders": true,
         "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
         "options": {"response": {"response": {"neverError": true}}}
@@ -323,7 +323,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); const failed=rows.some(i=>i.json?.error); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:failed?'error':'success',posts_collected:rows.length,comments_collected:0,error_message:failed?'posts stage returned an error':null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'posts',calls_user_posts:1,calls_post_comments:0,calls_post_enrichment:0,calls_replies:0,ai_calls:0,limits_kind:a.limits_kind,max_posts_per_target:a.max_posts_per_target,max_comment_pages_per_post:a.max_comment_pages_per_post,max_reply_pages:a.max_reply_pages,max_enrichments_per_run:a.max_enrichments_per_run}}}];"
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const normalized=$('Normalize Posts — Canonical Contract').all(); const normalizeError=normalized.find(i=>i.json?._v2_error); const discovered=normalized.filter(i=>!i.json?._v2_error).length; const results=$input.all(); const upsertError=results.find(i=>i.json?.error||i.json?.code||Number(i.json?.statusCode)>=400); const failed=Boolean(normalizeError||upsertError); const failureMessage=normalizeError?.json?.raw_error||upsertError?.json?.message||upsertError?.json?.error||null; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:failed?'error':'success',posts_collected:failed?0:discovered,comments_collected:0,error_message:failed?String(failureMessage||'posts stage returned an error'):null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'posts',calls_user_posts:1,calls_post_comments:0,calls_post_enrichment:0,calls_replies:0,rapidapi_calls_total:1,ai_calls:0,posts_discovered:discovered,posts_upserted:failed?0:discovered,posts_skipped:failed?discovered:0,comments_discovered:0,comments_upserted:0,comments_skipped:0,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failed?1:0,warnings_count:failed?1:0,limits_kind:a.limits_kind,max_posts_per_target:a.max_posts_per_target,max_comment_pages_per_post:a.max_comment_pages_per_post,max_reply_pages:a.max_reply_pages,max_enrichments_per_run:a.max_enrichments_per_run}}}];"
       },
       "id": "v2-prepare-log",
       "name": "Prepare V2 Log",
@@ -353,7 +353,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:'success',posts_collected:0,comments_collected:rows.length,error_message:null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'comments',calls_user_posts:0,calls_post_comments:a.max_posts_per_target,calls_post_enrichment:0,calls_replies:0,ai_calls:0}}}];"
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const calls=$('Prepare Comment Sources').all().length; const discovered=$('Normalize Comments').all().filter(i=>i.json?.instagram_comment_id).length; const results=$input.all(); const failed=results.some(i=>i.json?.error||i.json?.code>=400); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:failed?'error':'success',posts_collected:0,comments_collected:discovered,error_message:failed?'comments upsert stage returned an error':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',calls_user_posts:0,calls_post_comments:calls,calls_post_enrichment:0,calls_replies:0,rapidapi_calls_total:calls,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:discovered,comments_upserted:failed?0:discovered,comments_skipped:failed?discovered:0,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failed?1:0,warnings_count:0}}}];"
       },
       "id": "v2-comments-log",
       "name": "Prepare V2 Comments Log",
@@ -363,7 +363,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:'success',posts_collected:0,comments_collected:0,error_message:null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'enrichment',enrichments:rows.length,calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:rows.length,calls_replies:0,ai_calls:0}}}];"
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const attempted=$('Enrichment Decision — Selective').all().length; const results=$input.all(); const failedItems=results.filter(i=>i.json?.error||i.json?.code>=400).length; const success=Math.max(0,attempted-failedItems); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:failedItems?'partial':'success',posts_collected:0,comments_collected:0,error_message:failedItems?'one or more enrichment calls failed':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'enrichment',calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:attempted,calls_replies:0,rapidapi_calls_total:attempted,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:0,comments_upserted:0,comments_skipped:0,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:attempted,enrichments_success:success,enrichments_failed:failedItems,errors_count:failedItems,warnings_count:0}}}];"
       },
       "id": "v2-enrichment-log",
       "name": "Prepare V2 Enrichment Log",
@@ -373,7 +373,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const a=$('Validate Tenant Scope').first().json; const rows=$input.all(); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:'success',posts_collected:0,comments_collected:rows.length,error_message:null,metadata:{pipeline_version:'v2',shadow_mode:true,stage:'replies',replies:rows.length,calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:0,calls_replies:1,ai_calls:0,max_reply_pages:a.max_reply_pages}}}];"
+        "jsCode": "const a=$('Validate Tenant Scope').first().json; const calls=$('Reply Decision — child count only').all().length; const discovered=$('Normalize Replies with Parent').all().filter(i=>i.json?.instagram_comment_id).length; const results=$input.all(); const failed=results.some(i=>i.json?.error||i.json?.code>=400); return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:failed?'error':'success',posts_collected:0,comments_collected:discovered,error_message:failed?'replies upsert stage returned an error':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'replies',calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:0,calls_replies:calls,rapidapi_calls_total:calls,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:0,comments_upserted:0,comments_skipped:0,replies_discovered:discovered,replies_upserted:failed?0:discovered,replies_skipped:failed?discovered:0,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failed?1:0,warnings_count:0,reply_pagination:'NOT_CONFIRMED',max_reply_pages:a.max_reply_pages}}}];"
       },
       "id": "v2-replies-log",
       "name": "Prepare V2 Replies Log",
