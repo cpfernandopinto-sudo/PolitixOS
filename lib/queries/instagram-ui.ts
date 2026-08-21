@@ -96,8 +96,23 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
   if (analysesError) throw new Error(`Instagram analysis query failed: ${analysesError.message}`);
   const analyses = analysesResults.flatMap((result) => result.data ?? []);
   const normalizedRisk = query.risk?.trim().toLocaleLowerCase('pt-BR') ?? '';
-  const matchingAnalysisIds = normalizedRisk
-    ? new Set(analyses.filter((analysis) => analysis.risk_level?.trim().toLocaleLowerCase('pt-BR') === normalizedRisk).map((analysis) => analysis.content_id))
+  const normalizedSentiment = query.sentiment?.trim().toLocaleLowerCase('pt-BR') ?? '';
+  const normalizedTopic = query.topic?.trim().toLocaleLowerCase('pt-BR') ?? '';
+  const hasAnalysisFilter = Boolean(normalizedRisk || normalizedSentiment || normalizedTopic);
+  const matchingAnalysisIds = hasAnalysisFilter
+    ? new Set(analyses.filter((analysis) => {
+        if (normalizedRisk && analysis.risk_level?.trim().toLocaleLowerCase('pt-BR') !== normalizedRisk) return false;
+        if (normalizedSentiment && analysis.sentiment?.trim().toLocaleLowerCase('pt-BR') !== normalizedSentiment) return false;
+        if (normalizedTopic) {
+          const topics = Array.isArray(analysis.ai_topics)
+            ? analysis.ai_topics
+            : typeof analysis.ai_topics === 'string'
+              ? (() => { try { return JSON.parse(analysis.ai_topics); } catch { return []; } })()
+              : [];
+          if (!topics.some((topic: unknown) => typeof topic === 'string' && topic.trim().toLocaleLowerCase('pt-BR') === normalizedTopic)) return false;
+        }
+        return true;
+      }).map((analysis) => analysis.content_id))
     : null;
   const filteredPosts = matchingAnalysisIds ? posts.filter((post) => matchingAnalysisIds.has(post.id)) : posts;
   const filteredPostIds = filteredPosts.map((post) => post.id);
@@ -106,8 +121,10 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
   const page = Math.max(1, Math.floor(query.page ?? 1));
   const pageSize = Math.min(100, Math.max(1, Math.floor(query.pageSize ?? 20)));
   const pagePostIds = filteredPosts.slice((page - 1) * pageSize, page * pageSize).map((post) => post.id);
+  const analysisByPost = new Map(analyses.map((analysis) => [analysis.content_id, analysis]));
+  const riskWeight = (postId: string) => /crít|crit|alto/i.test(analysisByPost.get(postId)?.risk_level ?? '') ? 3 : /médio|medio/i.test(analysisByPost.get(postId)?.risk_level ?? '') ? 2 : /baixo/i.test(analysisByPost.get(postId)?.risk_level ?? '') ? 1 : 0;
   const topPostIds = [...filteredPosts]
-    .sort((left, right) => (right.like_count ?? 0) - (left.like_count ?? 0) || (right.comment_count ?? 0) - (left.comment_count ?? 0))
+    .sort((left, right) => riskWeight(right.id) - riskWeight(left.id) || ((right.like_count ?? 0) + (right.comment_count ?? 0)) - ((left.like_count ?? 0) + (left.comment_count ?? 0)))
     .slice(0, 10)
     .map((post) => post.id);
   const commentPostIds = [...new Set([...pagePostIds, ...topPostIds])];

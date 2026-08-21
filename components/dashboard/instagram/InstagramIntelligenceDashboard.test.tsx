@@ -32,6 +32,8 @@ describe('InstagramIntelligenceDashboard', () => {
     fireEvent.click(screen.getAllByText('Análise de IA')[0]);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getAllByText('Responder')[0]).toBeInTheDocument();
+    expect(screen.getByText('Data 20/08/2026')).toBeInTheDocument();
+    expect(screen.getByText('Engajamento 29')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

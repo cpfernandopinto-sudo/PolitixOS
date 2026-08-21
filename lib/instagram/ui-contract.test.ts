@@ -144,4 +144,36 @@ describe('Instagram UI data contract', () => {
     expect(contract.topPosts.criterion).toBe('likes_desc_then_comments_desc');
     expect(contract.availability).toMatchObject({ reach: false, impressions: false, shares: false, saves: false, transcript: false });
   });
+
+  it('constrói pressão temporal com todo o recorte, não somente a página atual', () => {
+    const contract = buildInstagramUiContract({
+      posts: [
+        basePost({ id: 'p1', taken_at: '2026-08-19T12:00:00Z', like_count: 10, comment_count: 2 }),
+        basePost({ id: 'p2', taken_at: '2026-08-20T12:00:00Z', like_count: 20, comment_count: 3 }),
+      ],
+      comments: [], analyses: [], page: 2, pageSize: 1,
+    });
+    expect(contract.recentPosts).toHaveLength(1);
+    expect(contract.socialPressure).toEqual([
+      { date: '2026-08-19', comments: 2, engagement: 12 },
+      { date: '2026-08-20', comments: 3, engagement: 23 },
+    ]);
+  });
+
+  it('prioriza risco antes do engajamento e expõe apenas sentimentos suportados pelo recorte', () => {
+    const contract = buildInstagramUiContract({
+      posts: [
+        basePost({ id: 'baixo', like_count: 999, comment_count: 50 }),
+        basePost({ id: 'alto', like_count: 5, comment_count: 1 }),
+      ],
+      comments: [],
+      analyses: [
+        { content_id: 'baixo', risk_level: 'baixo', sentiment: 'positivo' },
+        { content_id: 'alto', risk_level: 'alto', sentiment: 'negativo' },
+      ],
+    });
+    expect(contract.priorityPosts.items.map((post) => post.id)).toEqual(['alto', 'baixo']);
+    expect(contract.priorityPosts.criterion).toBe('risk_desc_then_engagement_desc');
+    expect(contract.filterOptions.sentiments).toEqual(['negativo', 'positivo']);
+  });
 });

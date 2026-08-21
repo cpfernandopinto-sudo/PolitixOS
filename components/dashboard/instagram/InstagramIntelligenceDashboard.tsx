@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertTriangle, ChevronLeft, ChevronRight, ExternalLink, Heart, ImageOff,
-  MessageCircle, Play, X, Zap, ShieldAlert, TrendingUp, Layers, CheckCircle2
+  MessageCircle, Play, X, Zap, TrendingUp, Layers
 } from 'lucide-react';
 import DonutChart from '@/components/charts/DonutChart';
 import LineChart from '@/components/charts/LineChart';
@@ -16,6 +16,17 @@ const sentimentColors: Record<string, string> = { positivo: '#22c55e', neutro: '
 
 function metric(metricValue: InstagramMetric) {
   return metricValue.availability === 'AVAILABLE' ? nf.format(metricValue.value ?? 0) : '—';
+}
+
+function engagementMetric(post: InstagramUiPost): InstagramMetric {
+  if (post.metrics.likes.availability !== 'AVAILABLE' || post.metrics.comments.availability !== 'AVAILABLE') {
+    return { value: null, availability: 'UNAVAILABLE', source: null };
+  }
+  return {
+    value: (post.metrics.likes.value ?? 0) + (post.metrics.comments.value ?? 0),
+    availability: 'AVAILABLE',
+    source: post.metrics.likes.source === 'structured' && post.metrics.comments.source === 'structured' ? 'structured' : 'raw_json',
+  };
 }
 
 function label(value: string | null) {
@@ -51,54 +62,33 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
     const map = new Map<string, InstagramUiPost>();
     contract.recentPosts.forEach((p) => map.set(p.id, p));
     contract.topPosts.items.forEach((p) => map.set(p.id, p));
+    contract.priorityPosts.items.forEach((p) => map.set(p.id, p));
     return map;
-  }, [contract.recentPosts, contract.topPosts.items]);
+  }, [contract.recentPosts, contract.topPosts.items, contract.priorityPosts.items]);
 
   // --- Strategic Calculations ---
   const totalLikes = contract.performanceByType.reduce((sum, group) => sum + (group.likes.value ?? 0), 0);
   const totalPostComments = contract.performanceByType.reduce((sum, group) => sum + (group.comments.value ?? 0), 0);
   const dominantSentimentItem = contract.sentiment[0] ?? null;
   const dominantSentiment = dominantSentimentItem?.label ?? null;
-  const topFormat = [...contract.performanceByType].sort((a, b) => (b.likes.value ?? 0) - (a.likes.value ?? 0))[0]?.type ?? null;
+  const topFormat = [...contract.performanceByType].sort((a, b) => ((b.likes.value ?? 0) + (b.comments.value ?? 0)) - ((a.likes.value ?? 0) + (a.comments.value ?? 0)))[0]?.type ?? null;
   const criticalCount = contract.risk.filter(({ label: item }) => /alto|crít/i.test(item)).reduce((sum, item) => sum + item.count, 0);
   const criticalPct = contract.summary.posts ? Math.round((criticalCount / contract.summary.posts) * 100) : 0;
 
   // --- Highest Risk Post for Crisis Alert ---
   const criticalPost = useMemo(() => {
-    return contract.recentPosts.find((p) => /alto|crít/i.test(p.analysis.risk ?? '')) || contract.recentPosts[0] || null;
-  }, [contract.recentPosts]);
+    return contract.priorityPosts.items.find((p) => /alto|crít/i.test(p.analysis.risk ?? '')) ?? null;
+  }, [contract.priorityPosts.items]);
 
   // --- Temporal Pressure Series (Social Pressure over Time) ---
   const pressureSeriesData = useMemo(() => {
-    const dayMap: Record<string, { comments: number; engagement: number }> = {};
-    contract.comments.recent.forEach((c) => {
-      if (!c.publishedAt && !c.collectedAt) return;
-      const dateStr = c.publishedAt || c.collectedAt;
-      const day = new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-      if (!dayMap[day]) dayMap[day] = { comments: 0, engagement: 0 };
-      dayMap[day].comments++;
-    });
-    contract.recentPosts.forEach((p) => {
-      if (!p.publishedAt && !p.collectedAt) return;
-      const dateStr = p.publishedAt || p.collectedAt || '';
-      const day = new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-      if (!dayMap[day]) dayMap[day] = { comments: 0, engagement: 0 };
-      const eng = (p.metrics.likes.value ?? 0) + (p.metrics.comments.value ?? 0);
-      dayMap[day].engagement += eng;
-    });
-    const sorted = Object.entries(dayMap)
-      .map(([date, data]) => ({ date, ...data }))
-      .sort((a, b) => {
-        const [da, ma] = a.date.split('/').map(Number);
-        const [db, mb] = b.date.split('/').map(Number);
-        return (ma * 100 + da) - (mb * 100 + db);
-      });
+    const sorted = contract.socialPressure;
     return {
-      dates: sorted.map((d) => d.date),
+      dates: sorted.map((d) => new Date(`${d.date}T00:00:00Z`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })),
       comments: sorted.map((d) => d.comments),
       engagement: sorted.map((d) => d.engagement),
     };
-  }, [contract.comments.recent, contract.recentPosts]);
+  }, [contract.socialPressure]);
 
   // --- Topic click handler ---
   function handleTopicClick(topicName: string) {
@@ -113,39 +103,6 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
     const targetPost = allPostsMap.get(comment.postId);
     if (targetPost) {
       setSelectedPost(targetPost);
-    } else {
-      setSelectedPost({
-        id: comment.postId,
-        targetId: '',
-        candidateName: comment.candidateName,
-        contentType: 'IMAGE',
-        caption: comment.postCaption || 'Publicação relacionada ao comentário',
-        publishedAt: comment.publishedAt,
-        collectedAt: comment.collectedAt,
-        url: comment.postUrl,
-        mediaUrl: null,
-        metrics: {
-          likes: { value: null, availability: 'UNAVAILABLE', source: null },
-          comments: { value: null, availability: 'UNAVAILABLE', source: null },
-          plays: { value: null, availability: 'UNAVAILABLE', source: null },
-          views: { value: null, availability: 'UNAVAILABLE', source: null },
-          reach: { value: null, availability: 'UNAVAILABLE', source: null },
-          impressions: { value: null, availability: 'UNAVAILABLE', source: null },
-          shares: { value: null, availability: 'UNAVAILABLE', source: null },
-          saves: { value: null, availability: 'UNAVAILABLE', source: null },
-        },
-        analysis: {
-          sentiment: null,
-          risk: null,
-          themes: [],
-          summary: null,
-          riskReason: null,
-          recommendedAction: null,
-        },
-        reel: null,
-        carousel: null,
-        enrichment: { available: false, playCount: { value: null, availability: 'UNAVAILABLE', source: null }, durationSeconds: { value: null, availability: 'UNAVAILABLE', source: null }, hasAudio: null, audioAttribution: null },
-      });
     }
   }
 
@@ -225,7 +182,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
             <LineChart
               dates={pressureSeriesData.dates}
               seriesData={[
-                { name: 'Volume de Comentários', data: pressureSeriesData.comments, color: '#00FFFF' },
+                { name: 'Comentários declarados', data: pressureSeriesData.comments, color: '#00FFFF' },
                 { name: 'Engajamento Total', data: pressureSeriesData.engagement, color: '#3B82F6' },
               ]}
               height={160}
@@ -247,7 +204,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
         </Panel>
 
         <Panel title="Temas do Instagram (IA)" subtitle="Ranking das pautas dominantes identificadas por IA" className="min-h-[240px]">
-          <ThemesRanking themes={contract.themes} totalPosts={contract.summary.posts} onSelectTopic={handleTopicClick} />
+          <ThemesRanking themes={contract.themes} onSelectTopic={handleTopicClick} />
         </Panel>
       </section>
 
@@ -258,7 +215,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
 
       {/* 08 — MONITORAMENTO DE POSTS PRIORITÁRIOS */}
       <Panel title="Monitoramento de Posts Prioritários" subtitle="Conteúdos que exigem atenção estratégica rápida (Top por engajamento e risco)">
-        <PriorityPostsTable posts={contract.topPosts.items.slice(0, 5)} onOpen={setSelectedPost} analyzedPostsCount={contract.summary.analyzedPosts} />
+        <PriorityPostsTable posts={contract.priorityPosts.items.slice(0, 5)} onOpen={setSelectedPost} />
       </Panel>
 
       {/* 09 — FEED EXECUTIVO COMPACTO (4 COLUNAS DESKTOP) */}
@@ -282,7 +239,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
                     <span className="text-cyan-400 font-bold">{metric(comment.likeCount)} likes</span>
                   </div>
                   <p className="line-clamp-3 text-xs leading-4 text-slate-200 font-normal">
-                    "{comment.text || 'Comentário sem texto.'}"
+                    &ldquo;{comment.text || 'Comentário sem texto.'}&rdquo;
                   </p>
                   {comment.postCaption ? (
                     <p className="mt-2 line-clamp-2 border-l-2 border-cyan-400/50 pl-2 text-[10px] text-slate-400 italic">
@@ -312,7 +269,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
 
       {/* 11 — ANÁLISE ESTRATÉGICA DOS POSTS */}
       <Panel title="Análise Estratégica dos Posts" subtitle="Tabela comparativa executiva com diagnósticos e recomendações de IA">
-        <StrategicPostsTable posts={contract.recentPosts.slice(0, 15)} onOpen={setSelectedPost} analyzedPostsCount={contract.summary.analyzedPosts} />
+        <StrategicPostsTable posts={contract.recentPosts.slice(0, 15)} onOpen={setSelectedPost} />
       </Panel>
 
       {/* 12 — POST DETAIL & AI ANALYSIS DRAWER (OVERLAY REUTILIZADO) */}
@@ -321,7 +278,6 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
           post={selectedPost}
           comments={contract.comments.recent.filter((comment) => comment.postId === selectedPost.id)}
           onClose={() => setSelectedPost(null)}
-          analyzedPostsCount={contract.summary.analyzedPosts}
         />
       ) : null}
     </div>
@@ -460,11 +416,9 @@ function SentimentDistribution({ contract }: { contract: InstagramUiContract }) 
 
 function ThemesRanking({
   themes,
-  totalPosts,
   onSelectTopic,
 }: {
   themes: Array<{ label: string; count: number }>;
-  totalPosts: number;
   onSelectTopic: (topic: string) => void;
 }) {
   if (!themes.length) {
@@ -548,11 +502,9 @@ function MetricBar({ label: barLabel, value, max, color }: { label: string; valu
 function PriorityPostsTable({
   posts,
   onOpen,
-  analyzedPostsCount,
 }: {
   posts: InstagramUiPost[];
   onOpen: (post: InstagramUiPost) => void;
-  analyzedPostsCount: number;
 }) {
   if (!posts.length) return <div className="py-6 text-center text-xs text-slate-500 italic">Sem posts prioritários no momento.</div>;
 
@@ -671,11 +623,9 @@ function CompactPostCard({ post, onOpen }: { post: InstagramUiPost; onOpen: () =
 function StrategicPostsTable({
   posts,
   onOpen,
-  analyzedPostsCount,
 }: {
   posts: InstagramUiPost[];
   onOpen: (post: InstagramUiPost) => void;
-  analyzedPostsCount: number;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -804,12 +754,10 @@ function PostDrawer({
   post,
   comments,
   onClose,
-  analyzedPostsCount,
 }: {
   post: InstagramUiPost;
   comments: InstagramUiComment[];
   onClose: () => void;
-  analyzedPostsCount: number;
 }) {
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
@@ -866,6 +814,12 @@ function PostDrawer({
               </span>
               <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
                 Sentimento {label(post.analysis.sentiment)}
+              </span>
+              <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
+                Data {post.publishedAt ? new Intl.DateTimeFormat('pt-BR').format(new Date(post.publishedAt)) : '—'}
+              </span>
+              <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
+                Engajamento {metric(engagementMetric(post))}
               </span>
             </div>
             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-200 font-normal bg-white/[0.02] p-4 rounded-lg border border-white/5">

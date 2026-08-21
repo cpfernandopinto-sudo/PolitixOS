@@ -27,6 +27,8 @@ export default async function InstagramPage({ searchParams }: PageProps) {
     periodDays: globalFilters.period === 'all' ? null : Number(globalFilters.period),
     contentTypes: format && ['IMAGE', 'REEL', 'CAROUSEL'].includes(format) ? [format as 'IMAGE' | 'REEL' | 'CAROUSEL'] : undefined,
     risk: first(params.risk) ?? null,
+    sentiment: first(params.sentiment) ?? null,
+    topic: first(params.topic) ?? null,
     page,
     pageSize: 20,
   });

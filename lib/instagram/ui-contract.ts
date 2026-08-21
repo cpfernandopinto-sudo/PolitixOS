@@ -240,6 +240,35 @@ function sumMetrics(metrics: InstagramMetric[]): InstagramMetric {
   return present.length ? available(present.reduce((sum, metric) => sum + (metric.value ?? 0), 0), present.every((metric) => metric.source === 'structured') ? 'structured' : 'raw_json') : unavailableMetric();
 }
 
+function engagementValue(post: InstagramUiPost): number {
+  return (post.metrics.likes.value ?? 0) + (post.metrics.comments.value ?? 0);
+}
+
+function riskPriority(risk: string | null): number {
+  const normalized = risk?.toLocaleLowerCase('pt-BR') ?? '';
+  if (/crít|crit|alto/.test(normalized)) return 3;
+  if (/médio|medio/.test(normalized)) return 2;
+  if (/baixo/.test(normalized)) return 1;
+  return 0;
+}
+
+function buildSocialPressure(posts: InstagramUiPost[]) {
+  const days = new Map<string, { comments: number; engagement: number }>();
+  for (const post of posts) {
+    const timestamp = post.publishedAt ?? post.collectedAt;
+    const date = timestamp?.slice(0, 10);
+    if (!date) continue;
+    const current = days.get(date) ?? { comments: 0, engagement: 0 };
+    if (post.metrics.comments.availability === 'AVAILABLE') current.comments += post.metrics.comments.value ?? 0;
+    if (post.metrics.likes.availability === 'AVAILABLE') current.engagement += post.metrics.likes.value ?? 0;
+    if (post.metrics.comments.availability === 'AVAILABLE') current.engagement += post.metrics.comments.value ?? 0;
+    days.set(date, current);
+  }
+  return [...days.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, values]) => ({ date, ...values }));
+}
+
 export function buildInstagramUiContract({
   posts,
   comments,
@@ -266,6 +295,7 @@ export function buildInstagramUiContract({
       candidates: [...targetNames.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
       formats: ['IMAGE', 'REEL', 'CAROUSEL'],
       risks: [...new Set(mappedPosts.map((post) => post.analysis.risk).filter((risk): risk is string => Boolean(risk)))].sort(),
+      sentiments: [...new Set(mappedPosts.map((post) => post.analysis.sentiment).filter((sentiment): sentiment is string => Boolean(sentiment)))].sort(),
     },
     summary: { posts: mappedPosts.length, comments: totalComments, analyzedPosts: mappedPosts.filter((post) => post.analysis.sentiment || post.analysis.risk || post.analysis.themes.length).length },
     contentTypes: types.map((group) => ({ type: group.type, count: group.posts.length })),
@@ -282,6 +312,11 @@ export function buildInstagramUiContract({
       items: [...mappedPosts].sort((a, b) => (b.metrics.likes.value ?? 0) - (a.metrics.likes.value ?? 0) || (b.metrics.comments.value ?? 0) - (a.metrics.comments.value ?? 0)).slice(0, 10),
       criterion: 'likes_desc_then_comments_desc',
     },
+    priorityPosts: {
+      items: [...mappedPosts].sort((a, b) => riskPriority(b.analysis.risk) - riskPriority(a.analysis.risk) || engagementValue(b) - engagementValue(a)).slice(0, 10),
+      criterion: 'risk_desc_then_engagement_desc',
+    },
+    socialPressure: buildSocialPressure(mappedPosts),
     sentiment: countLabels(mappedPosts.map((post) => post.analysis.sentiment)),
     risk: countLabels(mappedPosts.map((post) => post.analysis.risk)),
     themes: countLabels(mappedPosts.flatMap((post) => post.analysis.themes)),

@@ -80,6 +80,7 @@ export interface InstagramUiContract {
     candidates: Array<{ id: string; name: string }>;
     formats: Array<'IMAGE' | 'REEL' | 'CAROUSEL'>;
     risks: string[];
+    sentiments: string[];
   };
   summary: {
     posts: number;
@@ -100,6 +101,15 @@ export interface InstagramUiContract {
     items: InstagramUiPost[];
     criterion: 'likes_desc_then_comments_desc';
   };
+  priorityPosts: {
+    items: InstagramUiPost[];
+    criterion: 'risk_desc_then_engagement_desc';
+  };
+  socialPressure: Array<{
+    date: string;
+    comments: number;
+    engagement: number;
+  }>;
   sentiment: Array<{ label: string; count: number }>;
   risk: Array<{ label: string; count: number }>;
   themes: Array<{ label: string; count: number }>;
@@ -136,4 +146,6 @@ export interface InstagramUiQuery {
   page?: number;
   pageSize?: number;
   risk?: string | null;
+  sentiment?: string | null;
+  topic?: string | null;
 }

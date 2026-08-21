@@ -7,14 +7,6 @@ import type { InstagramUiContract } from '@/lib/types/instagram-ui';
 
 type Props = { options: InstagramUiContract['filterOptions'] };
 
-const SENTIMENT_OPTIONS: Array<[string, string]> = [
-  ['all', 'Todos'],
-  ['positivo', 'Positivo'],
-  ['neutro', 'Neutro'],
-  ['misto', 'Misto'],
-  ['negativo', 'Negativo'],
-];
-
 export default function InstagramUiFilters({ options }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,7 +40,7 @@ export default function InstagramUiFilters({ options }: Props) {
         label="Sentimento"
         value={searchParams.get('sentiment') ?? 'all'}
         onChange={(value) => update({ sentiment: value === 'all' ? null : value })}
-        options={SENTIMENT_OPTIONS}
+        options={[['all', 'Todos'], ...options.sentiments.map((value) => [value, value.charAt(0).toUpperCase() + value.slice(1)] as [string, string])]}
       />
       <button
         type="button"
@@ -105,4 +97,3 @@ function FilterSelect({
     </label>
   );
 }
-
