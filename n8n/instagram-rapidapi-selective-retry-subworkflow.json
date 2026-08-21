@@ -1,0 +1,174 @@
+{
+  "name": "PolitixOS — Instagram — RapidAPI Selective Retry",
+  "nodes": [
+    {
+      "parameters": {"inputSource": "passthrough"},
+      "id": "retry-entry",
+      "name": "Called by Pipeline V2",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [-900, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$json; const requestUrl=String(r.request_url||''); const prefix='https://instagram-scraper-api18.p.rapidapi.com'; if(!(requestUrl===prefix||requestUrl.startsWith(prefix+'/'))) throw new Error('STRUCTURAL: request_url host is not allowed'); const max=Math.min(3,Math.max(1,Number(r.max_attempts)||3)); const base=Math.min(5,Math.max(1,Number(r.base_delay_seconds)||1)); return [{json:{request_method:String(r.request_method||'GET').toUpperCase(),request_url:requestUrl,query_parameters:r.query_parameters||{},request_context:r.request_context||{},max_attempts:max,base_delay_seconds:base,attempt:1,logical_calls:1,started_at_ms:Date.now()}}];"
+      },
+      "id": "retry-prepare",
+      "name": "Validate Request Contract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-660, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.request_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={{ JSON.stringify($json.query_parameters) }}",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
+        "options": {"response": {"response": {"fullResponse": true, "neverError": true}}}
+      },
+      "id": "retry-http-1",
+      "name": "RapidAPI Attempt 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-420, 0],
+      "credentials": {"httpHeaderAuth": {"id": "uFExF6u1ruQ1MUb1", "name": "x-rapidapi-key"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const req=$('Validate Request Contract').first().json; const res=$json; const status=Number(res.statusCode??res.status??res.code); const retryable=[408,429,500,502,503,504].includes(status); const permanent=[400,401,403,404].includes(status); const success=Number.isFinite(status)?status>=200&&status<300:!(res.error||res.code); const rawRetryAfter=res.headers?.['retry-after']??res.headers?.['Retry-After']; const parsed=Number(rawRetryAfter); const fallback=Math.min(5,req.base_delay_seconds); const delay=status===429&&Number.isFinite(parsed)?Math.min(10,Math.max(1,parsed)):fallback; return [{json:{...req,attempt:1,http_status:Number.isFinite(status)?status:null,response_body:res.body??res,retryable:retryable&&!success&&!permanent,retry_delay_seconds:delay,success,error_code:success?null:String(res.body?.code||res.code||status||'NETWORK_ERROR'),error_message:success?null:String(res.body?.message||res.message||res.error||'external request failed')}}];"
+      },
+      "id": "retry-classify-1",
+      "name": "Classify Attempt 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-180, 0]
+    },
+    {
+      "parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"}, "conditions": [{"leftValue": "={{ $json.retryable && $json.attempt < $json.max_attempts }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true", "singleValue": true}}], "combinator": "and"}},
+      "id": "retry-if-1",
+      "name": "Retry After Attempt 1?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [60, 0]
+    },
+    {
+      "parameters": {"amount": "={{ $json.retry_delay_seconds }}", "unit": "seconds"},
+      "id": "retry-wait-1",
+      "name": "Bounded Backoff 1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [300, -120]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.request_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={{ JSON.stringify($json.query_parameters) }}",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
+        "options": {"response": {"response": {"fullResponse": true, "neverError": true}}}
+      },
+      "id": "retry-http-2",
+      "name": "RapidAPI Attempt 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, -120],
+      "credentials": {"httpHeaderAuth": {"id": "uFExF6u1ruQ1MUb1", "name": "x-rapidapi-key"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev=$('Classify Attempt 1').first().json; const res=$json; const status=Number(res.statusCode??res.status??res.code); const retryable=[408,429,500,502,503,504].includes(status); const permanent=[400,401,403,404].includes(status); const success=Number.isFinite(status)?status>=200&&status<300:!(res.error||res.code); const rawRetryAfter=res.headers?.['retry-after']??res.headers?.['Retry-After']; const parsed=Number(rawRetryAfter); const delay=status===429&&Number.isFinite(parsed)?Math.min(10,Math.max(1,parsed)):Math.min(5,prev.base_delay_seconds*2); return [{json:{...prev,attempt:2,http_status:Number.isFinite(status)?status:null,response_body:res.body??res,retryable:retryable&&!success&&!permanent,retry_delay_seconds:delay,success,error_code:success?null:String(res.body?.code||res.code||status||'NETWORK_ERROR'),error_message:success?null:String(res.body?.message||res.message||res.error||'external request failed')}}];"
+      },
+      "id": "retry-classify-2",
+      "name": "Classify Attempt 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, -120]
+    },
+    {
+      "parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"}, "conditions": [{"leftValue": "={{ $json.retryable && $json.attempt < $json.max_attempts }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true", "singleValue": true}}], "combinator": "and"}},
+      "id": "retry-if-2",
+      "name": "Retry After Attempt 2?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1020, -120]
+    },
+    {
+      "parameters": {"amount": "={{ $json.retry_delay_seconds }}", "unit": "seconds"},
+      "id": "retry-wait-2",
+      "name": "Bounded Backoff 2",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1260, -240]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.request_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={{ JSON.stringify($json.query_parameters) }}",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "x-rapidapi-host", "value": "instagram-scraper-api18.p.rapidapi.com"}]},
+        "options": {"response": {"response": {"fullResponse": true, "neverError": true}}}
+      },
+      "id": "retry-http-3",
+      "name": "RapidAPI Attempt 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, -240],
+      "credentials": {"httpHeaderAuth": {"id": "uFExF6u1ruQ1MUb1", "name": "x-rapidapi-key"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev=$('Classify Attempt 2').first().json; const res=$json; const status=Number(res.statusCode??res.status??res.code); const success=Number.isFinite(status)?status>=200&&status<300:!(res.error||res.code); return [{json:{...prev,attempt:3,http_status:Number.isFinite(status)?status:null,response_body:res.body??res,retryable:false,retry_delay_seconds:0,success,error_code:success?null:String(res.body?.code||res.code||status||'NETWORK_ERROR'),error_message:success?null:String(res.body?.message||res.message||res.error||'external request failed')}}];"
+      },
+      "id": "retry-classify-3",
+      "name": "Classify Attempt 3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, -240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$json; const attempts=Number(r.attempt)||1; return [{json:{status:r.success?'success':'error',http_status:r.http_status,retryable:Boolean(r.retryable),attempts,retry_attempts:Math.max(0,attempts-1),logical_calls:1,physical_attempts:attempts,rapidapi_calls_total:attempts,response_body:r.response_body,error_code:r.error_code,error_message:r.error_message,request_context:r.request_context,duration_ms:Math.max(0,Date.now()-Number(r.started_at_ms||Date.now()))}}];"
+      },
+      "id": "retry-finalize",
+      "name": "Finalize Retry Contract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 0]
+    }
+  ],
+  "connections": {
+    "Called by Pipeline V2": {"main": [[{"node": "Validate Request Contract", "type": "main", "index": 0}]]},
+    "Validate Request Contract": {"main": [[{"node": "RapidAPI Attempt 1", "type": "main", "index": 0}]]},
+    "RapidAPI Attempt 1": {"main": [[{"node": "Classify Attempt 1", "type": "main", "index": 0}]]},
+    "Classify Attempt 1": {"main": [[{"node": "Retry After Attempt 1?", "type": "main", "index": 0}]]},
+    "Retry After Attempt 1?": {"main": [[{"node": "Bounded Backoff 1", "type": "main", "index": 0}], [{"node": "Finalize Retry Contract", "type": "main", "index": 0}]]},
+    "Bounded Backoff 1": {"main": [[{"node": "RapidAPI Attempt 2", "type": "main", "index": 0}]]},
+    "RapidAPI Attempt 2": {"main": [[{"node": "Classify Attempt 2", "type": "main", "index": 0}]]},
+    "Classify Attempt 2": {"main": [[{"node": "Retry After Attempt 2?", "type": "main", "index": 0}]]},
+    "Retry After Attempt 2?": {"main": [[{"node": "Bounded Backoff 2", "type": "main", "index": 0}], [{"node": "Finalize Retry Contract", "type": "main", "index": 0}]]},
+    "Bounded Backoff 2": {"main": [[{"node": "RapidAPI Attempt 3", "type": "main", "index": 0}]]},
+    "RapidAPI Attempt 3": {"main": [[{"node": "Classify Attempt 3", "type": "main", "index": 0}]]},
+    "Classify Attempt 3": {"main": [[{"node": "Finalize Retry Contract", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "America/Sao_Paulo", "saveExecutionProgress": true},
+  "pinData": {},
+  "meta": {"templateCredsSetupCompleted": true, "component": "rapidapi_selective_retry", "max_attempts": 3},
+  "tags": []
+}

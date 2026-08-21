@@ -9,7 +9,7 @@ export default defineConfig({
     // ambiente individualmente, mantendo os testes de função pura (*.test.ts)
     // rápidos no ambiente node padrão.
     include: ['**/*.test.ts', '**/*.test.tsx'],
-    exclude: ['node_modules', '.next'],
+    exclude: ['node_modules', '.next', '.claude/**', '**/.claude/worktrees/**'],
     setupFiles: ['lib/test/setup-jsdom.ts'],
   },
   resolve: {

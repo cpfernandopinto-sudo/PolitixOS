@@ -2,13 +2,20 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const workflow = JSON.parse(await readFile(new URL('../n8n/instagram-pipeline-v2-shadow.json', import.meta.url), 'utf8'));
+const retryWorkflow = JSON.parse(await readFile(new URL('../n8n/instagram-rapidapi-selective-retry-subworkflow.json', import.meta.url), 'utf8'));
 const migration = await readFile(new URL('../supabase_migration_instagram_replies_parent.sql', import.meta.url), 'utf8');
 const serialized = JSON.stringify(workflow);
+const retrySerialized = JSON.stringify(retryWorkflow);
 const names = new Set(workflow.nodes.map((node) => node.name));
+const byName = Object.fromEntries(workflow.nodes.map((node) => [node.name, node]));
+const retryNames = new Set(retryWorkflow.nodes.map((node) => node.name));
 
 assert.equal(workflow.name, 'PolitixOS — Instagram — Pipeline V2');
 assert.equal(workflow.active, false);
 assert.equal(names.size, workflow.nodes.length, 'node names must be unique');
+assert.equal(retryWorkflow.active, false);
+assert.equal(retryNames.size, retryWorkflow.nodes.length, 'retry node names must be unique');
+assert.ok(!retryWorkflow.nodes.some((node) => node.type === 'n8n-nodes-base.scheduleTrigger'));
 assert.ok(serialized.includes('/user/posts'));
 assert.ok(serialized.includes('/post/comments'));
 assert.ok(serialized.includes('/post/comment/replies'));
@@ -16,6 +23,7 @@ assert.ok(serialized.includes('https://instagram-scraper-api18.p.rapidapi.com/po
 assert.ok(!serialized.includes('/user/reels'));
 assert.ok(!serialized.includes('/media/transcript'));
 assert.ok(!/openai|anthropic|gemini|embedding/i.test(serialized));
+assert.ok(!/openai|anthropic|gemini|embedding/i.test(retrySerialized));
 assert.ok(serialized.includes('pipeline_version'));
 assert.ok(serialized.includes('calls_user_posts'));
 assert.ok(serialized.includes('rapidapi_calls_total'));
@@ -37,7 +45,27 @@ assert.ok(serialized.includes('on_conflict'));
 assert.ok(serialized.includes('platform,platform_post_id'));
 assert.ok(serialized.includes('instagram_comment_id'));
 assert.ok(!/service_role|bearer\s+[a-z0-9._-]{16,}|x-rapidapi-key\"\s*,\s*\"value/i.test(serialized));
+assert.ok(!/service_role|bearer\s+[a-z0-9._-]{16,}|x-rapidapi-key\"\s*,\s*\"value/i.test(retrySerialized));
+for (const name of ['CORE — GET user posts', 'CORE — GET post comments', 'ENRICH — GET post', 'SELECTIVE — GET comment replies']) {
+  assert.equal(byName[name]?.type, 'n8n-nodes-base.executeWorkflow', `${name} must use the reusable retry workflow`);
+  assert.equal(byName[name]?.parameters?.workflowId?.value, 'NNVa2bGFLAMlxVnV');
+  assert.equal(byName[name]?.parameters?.mode, 'each', `${name} must invoke retry once per incoming item`);
+}
+assert.equal(byName['Load Posts for Comments']?.type, 'n8n-nodes-base.code');
+assert.deepEqual(workflow.connections['Validate Tenant Scope'].main[0].map((edge) => edge.node), ['CORE — GET user posts']);
+assert.ok(workflow.connections['UPSERT social_posts'].main[0].some((edge) => edge.node === 'Load Posts for Comments'));
+assert.ok(workflow.connections['Load Posts for Comments'].main[0].some((edge) => edge.node === 'Prepare Comment Sources'));
+assert.ok(retrySerialized.includes('[408,429,500,502,503,504]'));
+assert.ok(retrySerialized.includes('[400,401,403,404]'));
+assert.ok(retrySerialized.includes('Math.min(3'));
+assert.ok(retrySerialized.includes('Math.min(10'));
+assert.ok(retrySerialized.includes('logical_calls'));
+assert.ok(retrySerialized.includes('physical_attempts'));
+assert.ok(retrySerialized.includes('retry_attempts'));
+assert.equal(retryWorkflow.nodes.filter((node) => /^RapidAPI Attempt /.test(node.name)).length, 3);
+assert.ok(serialized.includes('NOT_CONFIRMED_NO_ELIGIBLE_ACTIVE_PAYLOAD'));
+assert.ok(!/next_cursor|end_cursor|has_next_page|while\s*\(/i.test(serialized), 'reply pagination must not invent a cursor contract');
 assert.match(migration, /add column if not exists parent_comment_id uuid null/i);
 assert.doesNotMatch(migration, /alter column.+set not null|drop table|truncate|delete from/i);
 
-console.log(`PASS: ${workflow.nodes.length} nodes; V2 disabled; forbidden endpoints/AI/secrets absent; migration additive.`);
+console.log(`PASS: V2 ${workflow.nodes.length} nodes; retry ${retryWorkflow.nodes.length} nodes; shadow/schedule/retry/topology/secrets/migration contracts valid.`);
