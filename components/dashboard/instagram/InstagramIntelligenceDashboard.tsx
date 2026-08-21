@@ -155,7 +155,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
     <div className="space-y-5 pb-12">
       {/* 03 — ALERTA PRIORITÁRIO (CRÍSE / ALTO RISCO) */}
       {criticalCount > 0 && criticalPost ? (
-        <section aria-label="Alerta prioritário" className="rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-[#0d1423] p-4 shadow-md backdrop-blur">
+        <section aria-label="Alerta prioritário" className="rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-[#161B26] p-4 shadow-md backdrop-blur">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex items-start gap-3 flex-1">
               <div className="p-2.5 rounded-lg bg-rose-500 text-white shrink-0 animate-pulse mt-0.5">
@@ -209,7 +209,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
         </section>
       ) : null}
 
-      {/* 04 — KPIS EXECUTIVOS (5 CARDS NORMATIZADOS COM A OVERVIEW) */}
+      {/* 04 — KPIS EXECUTIVOS (5 CARDS REUTILIZANDO SURFACE-PRIMARY DA OVERVIEW) */}
       <section aria-label="Indicadores principais" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi title="Posts monitorados" value={nf.format(contract.summary.posts)} detail={`${contract.summary.analyzedPosts} analisados por IA`} />
         <Kpi title="Interações totais" value={`${nf.format(totalLikes)} likes`} detail={`${nf.format(totalPostComments)} comentários`} />
@@ -218,9 +218,9 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
         <Kpi title="Formato em destaque" value={topFormat ?? '—'} detail="Maior engajamento" />
       </section>
 
-      {/* 05 — PANORAMA ANALÍTICO EXECUTIVO (4 CARDS COMPACTOS NA MESMA FILEIRA EM DESKTOP WIDESCREEN) */}
+      {/* 05 — PANORAMA ANALÍTICO EXECUTIVO (4 CARDS COMPACTOS EM SURFACE-PRIMARY NA MESMA FILEIRA EM DESKTOP WIDESCREEN) */}
       <section aria-label="Panorama analítico executivo" className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-        <Panel title="Pressão Social" subtitle="Evolução temporal no recorte" className="min-h-[240px]">
+        <Panel title="Pressão Social" subtitle="Evolução temporal de engajamento e comentários no recorte ativo" className="min-h-[240px]">
           {pressureSeriesData.dates.length > 0 ? (
             <LineChart
               dates={pressureSeriesData.dates}
@@ -238,21 +238,21 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
           )}
         </Panel>
 
-        <Panel title="Termômetro de Risco" subtitle="Vulnerabilidade política" className="min-h-[240px]">
+        <Panel title="Termômetro de Risco" subtitle="Índice sintético de vulnerabilidade política" className="min-h-[240px]">
           <RiskPanel contract={contract} />
         </Panel>
 
-        <Panel title="Distribuição de Sentimento" subtitle="Percepção da amostra" className="min-h-[240px]">
+        <Panel title="Distribuição de Sentimento" subtitle="Percepção pública agregada entre os posts analisados" className="min-h-[240px]">
           <SentimentDistribution contract={contract} />
         </Panel>
 
-        <Panel title="Temas do Instagram (IA)" subtitle="Pautas dominantes (Top 5)" className="min-h-[240px]">
+        <Panel title="Temas do Instagram (IA)" subtitle="Ranking das pautas dominantes identificadas por IA" className="min-h-[240px]">
           <ThemesRanking themes={contract.themes} totalPosts={contract.summary.posts} onSelectTopic={handleTopicClick} />
         </Panel>
       </section>
 
       {/* 07 — PERFORMANCE POR FORMATO */}
-      <Panel title="Performance por Formato (IMAGE vs REEL vs CAROUSEL)" subtitle="Métricas desagregadas por formato; dados ausentes não são convertidos em zero">
+      <Panel title="Performance por Formato" subtitle="Métricas desagregadas por formato; dados ausentes não são convertidos em zero">
         <Performance contract={contract} />
       </Panel>
 
@@ -275,7 +275,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {contract.comments.relevant.length > 0 ? (
             contract.comments.relevant.slice(0, 8).map((comment) => (
-              <article key={comment.id} className="flex flex-col justify-between rounded-lg border border-white/10 bg-[#080d18] p-3 transition-all hover:border-cyan-400/40">
+              <article key={comment.id} className="surface-primary p-3 flex flex-col justify-between hover:border-cyan-400/40 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
                     <span className="font-semibold text-slate-300">@{comment.author || 'usuário'}</span>
@@ -332,7 +332,7 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
 
 function Kpi({ title, value, detail, tone = 'cyan' }: { title: string; value: string; detail: string; tone?: 'cyan' | 'rose' }) {
   return (
-    <article className="rounded-lg border border-white/10 bg-[#0d1423] px-3.5 py-3 shadow-sm flex flex-col justify-between">
+    <article className="surface-primary px-4 py-3.5 flex flex-col justify-between shadow-sm">
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{title}</p>
       <p className={`mt-1 text-xl font-black tracking-tight leading-none ${tone === 'rose' ? 'text-rose-400' : 'text-white'}`}>{value}</p>
       <p className="mt-1 text-[10px] text-slate-400 truncate">{detail}</p>
@@ -340,15 +340,12 @@ function Kpi({ title, value, detail, tone = 'cyan' }: { title: string; value: st
   );
 }
 
-function Panel({ title, subtitle, className = '', children }: { title: string; subtitle: string; className?: string; children: React.ReactNode }) {
+function Panel({ title, subtitle, className = '', children }: { title: string; subtitle?: string; className?: string; children: React.ReactNode }) {
   return (
-    <section className={`rounded-xl border border-white/10 bg-[#0d1423] p-3.5 shadow-md flex flex-col justify-between ${className}`}>
-      <div className="border-b border-white/5 pb-2 mb-2.5">
-        <h2 className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
-          <span className="w-1 h-3 bg-cyan-400 rounded-full" />
-          {title}
-        </h2>
-        <p className="mt-0.5 text-[10px] text-slate-400 truncate">{subtitle}</p>
+    <section className={`surface-primary p-5 h-full flex flex-col justify-between ${className}`}>
+      <div className="mb-3">
+        <h3 className="text-white font-bold text-base tracking-tight">{title}</h3>
+        {subtitle ? <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p> : null}
       </div>
       <div className="flex-1 flex flex-col justify-center">{children}</div>
     </section>
@@ -518,7 +515,7 @@ function Performance({ contract }: { contract: InstagramUiContract }) {
   return (
     <div className="grid sm:grid-cols-3 gap-3">
       {contract.performanceByType.map((group) => (
-        <div key={group.type} className="p-3 rounded-lg bg-[#080d18] border border-white/10 space-y-2.5">
+        <div key={group.type} className="surface-primary p-3.5 space-y-2.5">
           <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
             <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
               {group.type === 'REEL' ? <Play size={13} className="text-cyan-400" /> : group.type === 'CAROUSEL' ? <Layers size={13} className="text-purple-400" /> : null}
@@ -639,12 +636,12 @@ function PriorityPostsTable({
 
 function CompactPostCard({ post, onOpen }: { post: InstagramUiPost; onOpen: () => void }) {
   return (
-    <article className="group overflow-hidden rounded-lg border border-white/10 bg-[#080d18] flex flex-col justify-between hover:border-cyan-400/40 transition-all">
+    <article className="group overflow-hidden surface-primary flex flex-col justify-between hover:border-cyan-400/40 transition-all">
       <Media post={post} />
       <button
         type="button"
         onClick={onOpen}
-        className="p-2.5 text-left w-full focus:outline-none flex-1 flex flex-col justify-between"
+        className="p-3 text-left w-full focus:outline-none flex-1 flex flex-col justify-between"
       >
         <div>
           <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -956,7 +953,7 @@ function AnalysisBlock({ title, text }: { title: string; text: string | null }) 
 
 function EmptyState() {
   return (
-    <div className="rounded-xl border border-dashed border-white/15 bg-[#0d1423] px-6 py-20 text-center space-y-3">
+    <div className="surface-primary px-6 py-20 text-center space-y-3">
       <ImageOff className="mx-auto text-slate-500" size={38} />
       <h2 className="text-base font-bold text-white">Nenhuma publicação encontrada</h2>
       <p className="text-sm text-slate-400 max-w-md mx-auto">

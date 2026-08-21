@@ -1,133 +1,64 @@
-# RELATÓRIO DE REFINAMENTO FUNCIONAL E UX — INSTAGRAM BLOCO 3B.4.1 / 3B.4.1A / 3B.4.1B
+# RELATÓRIO DE REFINAMENTO FUNCIONAL E UX — INSTAGRAM BLOCO 3B.4.1 / HOTFIX VISUAL FINAL (TIPOGRAFIA + SUPERFÍCIES)
 
 **Data:** 21 de Agosto de 2026  
 **Agente Responsável:** Antigravity (UX/UI + Design System)  
 **Branch:** `codex/instagram-bloco3b4-ui`  
-**Commit Base:** `39a75aa`  
-**Status:** PASS  
+**Status:** PRONTO PARA HOMOLOGAÇÃO VISUAL HUMANA  
 
 ---
 
-## 1. EXECUTIVE SUMMARY
+## 1. DIVERGÊNCIAS IDENTIFICADAS E VALORES SUBSTANTIVOS
 
-O Bloco 3B.4.1 / 3B.4.1A / 3B.4.1B concluiu a reorganização, refinamento e **normalização visual cirúrgica da Central de Inteligência Política do Instagram** do PolitixOS.
+Em conformidade rigorosa com o checklist de inspeção de código real da Visão Geral (`/dashboard/overview`), foram mapeadas e corrigidas as seguintes divergências entre o módulo Instagram e o Design System oficial:
 
-A densidade executiva, a escala tipográfica, os preenchimentos, as bordas e os backgrounds do módulo Instagram foram 100% harmonizados com os padrões consolidados da Visão Geral (`/dashboard/overview`).
-
-Nenhum código de backend, banco de dados, Supabase schema, RLS, n8n, Pipeline V2, Legacy ou API externa foi alterado. Nenhuma funcionalidade ou filtro foi alterado.
-
----
-
-## 2. NORMALIZAÇÃO VISUAL E LAYOUT DESKTOP (BLOCO 3B.4.1B)
-
-### 2.1 Reorganização dos 4 Painéis Analíticos em Fileira Única
-Anteriormente, os quatro blocos de inteligência ocupavam duas linhas verticais. No Bloco 3B.4.1B, foram unificados em uma **fileira única de 4 colunas em desktop widescreen** (`xl:grid-cols-4`):
-
-$$\begin{array}{|c|c|c|c|}
-\hline
-\mathbf{PRESSÃO\ SOCIAL} & \mathbf{TERMÔMETRO\ RISCO} & \mathbf{SENTIMENTO} & \mathbf{TEMAS\ IA} \\
-\hline
-\end{array}$$
-
-#### **1. Pressão Social:**
-- Subtítulo: `"Evolução temporal no recorte"`
-- Gráfico `LineChart` ajustado para altura compacta de `160px`.
-- Preserva todas as séries temporais (Comentários e Engajamento Total), tooltips e interatividade.
-
-#### **2. Termômetro de Risco:**
-- Subtítulo: `"Vulnerabilidade política"`
-- Layout compacto com score `/100`, status sintético (`ESTÁVEL`, `ATENÇÃO`, `ELEVADO`, `CRÍTICO`), barra visual em gradiente e 3 quadros de contagem por nível de risco.
-
-#### **3. Distribuição de Sentimento:**
-- Subtítulo: `"Percepção da amostra"`
-- Gráfico `DonutChart` compacto com altura `115px`, badge de sentimento predominante e contagens por categoria (`Positivo`, `Neutro`, `Misto`, `Negativo`).
-
-#### **4. Temas do Instagram (IA):**
-- Subtítulo: `"Pautas dominantes (Top 5)"`
-- Exibe o ranking Top 5 dos temas reais com barras de proporção compactas, contagem de posts e ação interativa de filtro ao clicar.
-
----
-
-## 3. PADRONIZAÇÃO TIPOGRÁFICA E DENSIDADE COM A OVERVIEW
-
-### 3.1 Tokens e Classes Padronizados:
-- **Background dos Cards:** `bg-[#0d1423]` (surface primary oficial da Overview).
-- **Bordas dos Cards:** `border border-white/10` com `rounded-xl`.
-- **Títulos de Seção / Painéis:** `<h2 className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">` com o indicador de sotaque em ciano (`<span className="w-1 h-3 bg-cyan-400 rounded-full" />`).
-- **Subtítulos:** `<p className="mt-0.5 text-[10px] text-slate-400 truncate">`.
-- **Rólutos de Indicadores (Labels):** `<p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">`.
-- **Valores Métricos (KPIs):** `<p className="mt-1 text-xl font-black tracking-tight text-white">`.
-- **Padding Estrutural:** Reduzido para `p-3.5` (cards analíticos) e `px-3.5 py-3` (cards KPIs), garantindo que mais inteligência fique visível na primeira dobra da tela.
-
----
-
-## 4. COMPORTAMENTO DE BREAKPOINTS E RESPONSIVIDADE
-
-| Breakpoint | Resolução | Estrutura dos 4 Painéis | Feed Executivo |
+| Atributo | Golden Reference (`/dashboard/overview`) | Instagram (Anterior) | Instagram (Corrigido) |
 | :--- | :--- | :--- | :--- |
-| **Desktop Widescreen** | $\ge 1440\text{px}$ | **1 Fileira com 4 Colunas** (`xl:grid-cols-4`) | 4 Colunas (`lg:grid-cols-4`) |
-| **Laptop / Desktop Menor** | $1280\text{px}$ | Grid 2 x 2 (`md:grid-cols-2`) | 4 Colunas |
-| **Tablet** | $900\text{px}$ | Grid 2 x 2 (`sm:grid-cols-2`) | 2 Colunas (`sm:grid-cols-2`) |
-| **Mobile** | $390\text{px}$ | 1 Coluna (`grid-cols-1`) | 1 Coluna (`grid-cols-1`) |
+| **Classe de Superfície** | `surface-primary` | `bg-[#0d1423] border border-white/10 rounded-xl` | **`surface-primary`** |
+| **Background Color** | `var(--surface-2)` (`#161B26`) | `#0d1423` (azul escuro divergente) | `var(--surface-2)` (`#161B26`) |
+| **Border Color & Opacity** | `var(--line)` (`#2D3748`) | `border-white/10` (`rgba(255,255,255,0.1)`) | `var(--line)` (`#2D3748`) |
+| **Border Radius** | `0.375rem` (`rounded-md` / `6px`) | `0.75rem` (`rounded-xl` / `12px`) | `0.375rem` (`rounded-md` / `6px`) |
+| **Título do Card (Tag)** | `<h3 className="...">` | `<h2 className="...">` | `<h3 className="...">` |
+| **Font Size do Título** | `1rem` / `16px` (`text-base`) | `12px` (`text-xs`) ou `14px` (`text-sm`) | **`16px` (`text-base`)** |
+| **Font Weight do Título** | `700` (`font-bold`) | `700` (`font-bold`) | **`700` (`font-bold`)** |
+| **Letter Spacing** | `-0.025em` (`tracking-tight`) | `-0.025em` (`tracking-tight`) | **`-0.025em` (`tracking-tight`)** |
+| **Cor do Título** | `text-white` (`#FFFFFF`) | `text-white` (`#FFFFFF`) | **`text-white` (`#FFFFFF`)** |
+| **Elemento Decorativo de Título** | **Nenhum** (limpo, sem ícone ou pílula) | `<span className="w-1 h-3 bg-cyan-400 rounded-full" />` | **Nenhum** (limpo, idêntico à Overview) |
+| **Subtítulo do Card** | `text-xs text-slate-500 mb-3` | `mt-0.5 text-[10px] text-slate-400 truncate` | **`text-xs text-slate-500 mt-0.5`** |
 
 ---
 
-## 5. HOTFIX 3B.4.1A — REGISTRO DE DADOS E CAUSA RAIZ
+## 2. READEQUAÇÃO COMPONENTE POR COMPONENTE
 
-### 5.1 Causa Raiz da Recomendação
-O campo `recommended_action` já existia no banco `ai_analysis`. Em `lib/queries/instagram-ui.ts`, a constante `ANALYSIS_FIELDS` selecionava explicitamente apenas 8 colunas, omitindo `recommended_action`. A inclusão do campo em `ANALYSIS_FIELDS` liberou as recomendações reais em 100% dos posts analisados.
+### 2.1 Cards Analíticos do Panorama (4 Cards na Mesma Fileira em Widescreen)
+- **`Pressão Social`**: `<h3 className="text-white font-bold text-base tracking-tight">Pressão Social</h3>` + `<p className="text-xs text-slate-500 mt-0.5">Evolução temporal de engajamento e comentários no recorte ativo</p>`. Superfície em `surface-primary p-5 h-full`.
+- **`Termômetro de Risco`**: `<h3 className="text-white font-bold text-base tracking-tight">Termômetro de Risco</h3>` + `<p className="text-xs text-slate-500 mt-0.5">Índice sintético de vulnerabilidade política</p>`. Superfície em `surface-primary p-5 h-full`.
+- **`Distribuição de Sentimento`**: `<h3 className="text-white font-bold text-base tracking-tight">Distribuição de Sentimento</h3>` + `<p className="text-xs text-slate-500 mt-0.5">Percepção pública agregada entre os posts analisados</p>`. Superfície em `surface-primary p-5 h-full`.
+- **`Temas do Instagram (IA)`**: `<h3 className="text-white font-bold text-base tracking-tight">Temas do Instagram (IA)</h3>` + `<p className="text-xs text-slate-500 mt-0.5">Ranking das pautas dominantes identificadas por IA</p>`. Superfície em `surface-primary p-5 h-full`.
 
-### 5.2 Cobertura de Dados
+### 2.2 Performance por Formato
+- **Título:** `<h3 className="text-white font-bold text-base tracking-tight">Performance por Formato</h3>`
+- **Subtítulo:** `<p className="text-xs text-slate-500 mt-0.5">Métricas desagregadas por formato; dados ausentes não são convertidos em zero</p>`
 
-| Métrica | Quantidade | Percentual |
-| :--- | :--- | :--- |
-| Total de Posts Instagram no Banco | **652** | 100,0% |
-| Posts com Análise de IA Concluída | **607** | 93,1% |
-| **Posts Analisados com `recommended_action` Disponível** | **607** | **100,0% dos analisados** |
-| Posts Analisados sem `recommended_action` | **0** | 0,0% |
-| Posts com Análise Pendente | **45** | 6,9% |
+### 2.3 Cards Secundários, KPIs e Tabelas
+- **KPIs Superiores (5 Cards):** Reutilizam `surface-primary px-4 py-3.5 flex flex-col justify-between shadow-sm`.
+- **Feed Executivo (Cards de Mídia):** Reutilizam `surface-primary overflow-hidden flex flex-col justify-between`.
+- **Sinais Relevantes (Cards de Comentários):** Reutilizam `surface-primary p-3.5 flex flex-col justify-between`.
 
 ---
 
-## 6. TESTES, TYPESCRIPT E BUILD
+## 3. VALIDAÇÃO DE TESTES E BUILD
 
-- **TypeScript Check:** `PASS` (`npx tsc --noEmit` executado com código de saída 0).
-- **Suíte de Testes (Vitest):** `PASS` (132 test files passed, **1.173 tests passed**, 5 skipped).
-- **Testes Específicos Instagram:** `PASS` (3 arquivos, **20 testes passed**).
-- **Next.js Production Build:** `PASS` (`npx next build --webpack` executado com código de saída 0; 22/22 páginas estáticas compiladas).
+- **TypeScript:** `PASS` (`npx tsc --noEmit` executado com código de saída 0).
+- **Vitest:** `PASS` (132 test files passed, **1.173 tests passed**, 5 skipped).
+- **Testes Instagram:** `PASS` (3 arquivos, **20 testes passed**).
+- **Next.js Production Build:** `PASS` (`npx next build --webpack` executado com código de saída 0; 22/22 páginas estáticas compiladas com sucesso).
 - **Regressões:** Visão Geral (`/dashboard/overview`), X (`/dashboard/x`) e Notícias (`/dashboard/noticias`) intactos.
 
 ---
 
-## 7. DECLARAÇÃO OFICIAL DE CONGELAMENTO VISUAL (FREEZE)
+## 4. AGUARDANDO HOMOLOGAÇÃO VISUAL HUMANA
 
-```
-INSTAGRAM UI/UX BASELINE — APPROVED AND FROZEN
+Conforme a instrução do checkpoint final:
 
-ANTIGRAVITY — BLOCK 3B.4.1 / 3B.4.1A / 3B.4.1B DECISION
-
-ROTA INSTAGRAM: PRESERVADA
-SHELL OFICIAL: PRESERVADO
-FILTROS DUPLICADOS: TRATADOS
-PANORAMA ANALÍTICO: 4 CARDS EM 1 FILEIRA (DESKTOP 1440PX+)
-NORMALIZAÇÃO VISUAL: HARMONIZADA COM OVERVIEW
-FEED DESKTOP 4 COLS: IMPLEMENTADO
-PRESSÃO SOCIAL PERÍODO: IMPLEMENTADO (LINE CHART 160PX)
-TERMÔMETRO DE RISCO: REFINADO (GAUGE COMPACTO)
-SENTIMENTO & TEMAS IA: REFINADO (DONUT 115PX & RANKING TOP 5)
-TEMA (IA) POR POST: IMPLEMENTADO
-POSTS PRIORITÁRIOS: IMPLEMENTADO (COM TEMA IA)
-RECOMMENDED ACTION REAL: RESTAURADO (607/607 POSTS ANALISADOS)
-SINAIS EM COMENTARIOS: INVESTIGÁVEIS ('VER CONTEXTO →')
-AÇÃO RECOMENDADA: SEMÂNTICA TRATADA
-ANÁLISE ESTRATÉGICA: IMPLEMENTADA
-DRAWER OVERLAY: REUTILIZADO
-ZERO DADOS FALSOS: CONFIRMADO
-TYPESCRIPT: PASS
-VITEST: PASS (1.173 tests)
-NEXT BUILD: PASS
-
-DECISION: PASS
-```
-
-A Central de Inteligência Instagram do PolitixOS está oficialmente aprovada, harmonizada visualmente e **congelada para homologação**.
+> **PARE. Aguarde HOMOLOGAÇÃO VISUAL HUMANA.**  
+> Somente após aprovação humana explícita registrar: `INSTAGRAM UI/UX BASELINE — APPROVED AND FROZEN`.
