@@ -105,7 +105,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const valid=rows.filter(r=>!isError(r)&&r?.id&&r?.client_id&&r?.shortcode); if(!valid.length) return [{json:{_v2_error:'posts_persistence_failed',raw_error:rows[0]?.message||rows[0]?.error||rows[0]?.code||'no persisted post returned'}}]; return valid.map(r=>({json:r}));"
+        "jsCode": "const persisted=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const originals=$('Normalize Posts — Canonical Contract').all().map(i=>i.json).filter(r=>!r._v2_error); const key=r=>r?.client_id&&r?.platform&&r?.platform_post_id?`${r.client_id}::${r.platform}::${r.platform_post_id}`:null; const originalByKey=new Map(originals.map(r=>[key(r),r]).filter(([k])=>k)); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const confirmed=persisted.flatMap(r=>{if(isError(r)||!r?.id)return []; const k=key(r); const original=k?originalByKey.get(k):null; if(!original||original.client_id!==r.client_id)return []; return [{...original,...r,shortcode:r.shortcode||original.shortcode||null}];}); if(!confirmed.length)return [{json:{_v2_error:'posts_persistence_failed',skip_reason:'NO_CONFIRMED_PERSISTENCE',posts_normalized:originals.length,posts_confirmed:0,raw_error:persisted[0]?.message||persisted[0]?.error||persisted[0]?.code||'no deterministically matched persisted post'}}]; const eligible=confirmed.filter(r=>r.id&&r.client_id&&r.shortcode); if(!eligible.length)return [{json:{_v2_error:'no_eligible_posts',skip_reason:'NO_ELIGIBLE_POSTS',posts_normalized:originals.length,posts_confirmed:confirmed.length,posts_eligible:0}}]; return eligible.map(r=>({json:{...r,_v2_posts_normalized:originals.length,_v2_posts_confirmed:confirmed.length}}));"
       },
       "id": "v2-load-posts",
       "name": "Load Posts for Comments",
@@ -115,7 +115,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "parameters": {"jsCode": "const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); return rows.filter(p=>p.id&&p.client_id&&p.shortcode).map(p=>({json:{request_method:'GET',request_url:'https://instagram-scraper-api18.p.rapidapi.com/post/comments',query_parameters:{shortcode:p.shortcode},request_context:{post:p},max_attempts:3,base_delay_seconds:1}}));"},
+      "parameters": {"jsCode": "const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); return rows.filter(p=>p.id&&p.client_id&&p.shortcode).map(p=>({json:{request_method:'GET',request_url:'https://instagram-scraper-api18.p.rapidapi.com/post/comments',query_parameters:{url:p.post_url||`https://www.instagram.com/p/${p.shortcode}/`,trim:true},request_context:{post:p},max_attempts:3,base_delay_seconds:1}}));"},
       "id": "v2-prepare-comment-posts",
       "name": "Prepare Comment Sources",
       "type": "n8n-nodes-base.code",
@@ -133,7 +133,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const r=$json; const post=r.request_context?.post; if(!post||r.status!=='success')return []; const body=r.response_body||{}; const rows=body.comments||body.items||body.data?.comments||body.data?.items||body.data||[]; return (Array.isArray(rows)?rows:[]).map(c=>{const cid=String(c.pk||c.id||c.comment_id||''); if(!cid)return null; return {json:{post_id:post.id,target_id:post.target_id,client_id:post.client_id,instagram_comment_id:cid,comment_user:c.user?.username||c.username||c.user_name||null,comment_text:c.text||c.comment_text||null,like_count:c.comment_like_count??c.like_count??null,created_at_instagram:c.created_at||c.created_at_utc?new Date(Number(c.created_at||c.created_at_utc)*1000).toISOString():null,raw_json:c,collected_at:new Date().toISOString()}}}).filter(Boolean);"
+        "jsCode": "const toIso=v=>{if(v===null||v===undefined||v==='')return null; const n=Number(v); const d=Number.isFinite(n)?new Date(n>1e12?n:n*1000):new Date(String(v)); return Number.isNaN(d.getTime())?null:d.toISOString();}; return $input.all().flatMap(i=>{const r=i.json; const post=r.request_context?.post; if(!post||r.status!=='success')return []; const body=r.response_body||{}; const rows=body.comments||body.items||body.data?.comments||body.data?.items||body.data||[]; return (Array.isArray(rows)?rows:[]).map(c=>{const cid=String(c.pk||c.id||c.comment_id||''); if(!cid)return null; return {json:{post_id:post.id,target_id:post.target_id,client_id:post.client_id,instagram_comment_id:cid,comment_user:c.user?.username||c.username||c.user_name||null,comment_text:c.text||c.comment_text||null,like_count:c.comment_like_count??c.like_count??null,created_at_instagram:toIso(c.created_at??c.created_at_utc),raw_json:c,collected_at:new Date().toISOString()}}}).filter(Boolean);});"
       },
       "id": "v2-normalize-comments",
       "name": "Normalize Comments",
@@ -301,7 +301,27 @@
     },
     {
       "parameters": {
-        "jsCode": "const a=$('Validate Tenant Scope').first().json.request_context.account; const telemetry=$('CORE — GET post comments').all().map(i=>i.json); const logical=telemetry.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=telemetry.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=telemetry.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const calls=$('Prepare Comment Sources').all().length; const discovered=$('Normalize Comments').all().filter(i=>i.json?.instagram_comment_id).length; const results=$input.all(); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const failedItems=results.filter(i=>isError(i.json)).length; const succeeded=Math.max(0,discovered-failedItems); const status=failedItems===0?'success':succeeded>0?'partial':'error'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:succeeded,error_message:failedItems?'one or more comments upserts failed':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',calls_user_posts:0,calls_post_comments:calls,calls_post_enrichment:0,calls_replies:0,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:discovered,comments_upserted:succeeded,comments_skipped:failedItems,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failedItems,warnings_count:status==='partial'?1:0}}}];"
+        "jsCode": "const r=$input.first().json; if(!r?._v2_error)return []; const a=$('Validate Tenant Scope').first().json.request_context.account; const persistenceFailure=r._v2_error==='posts_persistence_failed'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:persistenceFailure?'error':'success',posts_collected:0,comments_collected:0,error_message:persistenceFailure?String(r.raw_error||'post persistence was not confirmed'):null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',phase:'eligibility',operational_outcome:'SKIPPED_NO_ELIGIBLE_POSTS',skip_reason:r.skip_reason||'NO_ELIGIBLE_POSTS',posts_normalized:Number(r.posts_normalized||0),posts_confirmed:Number(r.posts_confirmed||0),posts_eligible:0,calls_post_comments:0,logical_calls:0,physical_attempts:0,retry_attempts:0,rapidapi_calls_total:0,comments_returned:0,comments_persisted:0,errors_count:persistenceFailure?1:0,warnings_count:persistenceFailure?0:1}}}];"
+      },
+      "id": "v2-comments-skip-log",
+      "name": "Prepare Comments Skip Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 40]
+    },
+    {
+      "parameters": {
+        "jsCode": "const responses=$input.all().map(i=>i.json); if(!responses.length)return []; const a=$('Validate Tenant Scope').first().json.request_context.account; const extract=r=>{const body=r.response_body||{}; const rows=body.comments||body.items||body.data?.comments||body.data?.items||body.data||[]; return Array.isArray(rows)?rows:[];}; const returned=responses.reduce((n,r)=>n+extract(r).length,0); const logical=responses.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=responses.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=responses.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const failed=responses.filter(r=>r.status!=='success').length; const status=failed===0?'success':returned>0?'partial':'error'; const outcome=failed?returned>0?'PARTIAL':'ERROR':returned>0?'SUCCESS_WITH_RESULTS':'SUCCESS_ZERO_RESULTS'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:0,error_message:failed?String(responses.find(r=>r.status!=='success')?.error_message||'comments fetch failed'):null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',phase:'fetch',operational_outcome:outcome,posts_eligible:responses.length,calls_post_comments:logical,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,comments_returned:returned,comments_persisted:0,errors_count:failed,warnings_count:status==='partial'?1:0}}}];"
+      },
+      "id": "v2-comments-fetch-log",
+      "name": "Prepare Comments Fetch Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 40]
+    },
+    {
+      "parameters": {
+        "jsCode": "const a=$('Validate Tenant Scope').first().json.request_context.account; const telemetry=$('CORE — GET post comments').all().map(i=>i.json); const logical=telemetry.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=telemetry.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=telemetry.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const calls=$('Prepare Comment Sources').all().length; const discovered=$('Normalize Comments').all().filter(i=>i.json?.instagram_comment_id).length; const results=$input.all(); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const failedItems=results.filter(i=>isError(i.json)).length; const succeeded=Math.max(0,discovered-failedItems); const status=failedItems===0?'success':succeeded>0?'partial':'error'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:succeeded,error_message:failedItems?'one or more comments upserts failed':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',phase:'persistence',operational_outcome:failedItems?(succeeded?'PARTIAL':'ERROR'):'SUCCESS',posts_eligible:calls,comments_returned:discovered,comments_persisted:succeeded,calls_user_posts:0,calls_post_comments:calls,calls_post_enrichment:0,calls_replies:0,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:discovered,comments_upserted:succeeded,comments_skipped:failedItems,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failedItems,warnings_count:status==='partial'?1:0}}}];"
       },
       "id": "v2-comments-log",
       "name": "Prepare V2 Comments Log",
@@ -340,12 +360,14 @@
     "Normalize Posts — Canonical Contract": {"main": [[{"node": "UPSERT social_posts", "type": "main", "index": 0}]]},
     "UPSERT social_posts": {"main": [[{"node": "Prepare V2 Log", "type": "main", "index": 0},{"node": "Load Posts for Comments", "type": "main", "index": 0}]]},
     "Prepare V2 Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
-    "Load Posts for Comments": {"main": [[{"node": "Prepare Comment Sources", "type": "main", "index": 0},{"node": "Enrichment Decision — Selective", "type": "main", "index": 0}]]},
+    "Load Posts for Comments": {"main": [[{"node": "Prepare Comment Sources", "type": "main", "index": 0},{"node": "Enrichment Decision — Selective", "type": "main", "index": 0},{"node": "Prepare Comments Skip Log", "type": "main", "index": 0}]]},
     "Prepare Comment Sources": {"main": [[{"node": "CORE — GET post comments", "type": "main", "index": 0}]]},
-    "CORE — GET post comments": {"main": [[{"node": "Normalize Comments", "type": "main", "index": 0}]]},
+    "CORE — GET post comments": {"main": [[{"node": "Normalize Comments", "type": "main", "index": 0},{"node": "Prepare Comments Fetch Log", "type": "main", "index": 0}]]},
     "Normalize Comments": {"main": [[{"node": "UPSERT instagram_comments", "type": "main", "index": 0}]]},
     "UPSERT instagram_comments": {"main": [[{"node": "Reply Decision — child count only", "type": "main", "index": 0},{"node": "Prepare V2 Comments Log", "type": "main", "index": 0}]]},
     "Prepare V2 Comments Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
+    "Prepare Comments Skip Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
+    "Prepare Comments Fetch Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
     "Reply Decision — child count only": {"main": [[{"node": "SELECTIVE — GET comment replies", "type": "main", "index": 0}]]},
     "SELECTIVE — GET comment replies": {"main": [[{"node": "Normalize Replies with Parent", "type": "main", "index": 0}]]},
     "Normalize Replies with Parent": {"main": [[{"node": "UPSERT replies in instagram_comments", "type": "main", "index": 0}]]},
