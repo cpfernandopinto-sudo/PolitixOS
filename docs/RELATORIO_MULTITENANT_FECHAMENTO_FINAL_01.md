@@ -79,7 +79,7 @@ Confirmado com dado real **pós-migration**: o schedule trigger automático do n
 
 ## 13. SHA
 
-Nenhum código novo neste bloco além da migration (documentada em `.sql`) e deste relatório. Ver seção 7 do pedido — commit feito com esses dois arquivos (ver git log).
+`7bc769e` (`7bc769e1bcc1cabf7bffe16366a438073f0381d5`) — `docs(multitenant): close targets anon policy, record final validation`, branch `main`, fast-forward de `32d9553` (Bloco 2, já em produção). Push aceito por `origin/main`. Nenhum código de aplicação novo neste bloco — só a migration (`.sql`, registro no repo) e os relatórios.
 
 ## 14. Policies finais em targets
 
