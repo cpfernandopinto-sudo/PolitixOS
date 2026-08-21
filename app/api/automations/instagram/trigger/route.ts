@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Fluxo permitido (whitelist fechada — nunca repassar uma URL arbitrária).
-  let body: { flow?: unknown };
+  let body: { flow?: unknown; clientId?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -114,6 +114,36 @@ export async function POST(req: NextRequest) {
     );
   }
   const flow = body.flow;
+
+  // 4. client_id (Bloco 2 — multi-tenant). NUNCA confiar no valor vindo do
+  //    browser para um usuário não-admin: o cliente efetivo é sempre o da
+  //    própria sessão (calculado no login). Se o body tentar informar um
+  //    client_id diferente do da sessão, é tratado como forjado -> 403,
+  //    mesmo que seja um UUID de cliente real (Teste D do checkpoint).
+  //    Admin pode informar um client_id explícito (é confiável só porque
+  //    admin já enxerga todos os clientes por definição — não é "pular" a
+  //    validação, é a própria regra de admin) ou omitir (= todos os
+  //    clientes, igual ao comportamento anterior ao Bloco 2).
+  const requestedClientId = typeof body.clientId === 'string' && body.clientId ? body.clientId : null;
+  let effectiveClientId: string | null;
+  if (session.role === 'admin') {
+    effectiveClientId = requestedClientId;
+  } else {
+    const sessionClientId = session.clientId;
+    if (requestedClientId && requestedClientId !== sessionClientId) {
+      console.warn('[Instagram Trigger] client_id forjado rejeitado:', {
+        userId: session.userId,
+        userEmail: session.email,
+        sessionClientId,
+        requestedClientId,
+      });
+      return NextResponse.json(
+        { success: false, error: 'client_id não corresponde ao cliente do usuário.', code: 'CLIENT_ID_MISMATCH' },
+        { status: 403 }
+      );
+    }
+    effectiveClientId = sessionClientId;
+  }
 
   const webhookUrl = process.env[FLOW_WEBHOOK_ENV[flow]] || FLOW_WEBHOOK_FALLBACK[flow];
   const secret = process.env.N8N_INSTAGRAM_WEBHOOK_SECRET;
@@ -134,6 +164,7 @@ export async function POST(req: NextRequest) {
     flow,
     userId: session.userId,
     userEmail: session.email,
+    clientId: effectiveClientId,
     webhookUrl: redactUrl(webhookUrl),
   });
 
@@ -155,6 +186,10 @@ export async function POST(req: NextRequest) {
           flow,
           triggeredAt: new Date().toISOString(),
           triggeredBy: session.email,
+          // null = todos os clientes (só possível para admin, sem client_id
+          // informado) — o n8n trata ausência/null como "sem filtro de
+          // cliente", igual ao comportamento anterior ao Bloco 2.
+          clientId: effectiveClientId,
         }),
         signal: controller.signal,
       });

@@ -1,6 +1,16 @@
 import { cache } from 'react'
-import { createClient } from '@/lib/supabaseClient'
+import { createAdminClient } from '@/lib/supabaseClient'
 import { withTiming } from '@/lib/perf/timing'
+// NOTA (Bloco 2 — multi-tenant / eliminação de read_targets_legacy_anon):
+// trocado de createClient() (chave anon) para createAdminClient() (service_role,
+// server-only). Reconfirmado por busca completa no repo que TODOS os
+// consumidores de fetchMencoes/getCandidateOptions/getCityOptions/
+// getSourceOptions são server-side (page.tsx, DashboardContent.tsx,
+// lib/queries/overview.ts, lib/queries/alerts.ts) — NoticiasDashboardClient.tsx
+// ('use client') só importa daqui funções puras (getKPIs, getFontes, etc.)
+// que recebem `rows` já buscadas como parâmetro, nunca tocam o Supabase.
+// Não há mais nenhum caminho client-side/anon para `targets` ou `mentions`
+// neste arquivo.
 import type { KPI, GaugeScore, Noticia, MencaoRow, NoticiasFilters } from '@/lib/types/noticias'
 
 export type { KPI, Noticia }
@@ -100,7 +110,7 @@ function countByKey(items: string[]): { categories: string[]; values: number[] }
 // Todas as funções de query recebem o mesmo filters ref passado pela page.
 
 const fetchMencoes = cache(async (filters?: NoticiasFilters): Promise<MencaoRow[]> => {
-  const client = createClient()
+  const client = createAdminClient()
 
   // ── Resolver allowedTargetIds → candidate_names ───────────────────────────
   let allowedCandidateNames: string[] | null = null
@@ -572,7 +582,7 @@ export function getCrisisTimeline24h(rows: MencaoRow[]) {
 export async function getCandidateOptions(
   allowedTargetIds?: string[] | null
 ): Promise<{ id: string; name: string }[]> {
-  const client = createClient()
+  const client = createAdminClient()
 
   let q = client.from('targets').select('id, candidate_name').order('candidate_name')
 
@@ -590,7 +600,7 @@ export async function getCandidateOptions(
 }
 
 export async function getCityOptions(): Promise<string[]> {
-  const client = createClient()
+  const client = createAdminClient()
   const { data } = await client
     .from('mentions')
     .select('city')
@@ -600,7 +610,7 @@ export async function getCityOptions(): Promise<string[]> {
 }
 
 export async function getSourceOptions(): Promise<string[]> {
-  const client = createClient()
+  const client = createAdminClient()
   const { data } = await client
     .from('mentions')
     .select('source')

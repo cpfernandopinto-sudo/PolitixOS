@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabaseClient';
 import { createSession, deleteSession, getSession } from '@/lib/auth/session';
-import { loadUserPermissions, loadUserTargets } from '@/lib/auth/dal';
+import { loadUserPermissions, loadUserTargets, getDefaultClientId, filterTargetIdsByClient } from '@/lib/auth/dal';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import type { UserRole, AppUser, UserFormState } from '@/lib/auth/types';
 
@@ -52,7 +52,7 @@ export async function loginAction(
     const client = createAdminClient();
     const { data: user, error } = await client
       .from('app_users')
-      .select('id, name, email, role, password_hash, is_active')
+      .select('id, name, email, role, password_hash, is_active, client_id')
       .eq('email', email)
       .single();
 
@@ -95,6 +95,8 @@ export async function loginAction(
       role: user.role as UserRole,
       permissions,
       allowedTargetIds,
+      // Bloco 2: admin sempre null (global), igual a allowedTargetIds.
+      clientId: user.role === 'admin' ? null : (user.client_id ?? null),
       expiresAt: '',
     });
   } catch (err) {
@@ -141,10 +143,18 @@ export async function createUserAction(
   const password_hash = await hashPassword(password);
   const client = createAdminClient();
 
+  // Bloco 2: admin é global (client_id null); não-admin é vinculado ao único
+  // cliente operacional hoje — sem seletor de cliente na UI ainda (ver
+  // checkpoint do Bloco 2, Modelo A).
+  const clientId = role === 'admin' ? null : await getDefaultClientId();
+  if (role !== 'admin' && !clientId) {
+    return { error: 'Nenhum cliente ativo cadastrado — não é possível criar usuário não-admin.' };
+  }
+
   // 1. Inserir usuário
   const { data: userRow, error: userErr } = await client
     .from('app_users')
-    .insert({ name, email, password_hash, role, is_active: isActive })
+    .insert({ name, email, password_hash, role, is_active: isActive, client_id: clientId })
     .select('id')
     .single();
 
@@ -157,10 +167,14 @@ export async function createUserAction(
 
   const userId = userRow.id;
 
-  // 2. Targets
-  if (targetIds.length > 0) {
+  // 2. Targets — não-admin só pode receber targets do próprio cliente
+  // (defesa em profundidade contra vínculo cross-tenant por engano).
+  const allowedTargetIds = role === 'admin' || !clientId
+    ? targetIds
+    : (await filterTargetIdsByClient(targetIds, clientId)).allowed;
+  if (allowedTargetIds.length > 0) {
     await client.from('app_user_targets').insert(
-      targetIds.map((tid) => ({ user_id: userId, target_id: tid }))
+      allowedTargetIds.map((tid) => ({ user_id: userId, target_id: tid }))
     );
   }
 
@@ -198,8 +212,13 @@ export async function updateUserAction(
 
   const client = createAdminClient();
 
+  const clientId = role === 'admin' ? null : await getDefaultClientId();
+  if (role !== 'admin' && !clientId) {
+    return { error: 'Nenhum cliente ativo cadastrado — não é possível manter usuário não-admin.' };
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateData: Record<string, any> = { name, email, role, is_active: isActive };
+  const updateData: Record<string, any> = { name, email, role, is_active: isActive, client_id: clientId };
   if (newPassword && newPassword.length >= 6) {
     updateData.password_hash = await hashPassword(newPassword);
   }
@@ -217,9 +236,13 @@ export async function updateUserAction(
   await client.from('app_user_targets').delete().eq('user_id', userId);
   await client.from('app_user_permissions').delete().eq('user_id', userId);
 
-  if (targetIds.length > 0) {
+  // Não-admin só pode receber targets do próprio cliente (mesma defesa de createUserAction).
+  const allowedTargetIds = role === 'admin' || !clientId
+    ? targetIds
+    : (await filterTargetIdsByClient(targetIds, clientId)).allowed;
+  if (allowedTargetIds.length > 0) {
     await client.from('app_user_targets').insert(
-      targetIds.map((tid) => ({ user_id: userId, target_id: tid }))
+      allowedTargetIds.map((tid) => ({ user_id: userId, target_id: tid }))
     );
   }
 
@@ -281,7 +304,7 @@ export async function listUsers(): Promise<AppUser[]> {
   const client = createAdminClient();
   const { data, error } = await client
     .from('app_users')
-    .select('id, name, email, role, is_active, created_at')
+    .select('id, name, email, role, is_active, created_at, client_id')
     .order('created_at', { ascending: true });
   if (error) {
     console.error('[listUsers]', error.message);
@@ -303,7 +326,7 @@ export async function getUserWithRelations(userId: string): Promise<{
   const client = createAdminClient();
   const { data: user, error } = await client
     .from('app_users')
-    .select('id, name, email, role, is_active, created_at')
+    .select('id, name, email, role, is_active, created_at, client_id')
     .eq('id', userId)
     .single();
   if (error || !user) return null;

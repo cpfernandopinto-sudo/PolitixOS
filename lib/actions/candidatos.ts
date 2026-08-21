@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabaseClient';
 import { revalidatePath } from 'next/cache';
-import { requireAuth, getAllowedTargetIds } from '@/lib/auth/dal';
+import { requireAuth, getAllowedTargetIds, getActiveClientId, getDefaultClientId } from '@/lib/auth/dal';
 import {
   TargetInput,
   SocialAccountInput,
@@ -55,6 +55,12 @@ export async function createCandidateAction(
   await requireAuth();
   const adminClient = createAdminClient();
 
+  // Bloco 2 (multi-tenant): targets é a fonte da verdade de client_id — não
+  // há trigger de derivação nela (as outras tabelas derivam de target_id).
+  // Não-admin: sempre o próprio cliente. Admin: cliente único de hoje
+  // (getDefaultClientId) até existir seletor de cliente na UI.
+  const clientId = (await getActiveClientId()) ?? (await getDefaultClientId());
+
   // 1. Inserir candidato (target)
   const { data: targetData, error: targetError } = await adminClient
     .from('targets')
@@ -64,6 +70,7 @@ export async function createCandidateAction(
       state: target.state || null,
       keywords: target.keywords || null,
       is_active: target.is_active,
+      client_id: clientId,
     })
     .select()
     .single();

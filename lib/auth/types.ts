@@ -11,6 +11,12 @@ export interface AppUser {
   role: UserRole;
   is_active: boolean;
   created_at: string;
+  /**
+   * Bloco 2 (multi-tenant). `null` = admin global (enxerga todos os
+   * clientes) — mesma semântica de `allowedTargetIds: null`. Usuário
+   * não-admin pertence a exatamente 1 cliente (Modelo A).
+   */
+  client_id: string | null;
 }
 
 export interface UserFormState {

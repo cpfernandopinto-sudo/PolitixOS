@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockRequireAuth, mockGetAllowedTargetIds } = vi.hoisted(() => ({
+const { mockRequireAuth, mockGetAllowedTargetIds, mockGetActiveClientId, mockGetDefaultClientId } = vi.hoisted(() => ({
   mockRequireAuth: vi.fn(),
   mockGetAllowedTargetIds: vi.fn(),
+  mockGetActiveClientId: vi.fn(),
+  mockGetDefaultClientId: vi.fn(),
 }));
 vi.mock('@/lib/auth/dal', () => ({
   requireAuth: mockRequireAuth,
   getAllowedTargetIds: mockGetAllowedTargetIds,
+  getActiveClientId: mockGetActiveClientId,
+  getDefaultClientId: mockGetDefaultClientId,
 }));
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
@@ -54,6 +58,8 @@ function targetInput(overrides: Partial<{ candidate_name: string; city: string; 
 beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuth.mockResolvedValue({ role: 'gestor' });
+  mockGetActiveClientId.mockResolvedValue('client-1');
+  mockGetDefaultClientId.mockResolvedValue('client-1');
 });
 
 describe('createCandidateAction — qualquer usuário autenticado pode criar', () => {

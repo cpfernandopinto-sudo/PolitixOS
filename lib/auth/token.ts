@@ -8,6 +8,13 @@ export interface SessionPayload {
   role: UserRole;
   permissions: string[];
   allowedTargetIds: string[];
+  /**
+   * Bloco 2 (multi-tenant). `null` = admin global (todos os clientes).
+   * Não-admin: id do único cliente ao qual o usuário pertence (Modelo A).
+   * Calculado no login (loginAction), igual a allowedTargetIds — não é
+   * recalculado a cada request.
+   */
+  clientId: string | null;
   expiresAt: string;
 }
 
