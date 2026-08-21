@@ -1,0 +1,24 @@
+-- ============================================================
+-- PolitixOS — Bloco 2.2: fechamento final da fundação multi-tenant
+-- Execute INTEIRO no Supabase → SQL Editor → Run (já aplicada em produção
+-- via MCP nesta sessão — este arquivo é o registro/traceability no repo)
+-- ============================================================
+--
+-- Remove SOMENTE a policy legada de leitura pública de `targets`
+-- (read_targets_legacy_anon), criada no Bloco 1 (hardening P0) como
+-- compensação temporária enquanto lib/queries/noticias.ts ainda lia
+-- `targets` com a chave anônima a partir do browser.
+--
+-- Essa dependência foi eliminada no Bloco 2 (noticias.ts migrado para
+-- createAdminClient(), ver RELATORIO_INSTAGRAM_MULTITENANT_CLIENT_ID_01.md)
+-- e reconfirmada por busca completa antes desta migration (0 consumidores
+-- anon — client-side ou server-side — de `targets`; ver
+-- RELATORIO_MULTITENANT_FECHAMENTO_FINAL_01.md).
+--
+-- Validação visual humana em produção (Overview, Instagram, X, Notícias,
+-- Candidatos, Automações) = PASS, realizada antes desta migration.
+--
+-- Não altera nenhuma outra policy, tabela, trigger ou constraint.
+-- ============================================================
+
+drop policy if exists "read_targets_legacy_anon" on public.targets;
