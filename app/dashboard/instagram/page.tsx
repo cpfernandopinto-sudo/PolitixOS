@@ -1,60 +1,41 @@
 import { Suspense } from 'react';
-import InstagramDashboard from '@/components/dashboard/InstagramDashboard';
-import InstagramFilterBar from '@/components/dashboard/InstagramFilterBar';
-import { computeInstagramKPIs, computeInstagramChartData, fetchInstagramData, cleanFilter, getInstagramFiltersOptions } from '@/lib/queries/instagram';
+import InstagramUiFilters from '@/components/dashboard/instagram/InstagramUiFilters';
+import InstagramIntelligenceDashboard from '@/components/dashboard/instagram/InstagramIntelligenceDashboard';
 import { getAllowedTargetIds } from '@/lib/auth/dal';
 import { parseGlobalFilters, getEffectiveCandidateIds, searchParamsToURLSearchParams } from '@/lib/filters/global';
+import { getInstagramUiContract } from '@/lib/queries/instagram-ui';
 
 export const metadata = {
-  title: "Dashboard Instagram | PolitixOS"
+  title: 'Inteligência Instagram | PolitixOS'
 };
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+
 export default async function InstagramPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const allowedTargetIds = await getAllowedTargetIds();
   const globalFilters = parseGlobalFilters(searchParamsToURLSearchParams(params));
   const candidateIds = getEffectiveCandidateIds(globalFilters, allowedTargetIds);
-  const filters = {
-    period: globalFilters.period === 'all' ? null : globalFilters.period,
-    sentiment: cleanFilter(params.sentiment),
-    risk: cleanFilter(params.risk),
-    topic: cleanFilter(params.topic),
-    post: cleanFilter(params.post),
-    candidateIds,
-    allowedTargetIds,
-  };
-
-
-  // Antes, getInstagramKPIs/getInstagramChartData/fetchInstagramData eram
-  // chamadas separadas aqui — cada uma repetia a MESMA busca completa
-  // (targets+posts+comentários+IA) com o mesmo `filters`, 3 execuções
-  // idênticas por carregamento (ver docs/AUDITORIA_PERFORMANCE_OVERVIEW.md,
-  // Sprint 3). Agora busca uma vez e deriva KPIs/gráficos localmente — mesmo
-  // resultado, 1 execução em vez de 3. `getInstagramFiltersOptions` continua
-  // separada de propósito: mostra as opções de filtro (tópicos/candidatos)
-  // para TODO o escopo permitido, não apenas os filtros já aplicados.
-  const [data, options] = await Promise.all([
-    fetchInstagramData(filters),
-    // Passa allowedTargetIds para que o seletor de candidatos
-    // mostre apenas os candidatos permitidos para este usuário
-    getInstagramFiltersOptions(allowedTargetIds),
-  ]);
-  const kpis = computeInstagramKPIs(data.posts, data.comments);
-  const charts = computeInstagramChartData(data.posts, data.comments);
+  const format = first(params.format)?.toUpperCase();
+  const page = Math.max(1, Number.parseInt(first(params.page) ?? '1', 10) || 1);
+  const contract = await getInstagramUiContract({
+    candidateIds: candidateIds ?? undefined,
+    periodDays: globalFilters.period === 'all' ? null : Number(globalFilters.period),
+    contentTypes: format && ['IMAGE', 'REEL', 'CAROUSEL'].includes(format) ? [format as 'IMAGE' | 'REEL' | 'CAROUSEL'] : undefined,
+    risk: first(params.risk) ?? null,
+    page,
+    pageSize: 20,
+  });
 
   return (
-    <div className="space-y-6 pb-12">
-      <Suspense fallback={<div className="h-14 bg-[#12192A] rounded-xl animate-pulse mb-6" />}>
-        <InstagramFilterBar options={options} />
-      </Suspense>
-
-      <Suspense fallback={<div className="h-64 bg-[#12192A] rounded-xl animate-pulse" />}>
-        <InstagramDashboard kpis={kpis} charts={charts} posts={data.posts} comments={data.comments} />
-      </Suspense>
-    </div>
+    <main className="space-y-6">
+      <header className="border-b border-white/10 pb-5"><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-cyan-400">Social Intelligence</p><div className="mt-2 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-semibold tracking-tight text-white">Instagram</h1><p className="mt-1 text-sm text-slate-500">Desempenho editorial, pressão social e sinais de risco.</p></div><p className="text-xs text-slate-500">Atualizado {contract.collectionFreshness.lastCollectedAt ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(contract.collectionFreshness.lastCollectedAt)) : '—'}</p></div></header>
+      <Suspense fallback={<div className="h-16 animate-pulse rounded-md bg-white/5" />}><InstagramUiFilters options={contract.filterOptions} /></Suspense>
+      <InstagramIntelligenceDashboard contract={contract} />
+    </main>
   );
 }

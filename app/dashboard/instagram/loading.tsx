@@ -1,0 +1,3 @@
+export default function InstagramLoading() {
+  return <main aria-label="Carregando análise do Instagram" className="animate-pulse space-y-6"><div className="h-20 rounded-md bg-white/5" /><div className="h-16 rounded-md bg-white/5" /><div className="grid grid-cols-2 gap-3 lg:grid-cols-5">{Array.from({ length: 5 }, (_, index) => <div key={index} className="h-28 rounded-md bg-white/5" />)}</div><div className="grid gap-4 xl:grid-cols-12"><div className="h-80 rounded-md bg-white/5 xl:col-span-7" /><div className="h-80 rounded-md bg-white/5 xl:col-span-5" /></div><div className="grid gap-4 xl:grid-cols-12"><div className="h-[560px] rounded-md bg-white/5 xl:col-span-8" /><div className="h-[560px] rounded-md bg-white/5 xl:col-span-4" /></div></main>;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { intersectInstagramTargetScope } from './instagram-ui';
+import { chunkInstagramPostIds, intersectInstagramTargetScope } from './instagram-ui';
 
 describe('Instagram UI server scope', () => {
   it('não permite candidato fora de allowedTargetIds', () => {
@@ -13,5 +13,12 @@ describe('Instagram UI server scope', () => {
   it('admin preserva escopo global ou seleção explícita', () => {
     expect(intersectInstagramTargetScope(undefined, null)).toBeNull();
     expect(intersectInstagramTargetScope(['target-a'], null)).toEqual(['target-a']);
+  });
+
+  it('divide listas grandes em lotes seguros sem perder ou duplicar IDs', () => {
+    const ids = Array.from({ length: 652 }, (_, index) => `post-${index}`);
+    const chunks = chunkInstagramPostIds(ids, 150);
+    expect(chunks.map((chunk) => chunk.length)).toEqual([150, 150, 150, 150, 52]);
+    expect(chunks.flat()).toEqual(ids);
   });
 });

@@ -49,6 +49,7 @@ export interface InstagramUiPost {
     themes: string[];
     summary: string | null;
     riskReason: string | null;
+    recommendedAction: string | null;
   };
   reel: InstagramUiEnrichment | null;
   carousel: {
@@ -69,9 +70,17 @@ export interface InstagramUiComment {
   publishedAt: string | null;
   collectedAt: string;
   repliesAvailable: boolean;
+  postCaption: string | null;
+  postUrl: string | null;
+  candidateName: string | null;
 }
 
 export interface InstagramUiContract {
+  filterOptions: {
+    candidates: Array<{ id: string; name: string }>;
+    formats: Array<'IMAGE' | 'REEL' | 'CAROUSEL'>;
+    risks: string[];
+  };
   summary: {
     posts: number;
     comments: number;
@@ -126,4 +135,5 @@ export interface InstagramUiQuery {
   periodDays?: number | null;
   page?: number;
   pageSize?: number;
+  risk?: string | null;
 }

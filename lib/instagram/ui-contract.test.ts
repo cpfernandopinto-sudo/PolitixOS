@@ -110,6 +110,19 @@ describe('Instagram UI data contract', () => {
     });
     expect(contract.comments.relevanceCriterion).toBe('like_count');
     expect(contract.comments.relevant[0].id).toBe('c2');
+    expect(contract.comments.relevant[0]).toMatchObject({ postCaption: 'Legenda', postUrl: 'https://instagram.com/p/ABC/' });
+  });
+
+  it('expõe filtros permitidos e recomendação sem vazar payload bruto', () => {
+    const contract = buildInstagramUiContract({
+      posts: [basePost()], comments: [],
+      analyses: [{ content_id: 'post-1', risk_level: 'alto', recommended_action: 'Monitorar resposta' }],
+      targetNames: new Map([['target-a', 'Candidata A'], ['target-b', 'Candidato B']]),
+    });
+    expect(contract.filterOptions.candidates).toEqual([{ id: 'target-a', name: 'Candidata A' }, { id: 'target-b', name: 'Candidato B' }]);
+    expect(contract.filterOptions.risks).toEqual(['alto']);
+    expect(contract.recentPosts[0].analysis.recommendedAction).toBe('Monitorar resposta');
+    expect(JSON.stringify(contract)).not.toContain('raw_json');
   });
 
   it('mantém métricas distintas na agregação por tipo', () => {

@@ -50,6 +50,7 @@ export interface InstagramUiRawAnalysis extends UnknownRecord {
   ai_topics?: unknown;
   summary?: string | null;
   risk_reason?: string | null;
+  recommended_action?: string | null;
 }
 
 export interface InstagramUiBuildInput {
@@ -197,6 +198,7 @@ export function mapInstagramPost(
       themes: stringArray(analysis?.ai_topics),
       summary: analysis?.summary ?? null,
       riskReason: analysis?.risk_reason ?? null,
+      recommendedAction: analysis?.recommended_action ?? null,
     },
     reel: contentType === 'REEL' ? enrichment : null,
     carousel: contentType === 'CAROUSEL' ? { childCount: children.length || null, children } : null,
@@ -204,8 +206,9 @@ export function mapInstagramPost(
   };
 }
 
-export function mapInstagramComments(comments: InstagramUiRawComment[]): InstagramUiComment[] {
+export function mapInstagramComments(comments: InstagramUiRawComment[], posts: InstagramUiPost[] = []): InstagramUiComment[] {
   const parentIds = new Set(comments.map((comment) => comment.parent_comment_id).filter((id): id is string => Boolean(id)));
+  const postById = new Map(posts.map((post) => [post.id, post]));
   return comments.map((comment) => ({
     id: comment.id,
     providerId: comment.instagram_comment_id,
@@ -217,6 +220,9 @@ export function mapInstagramComments(comments: InstagramUiRawComment[]): Instagr
     publishedAt: comment.created_at_instagram ?? null,
     collectedAt: comment.collected_at,
     repliesAvailable: parentIds.has(comment.id),
+    postCaption: postById.get(comment.post_id)?.caption ?? null,
+    postUrl: postById.get(comment.post_id)?.url ?? null,
+    candidateName: postById.get(comment.post_id)?.candidateName ?? null,
   }));
 }
 
@@ -251,11 +257,16 @@ export function buildInstagramUiContract({
   mappedPosts.sort((a, b) => new Date(b.publishedAt ?? b.collectedAt).getTime() - new Date(a.publishedAt ?? a.collectedAt).getTime());
   const offset = (safePage - 1) * safePageSize;
   const recentPosts = mappedPosts.slice(offset, offset + safePageSize);
-  const mappedComments = mapInstagramComments(comments).sort((a, b) => new Date(b.publishedAt ?? b.collectedAt).getTime() - new Date(a.publishedAt ?? a.collectedAt).getTime());
+  const mappedComments = mapInstagramComments(comments, mappedPosts).sort((a, b) => new Date(b.publishedAt ?? b.collectedAt).getTime() - new Date(a.publishedAt ?? a.collectedAt).getTime());
   const types = INSTAGRAM_CONTENT_TYPES.map((type) => ({ type, posts: mappedPosts.filter((post) => post.contentType === type) })).filter((group) => group.posts.length > 0);
   const freshnessValue = mappedPosts.reduce<string | null>((latest, post) => !latest || post.collectedAt > latest ? post.collectedAt : latest, null);
   const freshnessAge = freshnessValue ? now.getTime() - new Date(freshnessValue).getTime() : null;
   return {
+    filterOptions: {
+      candidates: [...targetNames.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
+      formats: ['IMAGE', 'REEL', 'CAROUSEL'],
+      risks: [...new Set(mappedPosts.map((post) => post.analysis.risk).filter((risk): risk is string => Boolean(risk)))].sort(),
+    },
     summary: { posts: mappedPosts.length, comments: totalComments, analyzedPosts: mappedPosts.filter((post) => post.analysis.sentiment || post.analysis.risk || post.analysis.themes.length).length },
     contentTypes: types.map((group) => ({ type: group.type, count: group.posts.length })),
     performanceByType: types.map((group) => ({

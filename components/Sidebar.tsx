@@ -15,12 +15,13 @@ export default function Sidebar({ permissions }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem('politixos_sidebar_collapsed');
-    setCollapsed(stored === null ? false : stored === 'true');
+    const frame = requestAnimationFrame(() => {
+      const stored = localStorage.getItem('politixos_sidebar_collapsed');
+      setCollapsed(stored === 'true');
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const toggleSidebar = () => {
@@ -42,8 +43,6 @@ export default function Sidebar({ permissions }: Props) {
         ? 'bg-cyan-400/10 text-cyan-400 font-semibold'
         : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
     } ${collapsed ? 'justify-center' : ''}`;
-
-  if (!mounted) return null;
 
   return (
     // SIDEBAR — apenas Navigation Area.
