@@ -6,6 +6,11 @@ import { buildInstagramUiContract } from '@/lib/instagram/ui-contract';
 import InstagramIntelligenceDashboard from './InstagramIntelligenceDashboard';
 
 vi.mock('@/components/charts/DonutChart', () => ({ default: () => <div data-testid="donut" /> }));
+vi.mock('@/components/charts/LineChart', () => ({ default: () => <div data-testid="line-chart" /> }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 const post = {
   id: 'post-1', target_id: 'target-a', platform: 'instagram', caption: 'Prestação de contas', content_type: 'REEL', media_type: 'video', media_url: null,
@@ -22,10 +27,10 @@ describe('InstagramIntelligenceDashboard', () => {
     });
     render(<InstagramIntelligenceDashboard contract={contract} />);
     expect(screen.getByText('25 likes')).toBeInTheDocument();
-    expect(screen.getByText('Métricas separadas; ausências não são convertidas em zero')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Prestação de contas'));
+    expect(screen.getByText('Métricas desagregadas por formato; dados ausentes não são convertidos em zero')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Análise de IA'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Responder')).toBeInTheDocument();
+    expect(screen.getAllByText('Responder')[0]).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
