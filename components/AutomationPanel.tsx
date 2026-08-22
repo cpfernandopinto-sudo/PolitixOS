@@ -6,7 +6,7 @@ import {
   Newspaper, MessageSquare, BrainCircuit, RefreshCw,
   CheckCircle, XCircle, Loader2, Play, Clock, X,
 } from 'lucide-react';
-import { triggerN8nWebhook, triggerInstagramAutomation, isInstagramFlowKey, WEBHOOKS, type WebhookKey } from '@/lib/n8n';
+import { triggerN8nWebhook, triggerInstagramAutomation, triggerXAutomation, isInstagramFlowKey, WEBHOOKS, type WebhookKey, type XPipelineMode } from '@/lib/n8n';
 
 // ---------------------------------------------------------------------------
 // Flow definitions
@@ -169,6 +169,10 @@ const createInitialStates = () => (
 );
 
 const isWebhookConfigured = (url: string | undefined): url is string => Boolean(url?.trim());
+const isXFlowKey = (key: WebhookKey) => key === 'xPosts' || key === 'xReplies' || key === 'xAiAnalysis' || key === 'xReprocess';
+const X_FLOW_MODES: Record<'xPosts' | 'xReplies' | 'xAiAnalysis' | 'xReprocess', XPipelineMode> = {
+  xPosts: 'posts', xReplies: 'replies', xAiAnalysis: 'ai', xReprocess: 'reprocess',
+};
 
 // ---------------------------------------------------------------------------
 // FlowCard
@@ -239,7 +243,7 @@ function FlowCard({ flow, state, onTrigger }: FlowCardProps) {
                   : 'bg-white/5 text-gray-400 border-white/10'
             }`}
         >
-          {STATUS_LABELS[state.status]}
+          {isSuccess && isXFlowKey(flow.key) ? 'Solicitação enviada' : STATUS_LABELS[state.status]}
         </span>
 
         {!webhookConfigured && (
@@ -342,16 +346,17 @@ export default function AutomationPanel() {
       setFlowState(key, { status: 'loading', message: null });
 
       try {
-        // Instagram passa pela rota server-side autenticada (hardening P0);
-        // Notícias e X/Twitter continuam disparando o webhook n8n direto.
+        // Instagram e X passam por rotas server-side autenticadas.
         if (isInstagramFlowKey(key)) {
           await triggerInstagramAutomation(key);
+        } else if (isXFlowKey(key)) {
+          await triggerXAutomation(X_FLOW_MODES[key]);
         } else {
           await triggerN8nWebhook(webhookUrl);
         }
         setFlowState(key, {
           status: 'success',
-          message: 'Fluxo iniciado com sucesso',
+          message: isXFlowKey(key) ? 'Solicitação enviada ao pipeline' : 'Fluxo iniciado com sucesso',
           lastRun: new Date(),
         });
       } catch {

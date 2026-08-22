@@ -14,10 +14,9 @@
 // segredo do n8n ao cliente. Elas viram um sentinela fixo (não a URL real do
 // n8n) só para o AutomationPanel saber que o "canal" existe neste ambiente
 // (checagem de UI, não de segurança) — isso também tira a URL real do n8n do
-// bundle JS do browser para esses 4 fluxos. Notícias e X/Twitter NÃO foram
-// alterados nesta etapa — continuam disparando o webhook n8n diretamente do
-// browser via triggerN8nWebhook, com a URL real exposta como antes.
+// bundle JS do browser para esses 4 fluxos.
 const INSTAGRAM_SERVER_SIDE_SENTINEL = 'instagram-server-side' as const;
+const X_SERVER_SIDE_SENTINEL = 'x-server-side' as const;
 
 export const WEBHOOKS = {
   noticias: process.env.NEXT_PUBLIC_WEBHOOK_NOTICIAS ?? 'https://n8n.srv1271569.hstgr.cloud/webhook/trigger-noticias',
@@ -25,13 +24,15 @@ export const WEBHOOKS = {
   comentarios: INSTAGRAM_SERVER_SIDE_SENTINEL,
   analise: INSTAGRAM_SERVER_SIDE_SENTINEL,
   reprocessamento: INSTAGRAM_SERVER_SIDE_SENTINEL,
-  xPosts: process.env.NEXT_PUBLIC_WEBHOOK_X_POSTS,
-  xReplies: process.env.NEXT_PUBLIC_WEBHOOK_X_REPLIES,
-  xAiAnalysis: process.env.NEXT_PUBLIC_WEBHOOK_X_AI_ANALYSIS,
-  xReprocess: process.env.NEXT_PUBLIC_WEBHOOK_X_REPROCESS,
+  // NEXT_PUBLIC_WEBHOOK_X_*: deprecated — safe to remove after cutover.
+  xPosts: X_SERVER_SIDE_SENTINEL,
+  xReplies: X_SERVER_SIDE_SENTINEL,
+  xAiAnalysis: X_SERVER_SIDE_SENTINEL,
+  xReprocess: X_SERVER_SIDE_SENTINEL,
 } as const;
 
 export type WebhookKey = keyof typeof WEBHOOKS;
+export type XPipelineMode = 'posts' | 'replies' | 'ai' | 'reprocess' | 'full';
 
 /**
  * Dispara um webhook POST no n8n e aguarda a resposta.
@@ -91,4 +92,18 @@ export async function triggerInstagramAutomation(flow: InstagramFlowKey): Promis
   }
 
   return true;
+}
+
+export async function triggerXAutomation(mode: XPipelineMode): Promise<'accepted'> {
+  const res = await fetch('/api/automations/x/trigger', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode }),
+  });
+  if (!res.ok) throw new Error(`Erro ao solicitar pipeline X (HTTP ${res.status})`);
+  const data: unknown = await res.json();
+  if (!data || typeof data !== 'object' || (data as { status?: unknown }).status !== 'accepted') {
+    throw new Error('Resposta inválida do pipeline X');
+  }
+  return 'accepted';
 }
