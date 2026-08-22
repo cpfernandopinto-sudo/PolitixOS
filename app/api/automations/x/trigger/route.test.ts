@@ -76,6 +76,13 @@ describe('POST /api/automations/x/trigger', () => {
     expect(payload).not.toHaveProperty('ai_enabled');
   });
 
+  it('preserva ai_enabled=false em mode ai para no-op controlado', async () => {
+    const response = await POST(request({ mode: 'ai', ai_enabled: false }));
+    expect(response.status).toBe(202);
+    const payload = JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body));
+    expect(payload).toMatchObject({ mode: 'ai', ai_enabled: false });
+  });
+
   it('restringe full a admin', async () => {
     mockGetSession.mockResolvedValue(gestor);
     expect((await POST(request({ mode: 'full' }))).status).toBe(403);

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, code: 'ORIGIN_MISMATCH', error: 'Origem da solicitação não permitida.' }, { status: 403 });
   }
 
-  let body: { mode?: unknown };
+  let body: { mode?: unknown; ai_enabled?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -74,6 +74,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, code: 'INVALID_MODE', error: `Mode inválido. Use um de: ${X_PIPELINE_MODES.join(', ')}.` }, { status: 400 });
   }
   const mode = body.mode;
+  const aiEnabled = typeof body.ai_enabled === 'boolean' && ['ai', 'reprocess', 'full'].includes(mode)
+    ? body.ai_enabled
+    : undefined;
 
   if (mode === 'full' && session.role !== 'admin') {
     return NextResponse.json({ ok: false, code: 'FULL_MODE_ADMIN_ONLY', error: 'Modo full restrito a administradores.' }, { status: 403 });
@@ -122,6 +125,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         source: 'politixos_manual',
         mode,
+        ...(aiEnabled !== undefined ? { ai_enabled: aiEnabled } : {}),
         clientId: session.clientId,
         ...(targetAllowlist ? { target_allowlist: targetAllowlist } : {}),
         triggeredAt: new Date().toISOString(),
