@@ -300,3 +300,171 @@ A segunda execução não foi iniciada após a falha estrutural da primeira.
 # NO_GO
 
 O blocker anterior de ambiente foi removido, mas o piloto revelou um blocker estrutural real no schema. Não iniciar o Bloco 3. A próxima rodada deve auditar a definição exata de `chk_platform` e autorizar, se apropriado, uma migration aditiva/reversível que inclua `facebook`, seguida da retomada do piloto sem ampliar seu escopo.
+
+## Bloco 2D — Migration chk_platform + Retomada do Piloto
+
+### 1. Definição original
+
+```sql
+CHECK (platform = ANY (ARRAY[
+  'instagram'::text,
+  'tiktok'::text,
+  'youtube'::text,
+  'x'::text
+]))
+```
+
+A constraint estava validada. Precheck: 1.057 linhas (`instagram=656`, `x=401`), zero valores fora do conjunto permitido e zero Facebook.
+
+### 2. Dependências auditadas
+
+- RLS de `social_posts`: habilitada;
+- policy: `service_role_full_access_social_posts`, inalterada;
+- unique constraint: `UNIQUE (platform, platform_post_id)`, inalterada;
+- índices: inalterados;
+- views: `social_posts_pending_analysis` filtra explicitamente Instagram e `x_posts_pending_analysis` filtra explicitamente X;
+- trigger de content type: preservado;
+- `classify_social_content_type`: retorna `NULL` para plataformas diferentes de Instagram, compatível com `content_type` nullable;
+- nenhum trigger/view/function exigiu alteração.
+
+Os advisors apontaram achados preexistentes fora do escopo (incluindo views security-definer e índices duplicados). Nenhum achado novo foi causado pela migration e nenhum item adjacente foi alterado.
+
+### 3. Migration criada e aplicada
+
+Arquivo: `supabase_migration_facebook_chk_platform.sql`.
+
+A migration `facebook_chk_platform` foi aplicada pelo mecanismo de migrations do Supabase. Ela:
+
+1. verifica a definição original exata;
+2. falha se houver valores inesperados;
+3. remove somente `chk_platform`;
+4. recria a constraint preservando os quatro valores existentes e adicionando `facebook`;
+5. valida a constraint na mesma transação.
+
+Nenhuma coluna, tipo, índice, unique key, policy, trigger, view ou dado foi alterado pela migration.
+
+### 4. Definição final
+
+```sql
+CHECK (platform = ANY (ARRAY[
+  'instagram'::text,
+  'tiktok'::text,
+  'youtube'::text,
+  'x'::text,
+  'facebook'::text
+]))
+```
+
+`CHK_PLATFORM_FACEBOOK = PASS`; constraint efetiva e validada no banco.
+
+### 5. Rollback conceitual
+
+Não executado. Antes de remover `facebook`, seria obrigatório confirmar ausência de linhas Facebook ou tratá-las sob plano de dados explicitamente autorizado. Depois, em uma transação, `chk_platform` poderia ser restaurada ao conjunto original `instagram/tiktok/youtube/x`.
+
+### 6. Retomada da coleta
+
+- target/account/tenant: os mesmos já validados;
+- identidade: todos os posts com `author.id=100064348075846`;
+- janela: `[2026-08-21, 2026-08-23)`;
+- páginas por execução: 2;
+- posts recebidos/normalizados/únicos: 6/6/6;
+- erro do provider: zero;
+- duração da primeira execução: aproximadamente 8,6 s;
+- duração da segunda execução: aproximadamente 6,1 s.
+
+`ACCOUNT_IDENTITY = PASS`; `COLLECTION_RUNTIME = PASS`.
+
+### 7. Persistência real
+
+- antes: 0 posts Facebook;
+- após primeira execução: 6;
+- inserts efetivos inferidos: 6;
+- após segunda execução: 6;
+- updates/reconciliações na segunda execução: 6;
+- `platform_post_id=post_id`;
+- `content_origin=OWNED`;
+- `like_count=null` em todos;
+- provider, reactions total/breakdown e collection run presentes em todos;
+- linhas inválidas na auditoria final: 0.
+
+`REAL_PERSISTENCE = CONFIRMED`.
+
+### 8. Idempotência
+
+A mesma janela e limite foram executados duas vezes. A contagem permaneceu 6 e há seis IDs distintos. Auditoria global por `(platform, platform_post_id)` retornou zero chaves duplicadas.
+
+`REAL_IDEMPOTENCY = CONFIRMED`.
+
+### 9. Collection lineage
+
+Runs bem-sucedidos:
+
+- `384b5b56-9ebf-45f8-b066-be30ddbf9d7e`: success, 6 posts;
+- `939cf512-b27e-4f29-972d-5895f476dbae`: success, 6 posts.
+
+Após a reconciliação, os seis posts apontam em `raw_json.collection_run_id` para o segundo run, que é o lineage vigente do último upsert. Ambos os logs possuem início/fim, páginas, cursores, normalizados e persistidos.
+
+`COLLECTION_LINEAGE = CONFIRMED`.
+
+### 10. Backend read
+
+A consulta server-side escopada por `client_id`, `target_id`, `social_account_id`, `platform=facebook` e período retornou exatamente seis linhas, os mesmos seis IDs persistidos.
+
+`FACEBOOK_BACKEND_READ = CONFIRMED`.
+
+### 11. Regressão de schema e impacto
+
+- `instagram`: permaneceu com 656 linhas;
+- `x`: permaneceu com 401 linhas;
+- `facebook`: 6 linhas autorizadas;
+- `tiktok` e `youtube`: continuam permitidos pela constraint;
+- unique constraint, RLS, policy, views, funções e triggers preservados;
+- nenhum delete/truncate/backfill;
+- nenhum outro tenant/target/rede alterado;
+- migration total: uma, exclusivamente `chk_platform`.
+
+### 12. Segurança
+
+- RapidAPI key somente em memória;
+- nenhum secret no código, migration, relatório ou Git;
+- somente seis posts do target autorizado;
+- nenhum deploy, n8n, cron, scheduler ou Vercel;
+- advisors pós-DDL executados; achados preexistentes não foram ampliados nem corrigidos fora do escopo.
+
+### 13. Testes finais
+
+- Facebook + regressões dirigidas Instagram/X: 10 arquivos, 77 testes, PASS;
+- teste específico da migration e preservação de plataformas: PASS;
+- TypeScript: PASS;
+- ESLint dirigido: PASS;
+- `git diff --check`: PASS;
+- build Next.js: PASS.
+
+### 14. Blockers
+
+Nenhum blocker funcional ou estrutural remanescente para o Bloco 2.
+
+### 15. Matriz final do Bloco 2D
+
+| Critério | Resultado |
+|---|---|
+| CHK_PLATFORM_FACEBOOK | PASS |
+| ACCOUNT_IDENTITY | PASS |
+| COLLECTION_RUNTIME | PASS |
+| REAL_PERSISTENCE | CONFIRMED |
+| REAL_IDEMPOTENCY | CONFIRMED |
+| COLLECTION_LINEAGE | CONFIRMED |
+| FACEBOOK_BACKEND_READ | CONFIRMED |
+| TENANT_ISOLATION | PASS |
+| INSTAGRAM_REGRESSION | PASS |
+| X_REGRESSION | PASS |
+| TYPECHECK | PASS |
+| ESLINT | PASS |
+| BUILD | PASS |
+| SECURITY | PASS |
+
+### 16. Veredito final
+
+# GO
+
+O Bloco 2 está funcionalmente encerrado. Este GO não autoriza iniciar o Bloco 3, realizar deploy ou automatizar a coleta. Aguardar auditoria independente do Claude.
