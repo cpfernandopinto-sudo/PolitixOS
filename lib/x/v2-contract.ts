@@ -27,6 +27,13 @@ export interface XMedia {
   url: string | null;
 }
 
+export interface XTargetAssociation {
+  targetId: string;
+  matchType: string | null;
+  matchTerm: string | null;
+  discoverySource: string | null;
+}
+
 export interface XAIAnalysis {
   sentiment: string | null;
   risk: string | null;
@@ -37,17 +44,20 @@ export interface XAIAnalysis {
   publicReaction: string | null;
   authorTone: string | null;
   polarizationLevel: string | null;
-  crisisTemperature: number | null;
+  crisisTemperature: string | number | null;
   strategicReading: string | null;
   engagementQuality: string | null;
   confidenceScore: number | null;
 }
+
+export type XAICompleteness = 'COMPLETE' | 'PARTIAL' | 'MISSING';
 
 export interface XPost {
   id: string;
   externalId: string;
   clientId: string | null;
   targetIds: string[];
+  targetAssociations: XTargetAssociation[];
   origin: XOrigin;
   author: XAuthor;
   text: string;
@@ -121,6 +131,13 @@ export type XReplyRow = Record<string, unknown> & {
 
 export type XAnalysisRow = Record<string, unknown>;
 
+export type XTargetAssociationRow = {
+  targetId: string;
+  matchType?: string | null;
+  matchTerm?: string | null;
+  discoverySource?: string | null;
+};
+
 const object = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 
@@ -130,8 +147,9 @@ function path(value: unknown, ...keys: string[]): unknown {
   return current;
 }
 
-const text = (value: unknown): string | null => typeof value === 'string' && value.length > 0 ? value : null;
+const text = (value: unknown): string | null => typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 const number = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
+const scalar = (value: unknown): string | number | null => text(value) ?? number(value);
 const boolean = (value: unknown): boolean | null => typeof value === 'boolean' ? value : null;
 const unique = (values: Array<string | null | undefined>) => [...new Set(values.filter((v): v is string => Boolean(v)))];
 
@@ -161,21 +179,41 @@ function origin(value: unknown): XOrigin {
 }
 
 function topics(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
+  if (Array.isArray(value)) return value.map(text).filter((item): item is string => item !== null);
   return [];
 }
 
-export function mapXPost(row: XPostRow, analysis?: XAnalysisRow | null, associations: Array<{ targetId: string; matchedTerm?: string | null }> = []): XPost {
+export function getXAICompleteness(analysis: XAnalysisRow | null | undefined): XAICompleteness {
+  if (!analysis) return 'MISSING';
+  const hasTopic = text(analysis.ai_topic) !== null || topics(analysis.ai_topics).length > 0;
+  const requiredText = [
+    analysis.sentiment, analysis.risk_level, analysis.risk_reason, analysis.summary,
+    analysis.recommended_action, analysis.public_reaction, analysis.author_tone,
+    analysis.polarization_level, analysis.strategic_reading, analysis.engagement_quality,
+  ];
+  const hasRequiredText = requiredText.every((value) => text(value) !== null);
+  const hasCrisisTemperature = scalar(analysis.crisis_temperature) !== null;
+  const hasConfidenceScore = number(analysis.confidence_score) !== null;
+  return hasTopic && hasRequiredText && hasCrisisTemperature && hasConfidenceScore ? 'COMPLETE' : 'PARTIAL';
+}
+
+export function mapXPost(row: XPostRow, analysis?: XAnalysisRow | null, associations: XTargetAssociationRow[] = []): XPost {
   const raw = object(row.raw_json);
   const legacy = object(raw.legacy);
   const targetIds = unique([text(row.target_id), ...associations.map(item => item.targetId)]);
-  const matchedTerms = unique(associations.map(item => item.matchedTerm));
+  const targetAssociations = associations.map(item => ({
+    targetId: item.targetId,
+    matchType: text(item.matchType),
+    matchTerm: text(item.matchTerm),
+    discoverySource: text(item.discoverySource),
+  }));
+  const matchedTerms = unique(targetAssociations.map(item => item.matchTerm));
   const originValue = row.content_origin ?? row.origin ?? row.source_type;
   const ai = analysis ? {
     sentiment: text(analysis.sentiment), risk: text(analysis.risk_level), riskReason: text(analysis.risk_reason),
-    topics: topics(analysis.ai_topics), summary: text(analysis.summary), recommendedAction: text(analysis.recommended_action),
+    topics: unique([text(analysis.ai_topic), ...topics(analysis.ai_topics)]), summary: text(analysis.summary), recommendedAction: text(analysis.recommended_action),
     publicReaction: text(analysis.public_reaction), authorTone: text(analysis.author_tone),
-    polarizationLevel: text(analysis.polarization_level), crisisTemperature: number(analysis.crisis_temperature),
+    polarizationLevel: text(analysis.polarization_level), crisisTemperature: scalar(analysis.crisis_temperature),
     strategicReading: text(analysis.strategic_reading), engagementQuality: text(analysis.engagement_quality),
     confidenceScore: number(analysis.confidence_score),
   } : null;
@@ -185,6 +223,7 @@ export function mapXPost(row: XPostRow, analysis?: XAnalysisRow | null, associat
     externalId: row.platform_post_id,
     clientId: text(row.client_id),
     targetIds,
+    targetAssociations,
     origin: origin(originValue),
     author: author(raw),
     text: text(row.caption) ?? text(legacy.full_text) ?? '',
@@ -230,6 +269,10 @@ export function deduplicateXPosts(posts: XPost[]): XPost[] {
     result.set(key, previous ? {
       ...previous,
       targetIds: unique([...previous.targetIds, ...post.targetIds]),
+      targetAssociations: [...new Map(
+        [...previous.targetAssociations, ...post.targetAssociations]
+          .map(item => [`${item.targetId}:${item.matchType ?? ''}:${item.matchTerm ?? ''}:${item.discoverySource ?? ''}`, item])
+      ).values()],
       matchedTerms: unique([...previous.matchedTerms, ...post.matchedTerms]),
       origin: previous.origin === 'UNKNOWN' ? post.origin : previous.origin,
       analysis: previous.analysis ?? post.analysis,

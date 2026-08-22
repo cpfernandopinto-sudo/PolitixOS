@@ -22,11 +22,11 @@ export const X_V2_CAPABILITIES = {
   risk: true,
   sentiment: true,
   topic: true,
-  origin: false,
-  matchedTerm: false,
-  multiTargetAssociation: false,
-  replyHierarchy: false,
-  replyTenantColumn: false,
+  origin: true,
+  matchedTerm: true,
+  multiTargetAssociation: true,
+  replyHierarchy: true,
+  replyTenantColumn: true,
 } as const;
 
 export interface XV2QueryPlan {
@@ -36,7 +36,7 @@ export interface XV2QueryPlan {
   to: string | null;
   offset: number;
   limit: number;
-  unsupportedFilters: Array<'origin' | 'matchedTerm'>;
+  unsupportedFilters: [];
 }
 
 /** Builds a tenant-safe plan. Persistence-dependent filters are explicit, never silently ignored. */
@@ -45,8 +45,6 @@ export function planXV2Query(filters: XV2Filters): XV2QueryPlan {
   const allowed = new Set(filters.allowedTargetIds);
   const targetIds = [...new Set(requested.filter(id => allowed.has(id)))];
   const unsupportedFilters: XV2QueryPlan['unsupportedFilters'] = [];
-  if (filters.origin) unsupportedFilters.push('origin');
-  if (filters.matchedTerm) unsupportedFilters.push('matchedTerm');
 
   return {
     clientId: filters.clientId,

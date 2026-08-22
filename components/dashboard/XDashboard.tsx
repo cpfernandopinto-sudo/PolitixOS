@@ -54,11 +54,12 @@ function originBadge(origin: string | undefined) {
   );
 }
 
-function recommendedActionText(action: string | null | undefined, hasAnalysis: boolean) {
+function recommendedActionText(action: string | null | undefined, completeness: string | null | undefined) {
   if (action && action.trim().length > 0 && action.trim() !== 'Sem análise' && action.trim() !== '—') {
     return action;
   }
-  if (!hasAnalysis) return 'ANÁLISE PENDENTE';
+  if (completeness === 'MISSING') return 'ANÁLISE PENDENTE';
+  if (completeness === 'PARTIAL') return 'RECOMENDAÇÃO INDISPONÍVEL — ANÁLISE PARCIAL';
   return 'RECOMENDAÇÃO INDISPONÍVEL';
 }
 
@@ -465,7 +466,7 @@ export default function XDashboard({
             <div className="p-4 rounded-lg border border-cyan-400/30 bg-cyan-400/10">
               <span className="text-[10px] font-black text-cyan-300 uppercase tracking-widest block mb-1">Protocolo & Ação Recomendada</span>
               <p className="text-xs font-bold text-white leading-relaxed">
-                {recommendedActionText(strategicPost.recommendedAction, Boolean(strategicPost.sentiment || strategicPost.risk))}
+                {recommendedActionText(strategicPost.recommendedAction, strategicPost.aiCompleteness)}
               </p>
             </div>
           </div>
@@ -727,8 +728,7 @@ function PriorityTable({ posts, onOpen }: { posts: any[]; onOpen: (p: any) => vo
         </thead>
         <tbody className="divide-y divide-white/5">
           {posts.map((p) => {
-            const hasAnalysis = Boolean(p.sentiment && p.sentiment !== 'Sem análise');
-            const actionText = recommendedActionText(p.recommendedAction, hasAnalysis);
+            const actionText = recommendedActionText(p.recommendedAction, p.aiCompleteness);
             const matchTerm = p.matchedTerms && p.matchedTerms.length > 0 ? p.matchedTerms[0] : null;
 
             return (
@@ -791,8 +791,7 @@ function PostDrawer({ post, replies, onClose }: { post: any; replies: any[]; onC
   }, [onClose]);
 
   const isOwned = post.origin === 'OWNED';
-  const hasAnalysis = Boolean(post.sentiment && post.sentiment !== 'Sem análise');
-  const actionText = recommendedActionText(post.recommendedAction, hasAnalysis);
+  const actionText = recommendedActionText(post.recommendedAction, post.aiCompleteness);
   const matchTerm = post.matchedTerms && post.matchedTerms.length > 0 ? post.matchedTerms[0] : null;
   const assoc = post.targetAssociations && post.targetAssociations.length > 0 ? post.targetAssociations[0] : null;
   const crisisVal = post.crisisTemperature !== null && post.crisisTemperature !== undefined && post.crisisTemperature !== '' ? post.crisisTemperature : '—';

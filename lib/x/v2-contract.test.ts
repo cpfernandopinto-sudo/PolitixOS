@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deduplicateXPosts, mapXPost, mapXReply, pageOf } from './v2-contract';
+import { deduplicateXPosts, getXAICompleteness, mapXPost, mapXReply, pageOf } from './v2-contract';
 import { planXV2Query } from '@/lib/queries/x-v2';
 
 const row = (overrides: Record<string, unknown> = {}) => ({
@@ -17,7 +17,7 @@ describe('contrato X V2', () => {
 
   it('representa múltiplos targets e matchedTerms sem duplicar entidade', () => {
     const post = mapXPost(row(), null, [
-      { targetId: 'target-1', matchedTerm: 'Ana' }, { targetId: 'target-2', matchedTerm: 'Bruno' },
+      { targetId: 'target-1', matchTerm: 'Ana' }, { targetId: 'target-2', matchTerm: 'Bruno' },
     ]);
     expect(post.targetIds).toEqual(['target-1', 'target-2']);
     expect(post.matchedTerms).toEqual(['Ana', 'Bruno']);
@@ -40,6 +40,16 @@ describe('contrato X V2', () => {
     expect(analysis).toMatchObject({ sentiment: 'negativo', risk: 'alto', topics: ['saúde'], confidenceScore: 0.9 });
   });
 
+  it('classifica COMPLETE, PARTIAL e MISSING sem confundir zero real com ausência', () => {
+    const complete = { sentiment: 'neutro', risk_level: 'baixo', risk_reason: 'r', ai_topic: 'tema', summary: 's', recommended_action: 'a', public_reaction: 'dividida', author_tone: 'informativo', polarization_level: 'baixo', crisis_temperature: 0, strategic_reading: 'l', engagement_quality: 'orgânico', confidence_score: 0 };
+    expect(getXAICompleteness(null)).toBe('MISSING');
+    expect(getXAICompleteness(complete)).toBe('COMPLETE');
+    expect(getXAICompleteness({ ...complete, sentiment: null })).toBe('PARTIAL');
+    expect(getXAICompleteness({ ...complete, recommended_action: '  ' })).toBe('PARTIAL');
+    expect(getXAICompleteness({ ...complete, ai_topic: null, ai_topics: [] })).toBe('PARTIAL');
+    expect(getXAICompleteness({ ...complete, ai_topic: null, ai_topics: ['tema'] })).toBe('COMPLETE');
+  });
+
   it('mapeia replies com e sem parent e herda escopo do post', () => {
     const base = { id: 'r1', tweet_reply_id: 'xr1', post_id: 'post-1', reply_text: 'oi' };
     expect(mapXReply(base).parentReplyId).toBeNull();
@@ -48,8 +58,8 @@ describe('contrato X V2', () => {
   });
 
   it('deduplica somente pela identidade externa e agrega associações', () => {
-    const a = mapXPost(row(), null, [{ targetId: 't1', matchedTerm: 'a' }]);
-    const b = mapXPost(row({ id: 'post-2', caption: 'texto diferente' }), null, [{ targetId: 't2', matchedTerm: 'b' }]);
+    const a = mapXPost(row(), null, [{ targetId: 't1', matchTerm: 'a' }]);
+    const b = mapXPost(row({ id: 'post-2', caption: 'texto diferente' }), null, [{ targetId: 't2', matchTerm: 'b' }]);
     expect(deduplicateXPosts([a, b])).toHaveLength(1);
     expect(deduplicateXPosts([a, b])[0].targetIds).toEqual(['target-1', 't1', 't2']);
   });
@@ -60,10 +70,10 @@ describe('contrato X V2', () => {
     expect(pageOf(Array.from({ length: 120 }, (_, i) => i), 120, 100, 25).isComplete).toBe(true);
   });
 
-  it('intersecta targets com o escopo tenant e expõe filtros bloqueados pelo schema', () => {
+  it('intersecta targets com o escopo tenant e aceita filtros suportados pelo schema consolidado', () => {
     const plan = planXV2Query({ clientId: 'c1', allowedTargetIds: ['t1'], targetIds: ['t1', 't2'], origin: 'EXTERNAL', matchedTerm: 'ana', limit: 1000 });
     expect(plan.targetIds).toEqual(['t1']);
     expect(plan.limit).toBe(100);
-    expect(plan.unsupportedFilters).toEqual(['origin', 'matchedTerm']);
+    expect(plan.unsupportedFilters).toEqual([]);
   });
 });
