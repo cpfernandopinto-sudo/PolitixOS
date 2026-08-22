@@ -5,13 +5,9 @@ import { normalizeFacebookPost } from './normalizer';
 const context = { clientId: 'client-1', targetId: 'target-1', socialAccountId: 'account-1', sourcePageId: 'page-1' };
 const post = normalizeFacebookPost({ post_id: 'post-1', message: 'Olá', reactions_count: 5 }, 'page-1');
 
-function mockClient(existing: Array<Record<string, unknown>> = []) {
-  const upsert = vi.fn().mockResolvedValue({ error: null });
-  const inFn = vi.fn().mockResolvedValue({ data: existing, error: null });
-  const chain: { eq: ReturnType<typeof vi.fn>; in: ReturnType<typeof vi.fn> } = { eq: vi.fn(), in: inFn };
-  chain.eq.mockReturnValue(chain);
-  const select = vi.fn().mockReturnValue(chain);
-  return { client: { from: vi.fn(() => ({ select, upsert })) }, upsert };
+function mockClient(data: unknown = 1, error: { message: string; details?: string } | null = null) {
+  const rpc = vi.fn().mockResolvedValue({ data, error });
+  return { client: { rpc }, rpc };
 }
 
 describe('Facebook tenant-safe persistence', () => {
@@ -23,16 +19,27 @@ describe('Facebook tenant-safe persistence', () => {
     });
   });
 
-  it('faz upsert idempotente pela chave consolidada', async () => {
-    const { client, upsert } = mockClient([{ platform_post_id: 'post-1', client_id: 'client-1' }]);
+  it('persiste o lote deduplicado pela RPC atômica', async () => {
+    const { client, rpc } = mockClient();
     expect(await persistFacebookPosts(client as never, [post, post], context, 'run-1')).toBe(1);
-    expect(upsert).toHaveBeenCalledWith(expect.any(Array), { onConflict: 'platform,platform_post_id', ignoreDuplicates: false });
+    expect(rpc).toHaveBeenCalledWith('persist_facebook_social_posts', expect.objectContaining({
+      p_client_id: 'client-1', p_target_id: 'target-1', p_social_account_id: 'account-1', p_rows: [expect.objectContaining({ platform_post_id: 'post-1' })],
+    }));
   });
 
-  it('falha fechada em conflito cross-tenant', async () => {
-    const { client, upsert } = mockClient([{ platform_post_id: 'post-1', client_id: 'other-client' }]);
+  it('propaga deterministicamente conflito cross-tenant da RPC', async () => {
+    const { client } = mockClient(null, { message: 'database exception', details: 'FACEBOOK_CROSS_TENANT_POST_CONFLICT' });
     await expect(persistFacebookPosts(client as never, [post], context, 'run-1')).rejects.toThrow('FACEBOOK_CROSS_TENANT_POST_CONFLICT');
-    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('falha fechada para mesmo cliente com target ou conta diferentes', async () => {
+    const { client } = mockClient(null, { message: 'FACEBOOK_POST_CONTEXT_CONFLICT' });
+    await expect(persistFacebookPosts(client as never, [post], context, 'run-1')).rejects.toThrow('FACEBOOK_POST_CONTEXT_CONFLICT');
+  });
+
+  it('falha fechada se a RPC não confirmar o lote completo', async () => {
+    const { client } = mockClient(0);
+    await expect(persistFacebookPosts(client as never, [post], context, 'run-1')).rejects.toThrow('FACEBOOK_POSTS_RPC_COUNT_MISMATCH');
   });
 
   it('exige contexto tenant completo', () => {

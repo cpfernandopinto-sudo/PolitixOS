@@ -468,3 +468,24 @@ Nenhum blocker funcional ou estrutural remanescente para o Bloco 2.
 # GO
 
 O Bloco 2 está funcionalmente encerrado. Este GO não autoriza iniciar o Bloco 3, realizar deploy ou automatizar a coleta. Aguardar auditoria independente do Claude.
+
+---
+
+## Bloco 2E — Correção P1 Cross-Tenant Atomic Guard
+
+A auditoria Claude identificou uma janela TOCTOU entre a consulta de ownership e o upsert em `social_posts`. O fluxo foi substituído pela RPC `public.persist_facebook_social_posts`, que decide o conflito atomicamente no banco e preserva a unique key consolidada.
+
+- cross-tenant: `FACEBOOK_CROSS_TENANT_POST_CONFLICT`;
+- mesmo client com target/account divergente: `FACEBOOK_POST_CONTEXT_CONFLICT`;
+- RPC `SECURITY INVOKER`, `search_path=''`, executável somente por `service_role`;
+- cinco corridas cross-tenant reais: exatamente um vencedor em 5/5;
+- corrida same-tenant real: duas chamadas bem-sucedidas, uma linha final;
+- zero resíduos sintéticos após limpeza;
+- baseline final: Facebook 6, Instagram 656, X 401, zero duplicidades globais;
+- suíte completa: 1.266 testes PASS; lint e build PASS.
+
+Relatório detalhado: `FACEBOOK_BLOCO2E_ATOMIC_TENANT_FIX.md`.
+
+`VEREDITO_CODEX = READY_FOR_CLAUDE_REVALIDATION`
+
+Não avancei para o Bloco 3.

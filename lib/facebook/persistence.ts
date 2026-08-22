@@ -1,16 +1,15 @@
 import type { FacebookCollectionContext, FacebookNormalizedPost } from './types';
 
-type SelectChain = {
-  eq(column: string, value: unknown): SelectChain;
-  in(column: string, values: unknown[]): Promise<{ data: Array<Record<string, unknown>> | null; error: { message: string } | null }>;
+type PersistenceClient = {
+  rpc(name: string, params: Record<string, unknown>): Promise<{
+    data: unknown;
+    error: { message: string; details?: string; hint?: string; code?: string } | null;
+  }>;
 };
 
-type PersistenceClient = {
-  from(table: string): {
-    select(columns: string): SelectChain;
-    upsert(rows: unknown[], options: { onConflict: string; ignoreDuplicates: boolean }): Promise<{ error: { message: string } | null }>;
-  };
-};
+function includesDatabaseError(error: { message: string; details?: string; hint?: string; code?: string }, marker: string) {
+  return [error.message, error.details, error.hint, error.code].some((value) => value?.includes(marker));
+}
 
 export function facebookPostRow(post: FacebookNormalizedPost, context: FacebookCollectionContext, collectionRunId: string, collectedAt: string) {
   if (!context.clientId || !context.targetId || !context.socialAccountId) throw new Error('FACEBOOK_TENANT_CONTEXT_MISSING');
@@ -49,14 +48,18 @@ export function facebookPostRow(post: FacebookNormalizedPost, context: FacebookC
 
 export async function persistFacebookPosts(client: PersistenceClient, posts: FacebookNormalizedPost[], context: FacebookCollectionContext, collectionRunId: string, collectedAt = new Date().toISOString()): Promise<number> {
   if (!posts.length) return 0;
-  const ids = [...new Set(posts.map((post) => post.externalPostId))];
-  const existing = await client.from('social_posts').select('platform_post_id,client_id').eq('platform', 'facebook').in('platform_post_id', ids);
-  if (existing.error) throw new Error(`FACEBOOK_EXISTING_POSTS_QUERY_FAILED: ${existing.error.message}`);
-  for (const row of existing.data ?? []) {
-    if (row.client_id !== context.clientId) throw new Error('FACEBOOK_CROSS_TENANT_POST_CONFLICT');
-  }
   const rows = [...new Map(posts.map((post) => [post.externalPostId, facebookPostRow(post, context, collectionRunId, collectedAt)])).values()];
-  const result = await client.from('social_posts').upsert(rows, { onConflict: 'platform,platform_post_id', ignoreDuplicates: false });
-  if (result.error) throw new Error(`FACEBOOK_POSTS_UPSERT_FAILED: ${result.error.message}`);
+  const result = await client.rpc('persist_facebook_social_posts', {
+    p_client_id: context.clientId,
+    p_target_id: context.targetId,
+    p_social_account_id: context.socialAccountId,
+    p_rows: rows,
+  });
+  if (result.error) {
+    if (includesDatabaseError(result.error, 'FACEBOOK_CROSS_TENANT_POST_CONFLICT')) throw new Error('FACEBOOK_CROSS_TENANT_POST_CONFLICT');
+    if (includesDatabaseError(result.error, 'FACEBOOK_POST_CONTEXT_CONFLICT')) throw new Error('FACEBOOK_POST_CONTEXT_CONFLICT');
+    throw new Error(`FACEBOOK_POSTS_RPC_FAILED: ${result.error.message}`);
+  }
+  if (result.data !== rows.length) throw new Error('FACEBOOK_POSTS_RPC_COUNT_MISMATCH');
   return rows.length;
 }
