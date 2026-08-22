@@ -1,0 +1,56 @@
+{
+  "results": [
+    {
+      "post_id": "1507432994744955",
+      "type": "post",
+      "url": "https://www.facebook.com/sanitized/posts/1507432994744955",
+      "message": "[SANITIZED_PUBLIC_TEXT]",
+      "message_rich": "[SANITIZED_PUBLIC_RICH_TEXT]",
+      "timestamp": 1787415678,
+      "comments_count": 23,
+      "reactions_count": 18,
+      "reshare_count": 0,
+      "reactions": {
+        "angry": 0,
+        "care": 0,
+        "haha": 0,
+        "like": 16,
+        "love": 2,
+        "sad": 0,
+        "wow": 0
+      },
+      "author": {
+        "id": "100064348075846",
+        "name": "[SANITIZED_PAGE_NAME]",
+        "url": "https://www.facebook.com/sanitized-page",
+        "profile_picture_url": "https://sanitized.invalid/profile.jpg",
+        "delegate_page_id": "297281327407163"
+      },
+      "authors": [
+        {
+          "id": "100064348075846",
+          "name": "[SANITIZED_PAGE_NAME]",
+          "url": "https://www.facebook.com/sanitized-page",
+          "profile_picture_url": "https://sanitized.invalid/profile.jpg",
+          "delegate_page_id": "297281327407163"
+        }
+      ],
+      "image": {
+        "uri": "https://sanitized.invalid/image.jpg",
+        "height": 640,
+        "width": 512,
+        "id": "1507432944744960"
+      },
+      "video": null,
+      "video_view_count": null,
+      "video_files": null,
+      "video_thumbnail": null,
+      "album_preview": null,
+      "comments_id": "1507432994744955",
+      "shares_id": "1507432994744955",
+      "associated_group_id": null,
+      "associated_group": null
+    }
+  ],
+  "cursor": "[SANITIZED_CURSOR]"
+}

@@ -6,7 +6,7 @@ Foi implementada a fundação backend modular do Facebook V1, sem deploy, sem al
 
 A prova programática externa não pôde ser executada porque `FACEBOOK_SCRAPER_RAPIDAPI_KEY` não existe no ambiente seguro disponível. O host e o path foram corrigidos no Bloco 1B para os valores confirmados da API `facebook-scraper3`.
 
-**Veredito: GO_WITH_RESTRICTIONS.**
+**Veredito final após a continuação do Bloco 1B: GO.**
 
 A API permanece promissora pela evidência manual fornecida, mas não está homologada por esta execução. A fundação está pronta para executar a prova assim que chave e path forem configurados.
 
@@ -117,29 +117,29 @@ Shape suportado a partir dos campos observados e informados:
 
 | Capacidade | Resultado desta rodada | Evidência |
 |---|---|---|
-| PAGE_LOOKUP | NOT_TESTED | sem credencial/path |
-| PAGE_POSTS | PARTIAL | evidência manual; client implementado |
-| DATE_FILTER | NOT_TESTED | helper implementado; runtime pendente |
-| CURSOR_PAGINATION | PARTIAL | evidência manual; proteção/testes locais PASS |
+| PAGE_LOOKUP | NOT_TESTED | path não comprovado |
+| PAGE_POSTS | CONFIRMED | HTTP 200 e payload runtime real |
+| DATE_FILTER | CONFIRMED | limites inferior/superior e intervalo real; fim exclusivo |
+| CURSOR_PAGINATION | CONFIRMED | três páginas reais com cursores progressivos |
 | POST_DETAILS | NOT_TESTED | endpoint/path não comprovado |
-| COMMENTS | PARTIAL | contagem observada; endpoint de comentários não testado |
-| REACTIONS | PARTIAL | total/breakdown observados; endpoint próprio não testado |
-| SHARES | PARTIAL | contagem/ID observados; endpoint próprio não testado |
-| IMAGE | PARTIAL | campo observado; normalização testada |
-| VIDEO | NOT_TESTED | normalização preparada; payload runtime pendente |
-| REELS | NOT_TESTED | normalização preparada; payload runtime pendente |
-| AUTHOR | PARTIAL | campos observados; normalização testada |
-| PERMALINK | PARTIAL | campo observado; normalização testada |
-| STABLE_POST_ID | PARTIAL | `post_id` observado; estabilidade entre execuções não reproduzida |
+| COMMENTS | PARTIAL | contagem/ID confirmados em Page Posts; endpoint próprio não testado |
+| REACTIONS | CONFIRMED | total e breakdown reais normalizados |
+| SHARES | PARTIAL | contagem/ID confirmados; endpoint próprio não testado |
+| IMAGE | CONFIRMED | `image.uri` real normalizado pela fixture |
+| VIDEO | NOT_TESTED | campos vieram `null` na amostra real |
+| REELS | NOT_TESTED | nenhum Reel observado na amostra real |
+| AUTHOR | CONFIRMED | estrutura real e normalização confirmadas |
+| PERMALINK | CONFIRMED | campo real e normalização confirmados |
+| STABLE_POST_ID | CONFIRMED | baseline repetido com IDs idênticos |
 | SEARCH_POSTS | NOT_TESTED | endpoint/path não comprovado |
 | SEARCH_PAGES | NOT_TESTED | endpoint/path não comprovado |
 | SEARCH_PEOPLE | NOT_TESTED | endpoint/path não comprovado |
 
 ## 11. DATE_FILTER_STATUS
 
-**DATE_FILTER_STATUS = UNKNOWN**
+**DATE_FILTER_STATUS = WORKING**
 
-O provider envia programaticamente `start_date` e `end_date` em `YYYY-MM-DD`, e o helper compara cada `published_at` retornado contra a janela. Sem credencial não foi possível determinar se o servidor respeita, ignora ou aplica parcialmente o filtro.
+O provider respeitou `start_date` e `end_date` em `YYYY-MM-DD`. A semântica runtime observada é `[start_date, end_date)`: o limite final é exclusivo.
 
 ## 12. Resultado da paginação
 
@@ -151,7 +151,7 @@ O provider envia programaticamente `start_date` e `end_date` em `YYYY-MM-DD`, e 
 - Posts deduplicados por ID durante páginas sobrepostas.
 - 4 testes de paginação/data status: PASS.
 
-Runtime externo: pendente.
+Runtime externo: três páginas confirmadas, sem overlap ou loop, com cursores progressivos.
 
 ## 13. Contrato de dados Facebook V1
 
@@ -281,48 +281,25 @@ Nenhuma falha preexistente bloqueadora foi encontrada durante a regressão dirig
 - adicionar paths comprovados para page lookup/details/comments/search quando obtidos do console RapidAPI;
 - validar shapes reais de vídeo/Reels;
 - decidir estratégia para um mesmo post global compartilhado legitimamente por múltiplos tenants;
-- adicionar fixture sanitizada de runtime somente após primeira prova real;
+- ampliar a fixture quando houver amostras reais de vídeo/Reels/álbum;
 - integrar artefato n8n em bloco posterior, sem ativação.
 
 ## 23. Bloqueadores reais
 
-Para homologação da API:
-
-1. `FACEBOOK_SCRAPER_RAPIDAPI_KEY` ausente;
-2. DATE_FILTER_STATUS ainda UNKNOWN;
-3. endpoints de detalhes/comentários/search não comprovados.
-
-Não há blocker para manter e auditar a fundação local.
+Nenhum blocker estrutural para a homologação principal. Paths complementares de detalhes, comentários, reshares e busca continuam não comprovados e não foram inferidos.
 
 ## 24. Próximo passo recomendado
 
-Configurar localmente, fora do Git:
-
-- `FACEBOOK_SCRAPER_RAPIDAPI_KEY`;
-- opcional `FACEBOOK_SCRAPER_PAGE_POSTS_PATH` (default seguro `/page/posts`);
-- opcional `FACEBOOK_SCRAPER_RAPIDAPI_HOST`.
-
-Depois executar prova controlada com `page_id=100064348075846`:
-
-1. baseline sem datas;
-2. start_date;
-3. end_date;
-4. intervalo;
-5. ao menos dois cursores ou final natural;
-6. reexecução para estabilidade de IDs;
-7. detalhes/comentários e buscas conforme paths comprovados;
-8. nenhuma persistência produtiva durante a prova.
-
-Somente depois preparar workflow n8n inativo.
+Em bloco futuro, comprovar paths complementares e a resolução de handle/URL antes de qualquer implementação. Manter a credencial fora do Git e não avançar para n8n/deploy sem autorização específica.
 
 ## 25. Veredito final
 
-# GO_WITH_RESTRICTIONS
+# GO
 
 - Fundação backend: GO.
 - Schema inicial: GO sem migration.
-- Homologação `facebook-scraper3`: host/path corrigidos; pendente somente de credencial e prova runtime.
-- OWNED: arquitetura pronta; execução real pendente.
+- Homologação `facebook-scraper3`: PAGE_POSTS, datas, cursor e IDs confirmados em runtime.
+- OWNED: arquitetura e contrato runtime validados; persistência permaneceu local/mock.
 - EXTERNAL: contrato pronto; fonte ainda não comprovada.
 - Deploy/n8n/schedule: não executados.
 
@@ -344,16 +321,16 @@ O identificador persistido em `raw_json.provider` foi atualizado para `rapidapi-
 ### Disponibilidade da credencial
 
 ```text
-FACEBOOK_SCRAPER_RAPIDAPI_KEY=MISSING
+FACEBOOK_SCRAPER_RAPIDAPI_KEY = CONFIGURED_FOR_RUNTIME_TEST
 ```
 
-Somente o nome da variável foi verificado. Nenhuma chave foi lida, reutilizada de screenshot, exibida, logada ou persistida.
+A credencial temporária foi consumida somente em memória a partir da autorização desta rodada. Não foi gravada em `.env`, código, fixture, relatório, diff ou commit, nem exibida em logs.
 
 ### Endpoints testados
 
 | Endpoint | Resultado |
 |---|---|
-| `GET /page/posts` | NOT_TESTED — key ausente |
+| `GET /page/posts` | CONFIRMED — HTTP 200 e payload real |
 | Page id | NOT_TESTED |
 | Page details | NOT_TESTED |
 | Post details | NOT_TESTED |
@@ -367,41 +344,77 @@ Não foram inferidos paths dos endpoints secundários.
 
 ### Resultados runtime
 
-Nenhuma requisição externa foi executada no Bloco 1B. Por isso:
+Baseline real de `GET /page/posts?page_id=100064348075846`, sem cursor ou datas:
 
-- status HTTP: não observado;
-- quantidade/cursor/timestamps: não observados;
-- payload real: não capturado;
-- IDs reais: não comparados;
-- normalizer contra runtime: pendente.
+- HTTP 200;
+- três resultados;
+- cursor presente;
+- primeiro timestamp: `2026-08-22T16:21:18.000Z`;
+- último timestamp: `2026-08-22T00:55:00.000Z`;
+- top-level real: `results`, `cursor`;
+- campos observados nos posts: `post_id`, `type`, `url`, `message`, `message_rich`, `timestamp`, `comments_count`, `reactions_count`, `reshare_count`, `reactions`, `author`, `authors`, `image`, `video`, `video_view_count`, `video_files`, `video_thumbnail`, `album_preview`, `comments_id`, `shares_id`, `associated_group_id`, `associated_group`, além de metadados anexos preservados no payload bruto.
+
+**PAGE_POSTS = CONFIRMED**
 
 ### DATE_FILTER_STATUS
 
-**DATE_FILTER_STATUS = UNKNOWN**
+**DATE_FILTER_STATUS = WORKING**
 
-Impedimento externo real: ausência da credencial. O client confirma por teste que transmite `start_date` e `end_date` diretamente como `YYYY-MM-DD`, mas isso não homologa o comportamento do servidor.
+Evidência programática:
+
+- `start_date=2026-08-23`: zero resultados, confirmando o limite inferior;
+- `end_date=2026-08-21`: posts anteriores a 21/08, confirmando o limite superior;
+- `start_date=2026-08-21&end_date=2026-08-22`: três posts de 21/08;
+- `start_date=2026-08-21&end_date=2026-08-21`: zero resultados.
+
+Semântica observada: intervalo `[start_date, end_date)`, com `end_date` exclusivo. Para coletar um dia civil, o backend deve enviar o dia seguinte como `end_date`. Não foi necessário fallback client-side.
 
 ### CURSOR_PAGINATION_STATUS
 
-**CURSOR_PAGINATION_STATUS = PARTIAL**
+**CURSOR_PAGINATION_STATUS = CONFIRMED**
 
-- lógica local, cursor null, results vazio, cursor repetido, dedupe e limite: PASS;
-- runtime manual prévio: evidência recebida;
-- reprodução programática nesta rodada: bloqueada pela key.
+- três páginas reais executadas, com três posts cada;
+- cursor avançou em todas as transições;
+- IDs e timestamps mudaram entre páginas;
+- zero sobreposição nas páginas observadas;
+- nenhum loop;
+- parada em `results=[]` e `cursor=null`, dedupe e loop guard permanecem cobertos por testes locais;
+- a coleta real foi encerrada após evidência suficiente, evitando consumo desnecessário.
 
 ### STABLE_POST_ID
 
-**STABLE_POST_ID = PARTIAL**
+**STABLE_POST_ID = CONFIRMED**
 
-`post_id` permanece a chave candidata correta, mas a estabilidade entre duas respostas reais não foi reproduzida nesta rodada.
+O baseline foi repetido e retornou os mesmos três `post_id`, na mesma ordem. Portanto, `platform=facebook` + `platform_post_id=post_id` é chave adequada para idempotência no contrato atual.
 
 ### Fixture sanitizada real
 
-Não criada. Sem response runtime, criar fixture seria fabricar evidência, o que é proibido.
+Criada em `lib/facebook/fixtures/page-posts.runtime.sanitized.json` a partir da primeira resposta real. Textos públicos foram neutralizados, URLs de CDN foram substituídas, e cursor/headers sensíveis não foram preservados. IDs estáveis e estrutura necessária à regressão foram mantidos.
 
 ### Mudanças no normalizer
 
-Nenhuma mudança de shape foi feita sem payload real. O normalizer continua preparado para os campos informados, mas somente campos efetivamente observados em uma futura execução serão promovidos a CONFIRMED.
+O normalizer atual foi executado contra a fixture real sanitizada e confirmou ID, tipo, autor, imagem, timestamp, comentários, total/breakdown de reações e compartilhamentos. `image.uri` já era tratado corretamente. Não foi necessária alteração do normalizer nem promoção especulativa de campos de vídeo/álbum que vieram `null` na amostra.
+
+### Matriz final de capacidades
+
+| Capacidade | Status | Evidência |
+|---|---|---|
+| PAGE_POSTS | CONFIRMED | HTTP 200, payload real, três resultados e cursor |
+| DATE_FILTER | CONFIRMED | `start_date`, `end_date` e combinação; fim exclusivo |
+| CURSOR_PAGINATION | CONFIRMED | três páginas reais, cursores progressivos, sem overlap/loop |
+| STABLE_POST_ID | CONFIRMED | baseline repetido com IDs idênticos |
+| PAGE_LOOKUP | NOT_TESTED | nenhum path comprovado para handle/URL → Page ID |
+| PAGE_DETAILS | NOT_TESTED | path não comprovado |
+| POST_DETAILS | NOT_TESTED | path não comprovado |
+| COMMENTS | NOT_TESTED | path não comprovado |
+| RESHARES | NOT_TESTED | path não comprovado |
+| SEARCH_PAGES | NOT_TESTED | path não comprovado |
+| SEARCH_POSTS | NOT_TESTED | path não comprovado |
+| SEARCH_PEOPLE | NOT_TESTED | path não comprovado |
+
+### Resolução handle/URL → Page ID
+
+Não foi encontrado path oficial comprovável nesta rodada; por segurança, nenhuma URL foi inferida ou executada. O payload de Page Posts confirma `author.id=100064348075846`, mas isso não resolve o cadastro inicial porque a chamada já exige o Page ID. Recomendação para o próximo bloco: manter Page ID explícito até existir endpoint documentado e homologado; então encapsular a resolução server-side, com validação de correspondência entre handle/URL e ID, sem alterar schema ou UI nesta rodada.
 
 ### Persistência controlada
 
@@ -431,11 +444,12 @@ Implementação:
 
 ### Testes do Bloco 1B
 
-- Facebook + regressão dirigida Instagram/X: 7 arquivos, 68 testes, PASS;
+- Facebook + regressão dirigida Instagram/X: 7 arquivos, 69 testes, PASS;
+- fixture runtime sanitizada exercitada pelo normalizer: PASS;
 - TypeScript: PASS;
 - ESLint dirigido: PASS;
 - `git diff --check`: PASS;
-- build Next.js do Bloco 1B: PASS.
+- build Next.js: PASS.
 
 ### Segurança
 
@@ -451,20 +465,8 @@ Implementação:
 
 ### Débitos e bloqueadores
 
-Bloqueador único para executar a prova runtime:
-
-```text
-FACEBOOK_SCRAPER_RAPIDAPI_KEY=<necessária>
-```
-
-Depois da disponibilização segura da variável, ainda devem ser executados: baseline, filtros de data, paginação, repetição de janela, captura de fixture real e descoberta comprovada dos endpoints secundários.
+Nenhum blocker estrutural para encerrar o Bloco 1. Permanecem como débitos não bloqueadores os endpoints complementares e a resolução handle/URL → Page ID, cujos paths não foram comprovados.
 
 ### Recomendação do Bloco 1B
 
-Manter o veredito **GO_WITH_RESTRICTIONS** até a prova runtime. Não avançar para n8n ou produção antes de:
-
-- PAGE_POSTS = CONFIRMED;
-- CURSOR_PAGINATION = CONFIRMED;
-- STABLE_POST_ID = CONFIRMED;
-- normalização validada contra payload real;
-- DATE_FILTER classificado.
+**GO**. Os critérios runtime, segurança, testes e build foram atendidos. Este veredito não autoriza Bloco 2, deploy, n8n ou escrita em produção.
