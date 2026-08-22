@@ -118,7 +118,7 @@ export default function XFilterBar({ options }: { options: { candidates: Array<{
 
   return (
     <div
-      className={`sticky top-0 z-30 border-b border-white/10 bg-[#070b14]/95 py-2.5 backdrop-blur ${pending ? 'opacity-70' : ''}`}
+      className={`border-b border-white/10 py-2.5 ${pending ? 'opacity-70' : ''}`}
       aria-busy={pending}
     >
       <div className="hidden flex-wrap items-end gap-3 md:flex">{fields}</div>

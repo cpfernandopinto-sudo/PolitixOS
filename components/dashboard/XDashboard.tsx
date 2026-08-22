@@ -20,7 +20,7 @@ function metric(value: number | null | undefined, available = true) {
 }
 
 function label(value: string | null | undefined) {
-  if (!value || value === 'Sem análise' || value === '—') return 'Sem análise';
+  if (!value || value === 'Sem análise' || value === '—' || value === 'null' || value === 'undefined') return '—';
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
@@ -32,7 +32,10 @@ function riskTone(value: string | null | undefined) {
   if (normalized.includes('médio') || normalized.includes('medio')) {
     return 'border-amber-500/40 bg-amber-500/15 text-amber-300 font-medium';
   }
-  return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-medium';
+  if (normalized.includes('baixo')) {
+    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-medium';
+  }
+  return 'border-white/10 bg-white/5 text-slate-400 font-medium';
 }
 
 function originBadge(origin: string | undefined) {
@@ -57,6 +60,15 @@ function recommendedActionText(action: string | null | undefined, hasAnalysis: b
   }
   if (!hasAnalysis) return 'ANÁLISE PENDENTE';
   return 'RECOMENDAÇÃO INDISPONÍVEL';
+}
+
+function alertTitleText(post: any) {
+  if (!post) return 'Publicação sob monitoramento de risco';
+  const rawText = post.text || post.caption || post.summary || '';
+  const cleanText = rawText.replace(/https?:\/\/t\.co\/\w+/gi, '').trim();
+  if (cleanText.length > 0) return cleanText;
+  if (post.summary && post.summary !== 'Sem análise' && !post.summary.includes('t.co')) return post.summary;
+  return post.url || post.text || 'Publicação sob monitoramento de risco';
 }
 
 export default function XDashboard({
@@ -111,8 +123,8 @@ export default function XDashboard({
   }, [activePosts]);
 
   const dominantSentimentKey = useMemo(() => {
-    let top = 'neutro';
-    let max = -1;
+    let top = '—';
+    let max = 0;
     Object.entries(sentimentCounts).forEach(([k, v]) => {
       if (v > max) {
         max = v;
@@ -246,6 +258,7 @@ export default function XDashboard({
   }
 
   const isPartialData = completeness?.posts && !completeness.posts.isComplete;
+  const currentAlertPost = alert || criticalPosts[0];
 
   return (
     <div className="space-y-5 pb-12">
@@ -253,7 +266,7 @@ export default function XDashboard({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
         <div>
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">Social Intelligence</p>
-          <h1 className="text-xl font-bold text-white tracking-tight">X — Inteligência e Monitoramento</h1>
+          <h1 className="text-base font-bold text-white tracking-tight">X — Inteligência e Monitoramento</h1>
           <p className="text-xs text-slate-400 mt-0.5">
             Monitoramento do discurso dos candidatos e da conversação política no X.
           </p>
@@ -273,7 +286,7 @@ export default function XDashboard({
       </div>
 
       {/* 02 — ALERTA PRIORITÁRIO DE CRISE / IMPACTO */}
-      {alert || criticalCount > 0 ? (
+      {currentAlertPost ? (
         <section aria-label="Alerta prioritário" className="rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-[#161B26] p-4 shadow-md backdrop-blur">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex items-start gap-3 flex-1">
@@ -285,23 +298,23 @@ export default function XDashboard({
                   <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-rose-600 text-white">
                     Alerta Crítico de Inteligência
                   </span>
-                  {alert?.origin ? originBadge(alert.origin) : null}
+                  {currentAlertPost.origin ? originBadge(currentAlertPost.origin) : null}
                   <span className="text-xs font-bold text-rose-300">
                     {criticalCount} {criticalCount === 1 ? 'publicação com risco elevado' : 'publicações com risco elevado'} ({criticalPct}% do escopo)
                   </span>
                 </div>
                 <h3 className="text-white font-bold text-sm md:text-base line-clamp-1">
-                  {alert?.text || criticalPosts[0]?.text || 'Publicação sob monitoramento de risco'}
+                  {alertTitleText(currentAlertPost)}
                 </h3>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
-                  <span className="font-semibold text-cyan-300">{alert?.candidate_name || criticalPosts[0]?.candidate_name || 'Candidato'}</span>
+                  <span className="font-semibold text-cyan-300">{currentAlertPost.candidate_name || 'Candidato'}</span>
                   <span>•</span>
-                  <span>Autor: <strong className="text-white">@{alert?.author?.username || criticalPosts[0]?.author?.username || '—'}</strong></span>
+                  <span>Autor: <strong className="text-white">@{currentAlertPost.author?.username || '—'}</strong></span>
                   <span>•</span>
-                  <span>Engajamento: <strong className="text-white">{nf.format(alert?.totalEngagement || criticalPosts[0]?.totalEngagement || 0)} interações</strong></span>
+                  <span>Engajamento: <strong className="text-white">{nf.format(currentAlertPost.totalEngagement || 0)} interações</strong></span>
                   <span>•</span>
-                  <span className={`px-2 py-0.5 rounded border text-[9px] uppercase font-bold ${riskTone(alert?.risk || criticalPosts[0]?.risk)}`}>
-                    Risco {label(alert?.risk || criticalPosts[0]?.risk)}
+                  <span className={`px-2 py-0.5 rounded border text-[9px] uppercase font-bold ${riskTone(currentAlertPost.risk)}`}>
+                    Risco {label(currentAlertPost.risk)}
                   </span>
                 </div>
               </div>
@@ -309,14 +322,14 @@ export default function XDashboard({
             <div className="flex items-center gap-2.5 shrink-0">
               <button
                 type="button"
-                onClick={() => setSelectedPost(alert || criticalPosts[0])}
+                onClick={() => setSelectedPost(currentAlertPost)}
                 className="px-4 py-2 rounded-lg bg-cyan-400 text-black text-xs font-bold hover:bg-cyan-300 transition-colors shadow-md uppercase tracking-wider flex items-center gap-1.5"
               >
                 <Zap size={13} /> Análise de IA
               </button>
-              {(alert?.url || criticalPosts[0]?.url) ? (
+              {currentAlertPost.url ? (
                 <a
-                  href={alert?.url || criticalPosts[0]?.url}
+                  href={currentAlertPost.url}
                   target="_blank"
                   rel="noreferrer"
                   className="px-3.5 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 text-xs font-medium hover:bg-white/10 transition-colors uppercase tracking-wider flex items-center gap-1.5"
@@ -334,7 +347,7 @@ export default function XDashboard({
         <Kpi title="Pressão Social (Volume)" value={nf.format(totalPostsCount)} detail={`${ownedCount} próprios • ${externalCount} externos`} />
         <Kpi title="Menções Externas" value={nf.format(externalCount)} detail={`${totalPostsCount ? Math.round((externalCount / totalPostsCount) * 100) : 0}% da conversação`} tone="cyan" />
         <Kpi title="Risco Elevado" value={`${criticalPct}%`} detail={`${criticalCount} publicações críticas`} tone={criticalCount ? 'rose' : 'cyan'} />
-        <Kpi title="Sentimento Dominante" value={label(dominantSentimentKey)} detail={`${totalPostsCount ? Math.round((sentimentCounts[dominantSentimentKey] / totalPostsCount) * 100) : 0}% da amostra`} />
+        <Kpi title="Sentimento Dominante" value={label(dominantSentimentKey)} detail={`${totalPostsCount && dominantSentimentKey !== '—' ? Math.round((sentimentCounts[dominantSentimentKey] / totalPostsCount) * 100) : 0}% da amostra`} />
         <Kpi title="Engajamento Total" value={nf.format(totalEngagement)} detail="Likes + Replies + Reposts" />
       </section>
 
@@ -614,13 +627,26 @@ function PolarizationBreakdown({ posts }: { posts: any[] }) {
 
 function CrisisGauge({ posts, charts }: { posts: any[]; charts: any }) {
   const avgCrisis = useMemo(() => {
-    if (!posts.length) return 0;
-    const sum = posts.reduce((acc, p) => acc + (p.crisisScore || p.crisisTemperature || 0), 0);
-    return Math.round(sum / posts.length);
+    if (!posts.length) return null;
+    const validScores = posts
+      .map((p) => p.crisisScore ?? p.crisisTemperature)
+      .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+
+    if (!validScores.length) return null;
+    const sum = validScores.reduce((acc, val) => acc + val, 0);
+    return Math.round(sum / validScores.length);
   }, [posts]);
 
-  const statusLabel = avgCrisis > 75 ? 'CRÍTICA' : avgCrisis > 50 ? 'QUENTE' : avgCrisis > 25 ? 'MORNA' : 'FRIA';
-  const statusColor = avgCrisis > 75 ? 'text-rose-400' : avgCrisis > 50 ? 'text-amber-400' : 'text-emerald-400';
+  const statusLabel =
+    avgCrisis === null ? '—' : avgCrisis > 75 ? 'CRÍTICA' : avgCrisis > 50 ? 'QUENTE' : avgCrisis > 25 ? 'MORNA' : 'FRIA';
+  const statusColor =
+    avgCrisis === null
+      ? 'text-slate-400'
+      : avgCrisis > 75
+      ? 'text-rose-400'
+      : avgCrisis > 50
+      ? 'text-amber-400'
+      : 'text-emerald-400';
 
   return (
     <div className="flex flex-col justify-between h-full py-1 space-y-3">
@@ -628,7 +654,7 @@ function CrisisGauge({ posts, charts }: { posts: any[]; charts: any }) {
         <div>
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">Score Sintético</span>
           <div className="mt-0.5 flex items-baseline gap-1.5">
-            <strong className="text-2xl font-extrabold text-white">{avgCrisis}</strong>
+            <strong className="text-2xl font-extrabold text-white">{avgCrisis !== null ? avgCrisis : '—'}</strong>
             <span className="text-[10px] text-slate-400 font-semibold">/ 100</span>
           </div>
         </div>
@@ -641,7 +667,7 @@ function CrisisGauge({ posts, charts }: { posts: any[]; charts: any }) {
       <div className="h-2 w-full overflow-hidden rounded-full bg-white/5 border border-white/5">
         <div
           className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-500"
-          style={{ width: `${avgCrisis}%` }}
+          style={{ width: `${avgCrisis ?? 0}%` }}
         />
       </div>
 
@@ -667,7 +693,7 @@ function ThemeList({ items, total, emptyText }: { items: Array<{ label: string; 
           <div key={it.label} className="space-y-1">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-slate-200 truncate max-w-[200px]">{it.label}</span>
-              <span className="text-cyan-400 font-bold ml-2 shrink-0">{it.count} posts</span>
+              <span className="text-cyan-400 font-bold ml-2 shrink-0">{it.count} {it.count === 1 ? 'post' : 'posts'}</span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
               <div className="h-full rounded-full bg-cyan-400 transition-all duration-500" style={{ width: `${pct}%` }} />
@@ -701,7 +727,7 @@ function PriorityTable({ posts, onOpen }: { posts: any[]; onOpen: (p: any) => vo
         </thead>
         <tbody className="divide-y divide-white/5">
           {posts.map((p) => {
-            const hasAnalysis = Boolean(p.sentiment || p.risk);
+            const hasAnalysis = Boolean(p.sentiment && p.sentiment !== 'Sem análise');
             const actionText = recommendedActionText(p.recommendedAction, hasAnalysis);
             const matchTerm = p.matchedTerms && p.matchedTerms.length > 0 ? p.matchedTerms[0] : null;
 
@@ -721,7 +747,7 @@ function PriorityTable({ posts, onOpen }: { posts: any[]; onOpen: (p: any) => vo
                   <span className="text-[10px] text-slate-400 truncate block">{p.candidate_name}</span>
                 </td>
                 <td className="p-2.5 max-w-[110px] truncate text-slate-300 font-medium">
-                  {p.topic && p.topic !== 'Sem análise' ? p.topic : <span className="text-slate-500 italic text-[10px]">—</span>}
+                  {p.topic && p.topic !== 'Sem análise' && p.topic !== '—' ? p.topic : <span className="text-slate-500 italic text-[10px]">—</span>}
                 </td>
                 <td className="p-2.5 whitespace-nowrap font-medium text-slate-300">{label(p.sentiment)}</td>
                 <td className="p-2.5 whitespace-nowrap">
@@ -765,10 +791,11 @@ function PostDrawer({ post, replies, onClose }: { post: any; replies: any[]; onC
   }, [onClose]);
 
   const isOwned = post.origin === 'OWNED';
-  const hasAnalysis = Boolean(post.sentiment || post.risk);
+  const hasAnalysis = Boolean(post.sentiment && post.sentiment !== 'Sem análise');
   const actionText = recommendedActionText(post.recommendedAction, hasAnalysis);
   const matchTerm = post.matchedTerms && post.matchedTerms.length > 0 ? post.matchedTerms[0] : null;
   const assoc = post.targetAssociations && post.targetAssociations.length > 0 ? post.targetAssociations[0] : null;
+  const crisisVal = post.crisisTemperature !== null && post.crisisTemperature !== undefined && post.crisisTemperature !== '' ? post.crisisTemperature : '—';
 
   return (
     <div
@@ -836,8 +863,8 @@ function PostDrawer({ post, replies, onClose }: { post: any; replies: any[]; onC
               <span className="text-xs font-bold text-white block mt-0.5">{label(post.polarizationLevel || post.polarization_level)}</span>
             </div>
             <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Temperatura Crisis</span>
-              <span className="text-xs font-bold text-rose-300 block mt-0.5">{post.crisisTemperature ?? '—'}°C</span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase block">Temperatura Crise</span>
+              <span className="text-xs font-bold text-rose-300 block mt-0.5">{crisisVal}</span>
             </div>
           </section>
 
