@@ -89,6 +89,7 @@ export async function createCandidateAction(
       platform: a.platform,
       handle: a.handle.trim(),
       profile_url: a.profile_url || null,
+      platform_account_id: a.platform_account_id?.trim() || null,
       is_active: a.is_active,
     }));
 
@@ -171,6 +172,7 @@ export async function updateCandidateAction(
       platform: a.platform,
       handle: a.handle.trim(),
       profile_url: a.profile_url || null,
+      platform_account_id: a.platform_account_id?.trim() || null,
       is_active: a.is_active,
     }));
 
@@ -299,6 +301,7 @@ export async function fetchTargetsAction(): Promise<TargetWithAccounts[]> {
         platform,
         handle,
         profile_url,
+        platform_account_id,
         is_active
       )
     `)

@@ -82,6 +82,7 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
       platform: a.platform,
       handle: a.handle,
       profile_url: a.profile_url ?? '',
+      platform_account_id: a.platform_account_id ?? '',
       is_active: a.is_active,
     })) ?? []
   );
@@ -110,6 +111,9 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
       if (!a.handle.trim()) {
         errs[`account_${i}_handle`] = 'Handle obrigatório.';
       }
+      if (a.platform === 'facebook' && !a.platform_account_id?.trim()) {
+        errs[`account_${i}_platform_account_id`] = 'Page ID obrigatório para coleta do Facebook.';
+      }
       const key = `${a.platform}:${a.handle.trim().toLowerCase()}`;
       if (seen.has(key)) {
         errs[`account_${i}_handle`] = 'Handle duplicado para esta plataforma.';
@@ -127,7 +131,7 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
   function addAccount() {
     setAccounts((prev) => [
       ...prev,
-      { _tempId: generateTempId(), platform: 'instagram', handle: '', profile_url: '', is_active: true },
+      { _tempId: generateTempId(), platform: 'instagram', handle: '', profile_url: '', platform_account_id: '', is_active: true },
     ]);
   }
 
@@ -170,7 +174,7 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
             if (path.startsWith('@')) path = path.substring(1);
             cleanHandle = path;
           }
-        } catch (e) { /* keep as is */ }
+        } catch { /* keep as is */ }
 
         let finalUrl = profile_url.trim();
         if (!finalUrl && cleanHandle) {
@@ -191,6 +195,7 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
           platform: a.platform,
           handle: normalized.handle,
           profile_url: normalized.profile_url,
+          platform_account_id: a.platform === 'facebook' ? a.platform_account_id?.trim() : '',
           is_active: a.is_active,
         };
       });
@@ -407,6 +412,26 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
                   </button>
                 </div>
               </div>
+              {acc.platform === 'facebook' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                    Facebook Page ID <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    id={`account_${i}_platform_account_id`}
+                    type="text"
+                    inputMode="numeric"
+                    value={acc.platform_account_id ?? ''}
+                    onChange={(e) => updateAccount(acc._tempId, 'platform_account_id', e.target.value)}
+                    placeholder="Ex: 100064348075846"
+                    className={`w-full bg-[#0D0D0D] border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all ${errors[`account_${i}_platform_account_id`] ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'}`}
+                  />
+                  {errors[`account_${i}_platform_account_id`] && (
+                    <p className="text-red-400 text-xs mt-1">{errors[`account_${i}_platform_account_id`]}</p>
+                  )}
+                  <p className="text-gray-600 text-xs mt-1">Identificador numérico da Página usado pelo coletor.</p>
+                </div>
+              )}
 
               {/* Campos */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

@@ -8,28 +8,32 @@ export interface FacebookPageSource {
 export interface FacebookPaginationResult {
   posts: FacebookNormalizedPost[];
   pagesFetched: number;
+  postsReceived: number;
   cursorsSeen: number;
   termination: 'CURSOR_NULL' | 'EMPTY_RESULTS' | 'MAX_PAGES';
+  collectionComplete: boolean;
 }
 
 export async function collectFacebookPages(provider: FacebookPageSource, input: { pageId: string; maxPages?: number } & FacebookDateWindow): Promise<FacebookPaginationResult> {
   const maxPages = Math.max(1, Math.min(input.maxPages ?? 10, 100));
   const cursors = new Set<string>();
   const posts = new Map<string, FacebookNormalizedPost>();
+  let postsReceived = 0;
   let cursor: string | null = null;
   for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
     const page = await provider.getPagePosts({ pageId: input.pageId, cursor, startDate: input.startDate, endDate: input.endDate });
+    postsReceived += page.posts.length;
     for (const raw of page.posts) {
       const normalized = normalizeFacebookPost(raw, input.pageId, 'OWNED');
       posts.set(normalized.externalPostId, normalized);
     }
-    if (page.posts.length === 0) return { posts: [...posts.values()], pagesFetched: pageIndex + 1, cursorsSeen: cursors.size, termination: 'EMPTY_RESULTS' };
-    if (!page.cursor) return { posts: [...posts.values()], pagesFetched: pageIndex + 1, cursorsSeen: cursors.size, termination: 'CURSOR_NULL' };
+    if (page.posts.length === 0) return { posts: [...posts.values()], pagesFetched: pageIndex + 1, postsReceived, cursorsSeen: cursors.size, termination: 'EMPTY_RESULTS', collectionComplete: true };
+    if (!page.cursor) return { posts: [...posts.values()], pagesFetched: pageIndex + 1, postsReceived, cursorsSeen: cursors.size, termination: 'CURSOR_NULL', collectionComplete: true };
     if (cursors.has(page.cursor)) throw new Error('FACEBOOK_CURSOR_LOOP');
     cursors.add(page.cursor);
     cursor = page.cursor;
   }
-  return { posts: [...posts.values()], pagesFetched: maxPages, cursorsSeen: cursors.size, termination: 'MAX_PAGES' };
+  return { posts: [...posts.values()], pagesFetched: maxPages, postsReceived, cursorsSeen: cursors.size, termination: 'MAX_PAGES', collectionComplete: false };
 }
 
 export function evaluateFacebookDateFilter(posts: FacebookNormalizedPost[], window: FacebookDateWindow): 'WORKING' | 'PARTIAL' | 'IGNORED' | 'UNKNOWN' {

@@ -12,13 +12,19 @@ describe('Facebook cursor pagination', () => {
       .mockResolvedValueOnce(response(['2', '3'], 'b'))
       .mockResolvedValueOnce(response([], null));
     const result = await collectFacebookPages({ getPagePosts }, { pageId: 'page-1', maxPages: 10 });
-    expect(result).toMatchObject({ pagesFetched: 3, cursorsSeen: 2, termination: 'EMPTY_RESULTS' });
+    expect(result).toMatchObject({ pagesFetched: 3, postsReceived: 4, cursorsSeen: 2, termination: 'EMPTY_RESULTS', collectionComplete: true });
     expect(result.posts.map((post) => post.externalPostId)).toEqual(['1', '2', '3']);
   });
 
   it('interrompe em cursor null', async () => {
     const result = await collectFacebookPages({ getPagePosts: vi.fn().mockResolvedValue(response(['1'], null)) }, { pageId: 'page-1' });
     expect(result.termination).toBe('CURSOR_NULL');
+    expect(result.collectionComplete).toBe(true);
+  });
+
+  it('marca MAX_PAGES explicitamente como coleta parcial', async () => {
+    const result = await collectFacebookPages({ getPagePosts: vi.fn().mockResolvedValue(response(['1'], 'next')) }, { pageId: 'page-1', maxPages: 1 });
+    expect(result).toMatchObject({ termination: 'MAX_PAGES', collectionComplete: false, postsReceived: 1 });
   });
 
   it('bloqueia cursor repetido antes de criar loop', async () => {

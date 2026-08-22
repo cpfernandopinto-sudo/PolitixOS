@@ -16,6 +16,7 @@ export interface SocialAccount {
   platform: string;
   handle: string;
   profile_url: string | null;
+  platform_account_id: string | null;
   is_active: boolean;
 }
 
@@ -27,6 +28,7 @@ export interface SocialAccountInput {
   platform: string;
   handle: string;
   profile_url: string;
+  platform_account_id?: string;
   is_active: boolean;
 }
 
@@ -59,6 +61,7 @@ export async function fetchTargets(): Promise<TargetWithAccounts[]> {
         platform,
         handle,
         profile_url,
+        platform_account_id,
         is_active
       )
     `)
@@ -93,6 +96,7 @@ export async function fetchTargetById(id: string): Promise<TargetWithAccounts | 
         platform,
         handle,
         profile_url,
+        platform_account_id,
         is_active
       )
     `)
@@ -144,6 +148,7 @@ export async function createTarget(
       platform: a.platform,
       handle: a.handle,
       profile_url: a.profile_url || null,
+      platform_account_id: a.platform_account_id?.trim() || null,
       is_active: a.is_active,
     }));
 
@@ -210,6 +215,7 @@ export async function upsertSocialAccounts(
     platform: a.platform,
     handle: a.handle,
     profile_url: a.profile_url || null,
+    platform_account_id: a.platform_account_id?.trim() || null,
     is_active: a.is_active,
   }));
 
