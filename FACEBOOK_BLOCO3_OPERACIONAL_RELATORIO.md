@@ -356,3 +356,105 @@ O código está pronto para reteste, mas o Bloco 3 não pode receber GO sem a pr
 5. somente depois discutir analytics ou automação.
 
 Não iniciei o Bloco 4.
+
+## Bloco 3B — E2E Runtime Real
+
+### Credencial e preflight
+
+- `FACEBOOK_SCRAPER_RAPIDAPI_KEY = CONFIGURED_FOR_E2E_RUNTIME`;
+- credencial usada somente em memória nesta execução, sem persistência, impressão ou configuração na Vercel;
+- conta Facebook ativa de Michelle Bolsonaro resolvida pelo cadastro real;
+- `platform_account_id = 100064348075846`;
+- `client_id`, `target_id` e `social_account_id` coerentes e pertencentes ao mesmo tenant;
+- ownership fingerprint pré-execução preservado, sem reassociação.
+
+### Janela e execução 1
+
+- janela `[2026-08-21, 2026-08-23)`, com `endDate` exclusivo;
+- safety cap: 20 páginas;
+- entrada: `runFacebookCollectionForSocialAccount`;
+- `runId = ec3f0022-c641-4006-8251-103e56f0cb9e`;
+- Page ID: `100064348075846`;
+- páginas: 4;
+- posts recebidos: 8;
+- posts únicos: 8;
+- posts persistidos/upsertados: 8;
+- `termination = EMPTY_RESULTS`;
+- `collectionComplete = true`;
+- duração aproximada: 14.333 ms;
+- erros: nenhum;
+- outcome: `SUCCESS_COMPLETE`.
+
+O baseline anterior tinha 6 posts. A nova leitura do provedor retornou 8 posts reais na mesma janela; os dois registros adicionais possuem IDs únicos e ownership correto. A variação é conteúdo novo/coletável, não duplicação.
+
+### Execução 2 e trigger server-side
+
+- mesma janela e mesmo safety cap;
+- execução feita por `POST /api/automations/facebook/trigger`;
+- autenticação server-side pelo header próprio, com segredo efêmero de teste;
+- a chave RapidAPI não foi enviada no request;
+- schema, `socialAccountId`, `startDate`, `endDate`, guard e retorno operacional validados;
+- `runId = 4304c5d2-b8a4-4129-8686-237928b446ba`;
+- páginas: 4;
+- posts recebidos: 8;
+- posts únicos: 8;
+- posts persistidos/upsertados: 8;
+- `termination = EMPTY_RESULTS`;
+- `collectionComplete = true`;
+- duração aproximada: 7.090 ms;
+- erros: nenhum;
+- outcome: `SUCCESS_COMPLETE`.
+
+### Persistência, idempotência, lineage e leitura
+
+- Facebook após a segunda execução: 8 registros e 8 `platform_post_id` distintos;
+- janela: 8 registros e 8 IDs distintos;
+- grupos duplicados globais por `(platform, platform_post_id)`: zero;
+- ownership incorreto/cross-tenant: zero;
+- `platform = facebook`, `content_origin = OWNED` e provider esperado em todos os registros da janela;
+- `like_count = null` nos 8 registros, preservando a semântica aprovada;
+- `raw_json.reactions_count`, `raw_json.reactions`, provider e `collection_run_id` presentes segundo o contrato normalizado;
+- os 8 registros apontam para o segundo run, confirmando “último run vence”;
+- ambos os `collection_logs` têm status `success`, `SUCCESS_COMPLETE`, janela, páginas, recebidos, únicos, persistidos, terminação e completude corretos;
+- a camada real `fetchFacebookPosts` recuperou os 8 posts por client, target, social account e período;
+- atomic tenant guard preservado; nenhum teste destrutivo cross-tenant foi repetido.
+
+### Segurança e regressões
+
+- busca literal da credencial no working tree e arquivos rastreáveis: 0 ocorrências;
+- teste E2E descartável removido após a execução;
+- testes Facebook, trigger, operacional, Instagram e X: 15 arquivos, 104 testes, PASS;
+- TypeScript: PASS;
+- ESLint dirigido: PASS, zero warnings;
+- `git diff --check`: PASS;
+- Next.js 16.2.6 build: PASS;
+- rota `/api/automations/facebook/trigger` confirmada no build;
+- nenhuma alteração em n8n, deploy, Vercel, Supabase schema, analytics, Instagram ou X.
+
+### Critérios finais
+
+| Critério | Resultado |
+|---|---|
+| SOCIAL_ACCOUNT_PAGE_ID_FLOW | PASS |
+| FACEBOOK_OPERATIONAL_ORCHESTRATOR | PASS |
+| END_TO_END_OPERATIONAL_TEST | PASS |
+| FULL_WINDOW_COLLECTION_SEMANTICS | PASS |
+| REAL_PERSISTENCE | PASS |
+| REAL_IDEMPOTENCY | PASS |
+| COLLECTION_LINEAGE | PASS |
+| FACEBOOK_BACKEND_READ | PASS |
+| SERVER_SIDE_TRIGGER | PASS |
+| ATOMIC_TENANT_GUARD | PASS |
+| INSTAGRAM_REGRESSION | PASS |
+| X_REGRESSION | PASS |
+| TYPECHECK | PASS |
+| ESLINT | PASS |
+| BUILD | PASS |
+| SECURITY | PASS |
+| ANALYTICS_PIPELINE_FACEBOOK | DOCUMENTED_BLOCKER |
+
+O blocker externo do E2E foi encerrado. Permanece apenas o débito documentado de analytics Facebook, fora do escopo e não impeditivo para o fechamento operacional do Bloco 3. A credencial temporária continua candidata a rotação antes de produção contínua.
+
+`VEREDITO_CODEX = GO`
+
+Não iniciei analytics, n8n, deploy ou o Bloco 4.
