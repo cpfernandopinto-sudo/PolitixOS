@@ -149,3 +149,154 @@ O pipeline completo não pode receber GO sem persistência real, segunda execuç
 ## 25. Recomendação objetiva para o Bloco 3
 
 Não iniciar o Bloco 3. Primeiro configurar um Supabase de homologação seguro com schema compatível ou fornecer autorização explícita e inequívoca para o banco que deve receber o piloto. Depois retomar o Bloco 2 exatamente antes da primeira escrita.
+
+## Bloco 2C — Piloto Controlado em Produção
+
+### 1. Autorização limitada
+
+A escrita em produção foi autorizada exclusivamente para a conta Facebook da Michelle Bolsonaro, até 20 posts, sem delete, migration, deploy, n8n ou alteração de outras redes/targets. O blocker de ambiente do Bloco 2 foi removido por esta autorização específica.
+
+### 2. Preflight
+
+```text
+ambiente = produção (piloto cirúrgico autorizado)
+client_id = f348bd17-bc45-4f53-a5f2-8daae47d0ca5
+target_id = 7a7c0d0e-4ffc-4b63-8ae0-3d2a1850e655
+social_account_id = 2cf150b1-4846-497d-a955-015ddd5dc281
+platform = facebook
+handle = mulherconservadoraoficial
+page_id = 100064348075846
+target_active = true
+social_account_active = true
+FACEBOOK_SCRAPER_RAPIDAPI_KEY = CONFIGURED
+```
+
+Target e social account pertencem ao mesmo `client_id`. Nenhuma alteração cadastral foi necessária.
+
+### 3. Identidade
+
+`ACCOUNT_IDENTITY = PASS`.
+
+As duas páginas retornaram seis posts únicos; todos apresentaram `author.id=100064348075846`, compatível com o Page ID esperado, handle e URL cadastrados. A validação foi executada antes da primeira escrita. O orquestrador foi endurecido para falhar com `FACEBOOK_ACCOUNT_IDENTITY_MISMATCH` antes até mesmo de criar `collection_logs` quando não houver evidência ou existir mismatch.
+
+### 4. Janela de coleta
+
+- janela: `[2026-08-21, 2026-08-23)`;
+- páginas: 2;
+- posts recebidos: 6;
+- posts normalizados: 6;
+- posts únicos: 6;
+- timestamps: entre `2026-08-21T14:41:24.000Z` e `2026-08-22T16:21:18.000Z`;
+- volume abaixo do threshold de 20;
+- erros do provider: zero.
+
+### 5. Primeira persistência
+
+`REAL_PERSISTENCE = BROKEN`.
+
+O `collection_log` foi criado e o upsert de `social_posts` foi tentado. O banco rejeitou a primeira linha com:
+
+```text
+new row for relation "social_posts" violates check constraint "chk_platform"
+```
+
+Isso comprova que o schema real ainda restringe `social_posts.platform` e não admite `facebook`. Como migration e alteração estrutural estavam expressamente proibidas, a execução parou imediatamente, sem retry ou contorno.
+
+### 6. Impacto real
+
+- posts Facebook antes: 0;
+- posts Facebook depois: 0;
+- posts criados/atualizados: 0;
+- posts Instagram/X alterados: 0;
+- total de posts não Facebook permaneceu consultável: 1.057;
+- deletes/truncates: zero;
+- único efeito persistido: um `collection_log` de erro, pertencente ao tenant/target/account autorizados.
+
+### 7. Collection log e lineage
+
+O run `c43e1e16-b434-4c44-9692-b23d4b781332` terminou com:
+
+- `status=error`;
+- `posts_collected=0`;
+- `started_at=2026-08-22T21:26:19.754Z`;
+- `finished_at=2026-08-22T21:26:27.421Z`;
+- metadata com `pipeline_version=facebook-v1`, `content_origin=OWNED` e Page ID correto.
+
+`COLLECTION_LINEAGE = PARTIAL`: lifecycle de erro confirmado, mas não existe post persistido cujo `raw_json.collection_run_id` possa ser relacionado ao log.
+
+### 8. Releitura e backend read
+
+Foi adicionada camada server-side mínima com filtros obrigatórios por `platform=facebook`, `client_id`, `target_id`, `social_account_id` e período `[start,end)`. A lógica local passou nos testes, mas a prova real retornou zero linhas porque a persistência foi rejeitada.
+
+`FACEBOOK_BACKEND_READ = PARTIAL`.
+
+### 9. Segunda execução e idempotência
+
+A segunda execução não foi iniciada após a falha estrutural da primeira.
+
+- duplicatas criadas: 0;
+- `REAL_IDEMPOTENCY = NOT_TESTED` em produção;
+- proteção mock por `(platform, platform_post_id)` e conflito cross-tenant permanece preservada.
+
+### 10. Tenant isolation
+
+`TENANT_ISOLATION = PASS` para o escopo executado: cadastro e contexto coincidiram, queries foram totalmente filtradas, nenhum terceiro tenant foi usado e nenhuma linha de outra rede/conta foi alterada.
+
+### 11. Mudanças locais
+
+- `lib/facebook/collector.ts`: validação obrigatória de identidade antes da primeira escrita;
+- `lib/facebook/collector.test.ts`: cobertura de identidade correta, ausente e divergente;
+- `lib/queries/facebook.ts`: leitura server-side escopada;
+- `lib/queries/facebook.test.ts`: cobertura dos filtros e fail-closed.
+
+### 12. Migration
+
+**NÃO.** Nenhuma migration foi criada ou aplicada. A correção de `chk_platform` exige autorização arquitetural específica em uma rodada posterior.
+
+### 13. Segurança
+
+- credencial RapidAPI somente em memória;
+- nenhum secret persistido ou impresso;
+- volume limitado a seis posts;
+- zero delete/truncate;
+- zero alteração em Instagram/X/outros targets;
+- erro estrutural tratado fail-closed;
+- nenhum deploy, n8n, cron ou scheduler.
+
+### 13.1 Testes finais
+
+- Facebook + regressões dirigidas Instagram/X: 9 arquivos, 75 testes, PASS;
+- TypeScript: PASS;
+- ESLint dirigido: PASS;
+- `git diff --check`: PASS;
+- build Next.js: PASS.
+
+### 14. Blocker
+
+**FACEBOOK_SOCIAL_POSTS_PLATFORM_CONSTRAINT_BLOCKER** — `chk_platform` rejeita `platform='facebook'`.
+
+### 15. Matriz final do Bloco 2C
+
+| Critério | Resultado |
+|---|---|
+| ACCOUNT_IDENTITY | PASS |
+| COLLECTION_RUNTIME | PASS |
+| NORMALIZATION | PASS |
+| REAL_PERSISTENCE | BROKEN |
+| REAL_IDEMPOTENCY | NOT_TESTED |
+| COLLECTION_LINEAGE | PARTIAL |
+| FACEBOOK_BACKEND_READ | PARTIAL |
+| TENANT_ISOLATION | PASS |
+| INSTAGRAM_REGRESSION | PASS |
+| X_REGRESSION | PASS |
+| TYPECHECK | PASS |
+| ESLINT | PASS |
+| BUILD | PASS |
+| MIGRATION | NÃO |
+| SECURITY | PASS |
+
+### 16. Veredito final
+
+# NO_GO
+
+O blocker anterior de ambiente foi removido, mas o piloto revelou um blocker estrutural real no schema. Não iniciar o Bloco 3. A próxima rodada deve auditar a definição exata de `chk_platform` e autorizar, se apropriado, uma migration aditiva/reversível que inclua `facebook`, seguida da retomada do piloto sem ampliar seu escopo.
