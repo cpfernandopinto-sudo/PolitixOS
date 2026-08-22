@@ -18,8 +18,8 @@ describe('Facebook tenant-safe persistence', () => {
   it('mapeia social_posts e preserva breakdown/lineage em raw_json', () => {
     expect(facebookPostRow(post, context, 'run-1', '2026-08-22T00:00:00Z')).toMatchObject({
       client_id: 'client-1', target_id: 'target-1', social_account_id: 'account-1', platform: 'facebook',
-      platform_post_id: 'post-1', caption: 'Olá', like_count: 5, content_origin: 'OWNED',
-      raw_json: { contract_version: 'facebook-v1', source_page_id: 'page-1', collection_run_id: 'run-1' },
+      platform_post_id: 'post-1', caption: 'Olá', like_count: null, content_origin: 'OWNED',
+      raw_json: { contract_version: 'facebook-v1', source_page_id: 'page-1', collection_run_id: 'run-1', reactions_count: 5 },
     });
   });
 

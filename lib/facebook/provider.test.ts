@@ -1,7 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
-import { FacebookProviderError, FacebookScraperProvider, validateFacebookDateWindow } from './provider';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { FacebookProviderError, FacebookScraperProvider, facebookProviderConfigFromEnv, validateFacebookDateWindow } from './provider';
 
 describe('Facebook Scraper provider', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('usa host/path reais como defaults e mantém a chave obrigatória', () => {
+    expect(() => facebookProviderConfigFromEnv()).toThrow('FACEBOOK_PROVIDER_KEY_MISSING');
+    vi.stubEnv('FACEBOOK_SCRAPER_RAPIDAPI_KEY', 'secret-test');
+    expect(facebookProviderConfigFromEnv()).toEqual({
+      apiKey: 'secret-test',
+      host: 'facebook-scraper3.p.rapidapi.com',
+      pagePostsPath: '/page/posts',
+    });
+  });
+
   it('envia page, cursor e datas YYYY-MM-DD sem expor a chave na URL', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ results: [{ post_id: '1' }], cursor: 'next' }), { status: 200 }));
     const provider = new FacebookScraperProvider({ apiKey: 'secret-test', pagePostsPath: '/page-posts', maxRetries: 0 }, fetcher);

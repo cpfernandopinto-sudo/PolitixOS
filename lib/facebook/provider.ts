@@ -1,6 +1,7 @@
 import type { FacebookDateWindow, FacebookPagePostsResponse, FacebookProviderPage, FacebookProviderPost } from './types';
 
-const DEFAULT_HOST = 'facebook-scraper-api-advanced.p.rapidapi.com';
+const DEFAULT_HOST = 'facebook-scraper3.p.rapidapi.com';
+const DEFAULT_PAGE_POSTS_PATH = '/page/posts';
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface FacebookProviderConfig {
@@ -13,10 +14,12 @@ export interface FacebookProviderConfig {
 
 export function facebookProviderConfigFromEnv(): FacebookProviderConfig {
   const apiKey = process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY;
-  const pagePostsPath = process.env.FACEBOOK_SCRAPER_PAGE_POSTS_PATH;
   if (!apiKey) throw new Error('FACEBOOK_PROVIDER_KEY_MISSING');
-  if (!pagePostsPath) throw new Error('FACEBOOK_PAGE_POSTS_PATH_MISSING');
-  return { apiKey, pagePostsPath, host: process.env.FACEBOOK_SCRAPER_RAPIDAPI_HOST ?? DEFAULT_HOST };
+  return {
+    apiKey,
+    pagePostsPath: process.env.FACEBOOK_SCRAPER_PAGE_POSTS_PATH ?? DEFAULT_PAGE_POSTS_PATH,
+    host: process.env.FACEBOOK_SCRAPER_RAPIDAPI_HOST ?? DEFAULT_HOST,
+  };
 }
 
 export function validateFacebookDateWindow(window: FacebookDateWindow): void {

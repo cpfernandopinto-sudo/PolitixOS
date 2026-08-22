@@ -4,7 +4,7 @@
 
 Foi implementada a fundação backend modular do Facebook V1, sem deploy, sem alterações em Instagram/X/n8n e sem mudança de schema. A solução reutiliza `social_posts`, `social_accounts`, `collection_logs`, `social_post_targets` e o padrão futuro de `ai_analysis`.
 
-A prova programática externa não pôde ser executada porque `FACEBOOK_SCRAPER_RAPIDAPI_KEY` não existe no ambiente seguro disponível e o path HTTP exato de “Get Page Posts” não foi fornecido. O host é conhecido, mas não foi inferido um path.
+A prova programática externa não pôde ser executada porque `FACEBOOK_SCRAPER_RAPIDAPI_KEY` não existe no ambiente seguro disponível. O host e o path foram corrigidos no Bloco 1B para os valores confirmados da API `facebook-scraper3`.
 
 **Veredito: GO_WITH_RESTRICTIONS.**
 
@@ -59,9 +59,9 @@ O schema existente suporta a fundação inicial. Campos específicos e breakdown
 
 ### Nesta execução
 
-Nenhum endpoint HookAPI foi chamado. Motivo: credencial ausente e path HTTP exato não comprovado.
+Nenhum endpoint externo foi chamado. No Bloco 1 original, a credencial estava ausente e o provider ainda não havia sido reconciliado; o Bloco 1B abaixo corrige host/path, permanecendo bloqueado somente pela credencial.
 
-### Evidência manual recebida
+### Evidência manual histórica recebida no Bloco 1
 
 - Produto: Facebook Scraper API - Advanced / HookAPI.
 - Host: `facebook-scraper-api-advanced.p.rapidapi.com`.
@@ -69,7 +69,7 @@ Nenhum endpoint HookAPI foi chamado. Motivo: credencial ausente e path HTTP exat
 - `page_id`: `100064348075846`.
 - Resultado informado: HTTP 200 com posts reais e paginação por cursor até `results:[]` / `cursor:null`.
 
-Essa evidência é registrada como manual, não como runtime reproduzido pelo agente.
+Essa evidência é registrada apenas como histórico manual do provider anterior, não como runtime reproduzido pelo agente nem como contrato vigente. O contrato oficial corrigido está no Bloco 1B.
 
 ## 8. Requests sanitizados
 
@@ -169,7 +169,7 @@ Runtime externo: pendente.
 | permalink | `social_posts.post_url` |
 | published_at | `social_posts.taken_at` |
 | comments_count | `social_posts.comment_count` |
-| reactions_count | `social_posts.like_count` como total de reações Facebook |
+| reactions_count | `raw_json.reactions_count`; `social_posts.like_count` permanece `null` |
 | shares_count | `social_posts.share_count` |
 | reaction_* | `raw_json.reactions` |
 | media_type | `social_posts.media_type` |
@@ -200,7 +200,7 @@ Restrição relevante: a unique key real é global por `(platform, platform_post
 ## 15. Arquitetura implementada
 
 - PROVIDER: `FacebookScraperProvider`, env server-side, timeout, retry e erros sanitizados.
-- NORMALIZER: payload HookAPI → contrato Facebook V1.
+- NORMALIZER: payload do provider Facebook → contrato Facebook V1.
 - DOMAIN/PAGINATION: cursor, loop guard, dedupe, janela temporal.
 - PERSISTENCE: mapping para `social_posts`, preflight tenant e upsert idempotente.
 - ORCHESTRATION: `runFacebookOwnedCollection`, lifecycle em `collection_logs`.
@@ -224,7 +224,7 @@ O orquestrador cria log, pagina, normaliza, deduplica, persiste e encerra o log 
 
 O contrato já aceita `contentOrigin='EXTERNAL'` e `social_post_targets` é compatível com múltiplos targets.
 
-Viabilidade da fonte HookAPI: **UNKNOWN**. Search Posts, Search Pages e Search People não foram testados. Não foi criada falsa dependência em endpoints não comprovados.
+Viabilidade de busca EXTERNAL no provider: **UNKNOWN**. Search Posts, Search Pages e Search People não foram testados. Não foi criada falsa dependência em endpoints não comprovados.
 
 ## 18. Segurança multi-tenant
 
@@ -289,9 +289,8 @@ Nenhuma falha preexistente bloqueadora foi encontrada durante a regressão dirig
 Para homologação da API:
 
 1. `FACEBOOK_SCRAPER_RAPIDAPI_KEY` ausente;
-2. `FACEBOOK_SCRAPER_PAGE_POSTS_PATH` exato ausente;
-3. DATE_FILTER_STATUS ainda UNKNOWN;
-4. endpoints de detalhes/comentários/search não comprovados.
+2. DATE_FILTER_STATUS ainda UNKNOWN;
+3. endpoints de detalhes/comentários/search não comprovados.
 
 Não há blocker para manter e auditar a fundação local.
 
@@ -300,7 +299,7 @@ Não há blocker para manter e auditar a fundação local.
 Configurar localmente, fora do Git:
 
 - `FACEBOOK_SCRAPER_RAPIDAPI_KEY`;
-- `FACEBOOK_SCRAPER_PAGE_POSTS_PATH`;
+- opcional `FACEBOOK_SCRAPER_PAGE_POSTS_PATH` (default seguro `/page/posts`);
 - opcional `FACEBOOK_SCRAPER_RAPIDAPI_HOST`.
 
 Depois executar prova controlada com `page_id=100064348075846`:
@@ -322,7 +321,150 @@ Somente depois preparar workflow n8n inativo.
 
 - Fundação backend: GO.
 - Schema inicial: GO sem migration.
-- Homologação HookAPI: pendente de credencial/path e prova runtime.
+- Homologação `facebook-scraper3`: host/path corrigidos; pendente somente de credencial e prova runtime.
 - OWNED: arquitetura pronta; execução real pendente.
 - EXTERNAL: contrato pronto; fonte ainda não comprovada.
 - Deploy/n8n/schedule: não executados.
+
+## Bloco 1B — Prova Runtime facebook-scraper3
+
+### Correção de provider
+
+O contexto do provider foi corrigido sem reconstruir a fundação:
+
+- API: Facebook Scraper;
+- RapidAPI slug: `facebook-scraper3`;
+- host default: `facebook-scraper3.p.rapidapi.com`;
+- Page Posts path default: `/page/posts`;
+- key: `FACEBOOK_SCRAPER_RAPIDAPI_KEY`, obrigatória e sem default;
+- overrides opcionais continuam disponíveis por `FACEBOOK_SCRAPER_RAPIDAPI_HOST` e `FACEBOOK_SCRAPER_PAGE_POSTS_PATH`.
+
+O identificador persistido em `raw_json.provider` foi atualizado para `rapidapi-facebook-scraper3`.
+
+### Disponibilidade da credencial
+
+```text
+FACEBOOK_SCRAPER_RAPIDAPI_KEY=MISSING
+```
+
+Somente o nome da variável foi verificado. Nenhuma chave foi lida, reutilizada de screenshot, exibida, logada ou persistida.
+
+### Endpoints testados
+
+| Endpoint | Resultado |
+|---|---|
+| `GET /page/posts` | NOT_TESTED — key ausente |
+| Page id | NOT_TESTED |
+| Page details | NOT_TESTED |
+| Post details | NOT_TESTED |
+| Comments | NOT_TESTED |
+| Reshares | NOT_TESTED |
+| Search pages | NOT_TESTED |
+| Search posts | NOT_TESTED |
+| Search people | NOT_TESTED |
+
+Não foram inferidos paths dos endpoints secundários.
+
+### Resultados runtime
+
+Nenhuma requisição externa foi executada no Bloco 1B. Por isso:
+
+- status HTTP: não observado;
+- quantidade/cursor/timestamps: não observados;
+- payload real: não capturado;
+- IDs reais: não comparados;
+- normalizer contra runtime: pendente.
+
+### DATE_FILTER_STATUS
+
+**DATE_FILTER_STATUS = UNKNOWN**
+
+Impedimento externo real: ausência da credencial. O client confirma por teste que transmite `start_date` e `end_date` diretamente como `YYYY-MM-DD`, mas isso não homologa o comportamento do servidor.
+
+### CURSOR_PAGINATION_STATUS
+
+**CURSOR_PAGINATION_STATUS = PARTIAL**
+
+- lógica local, cursor null, results vazio, cursor repetido, dedupe e limite: PASS;
+- runtime manual prévio: evidência recebida;
+- reprodução programática nesta rodada: bloqueada pela key.
+
+### STABLE_POST_ID
+
+**STABLE_POST_ID = PARTIAL**
+
+`post_id` permanece a chave candidata correta, mas a estabilidade entre duas respostas reais não foi reproduzida nesta rodada.
+
+### Fixture sanitizada real
+
+Não criada. Sem response runtime, criar fixture seria fabricar evidência, o que é proibido.
+
+### Mudanças no normalizer
+
+Nenhuma mudança de shape foi feita sem payload real. O normalizer continua preparado para os campos informados, mas somente campos efetivamente observados em uma futura execução serão promovidos a CONFIRMED.
+
+### Persistência controlada
+
+A persistência permaneceu restrita a mocks:
+
+- primeiro upsert: PASS;
+- segunda entrada idêntica deduplicada: PASS;
+- onConflict `platform,platform_post_id`: PASS;
+- cross-tenant fail-closed: PASS;
+- `raw_json` preserva breakdown e lineage: PASS;
+- `content_origin=OWNED`: PASS;
+- nenhuma escrita Supabase real.
+
+### Decisão reactions_count / like_count
+
+Decisão adotada: **B — manter o total somente no `raw_json` por enquanto**.
+
+Motivo: `reactions_count` soma like, love, care, haha, wow, sad e angry; gravá-lo como `social_posts.like_count` induziria consumidores genéricos a interpretar total de reações como likes reais.
+
+Implementação:
+
+- `social_posts.like_count = null` para Facebook V1;
+- `raw_json.reactions_count` preserva o total;
+- `raw_json.reactions` preserva o breakdown;
+- nenhuma migration;
+- extensão estruturada futura somente após consumidores e semântica serem aprovados.
+
+### Testes do Bloco 1B
+
+- Facebook + regressão dirigida Instagram/X: 7 arquivos, 68 testes, PASS;
+- TypeScript: PASS;
+- ESLint dirigido: PASS;
+- `git diff --check`: PASS;
+- build Next.js do Bloco 1B: PASS.
+
+### Segurança
+
+- key server-side e obrigatória;
+- nenhum `NEXT_PUBLIC_*`;
+- nenhum secret em URL, fixture, relatório ou commit;
+- erros do provider não incluem body remoto;
+- host/path defaults confirmados;
+- tenant isolation preservado;
+- nenhum deploy;
+- nenhum n8n;
+- nenhuma alteração em Instagram/X.
+
+### Débitos e bloqueadores
+
+Bloqueador único para executar a prova runtime:
+
+```text
+FACEBOOK_SCRAPER_RAPIDAPI_KEY=<necessária>
+```
+
+Depois da disponibilização segura da variável, ainda devem ser executados: baseline, filtros de data, paginação, repetição de janela, captura de fixture real e descoberta comprovada dos endpoints secundários.
+
+### Recomendação do Bloco 1B
+
+Manter o veredito **GO_WITH_RESTRICTIONS** até a prova runtime. Não avançar para n8n ou produção antes de:
+
+- PAGE_POSTS = CONFIRMED;
+- CURSOR_PAGINATION = CONFIRMED;
+- STABLE_POST_ID = CONFIRMED;
+- normalização validada contra payload real;
+- DATE_FILTER classificado.
