@@ -3,30 +3,49 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "v2-manual-trigger",
+      "id": "c7202a2d-e048-4324-ab52-0f741a3ecd3e",
       "name": "Manual Shadow Test",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [-1180, -120]
-    },
-    {
-      "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 6}]}},
-      "id": "v2-schedule-trigger",
-      "name": "Shadow Schedule — INTERNAL 6h",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [-1180, 80],
-      "disabled": true
+      "position": [
+        -1008,
+        304
+      ]
     },
     {
       "parameters": {
-        "jsCode": "return [{json:{pipeline_version:'v2',shadow_mode:true,manual_test:true,max_targets_per_run:1,max_posts_per_target:10,max_comment_pages_per_post:1,max_reply_pages:1,max_enrichments_per_run:1,started_at:new Date().toISOString(),limits_kind:'INTERNAL_SAFETY_LIMIT'}}];"
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
       },
-      "id": "v2-config",
+      "id": "e9c48689-2b79-4dc8-83b8-682766a4dedf",
+      "name": "Shadow Schedule — INTERNAL 6h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1008,
+        512
+      ],
+      "disabled": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{pipeline_version:'v2',shadow_mode:true,manual_test:true,max_targets_per_run:1,max_posts_per_target:3,max_comment_pages_per_post:1,max_reply_pages:1,max_enrichments_per_run:1,ai_enabled:false,max_ai_analyses_per_run:1,started_at:new Date().toISOString(),limits_kind:'INTERNAL_SAFETY_LIMIT_PHASE_A'}}];"
+      },
+      "id": "48ec3a6d-cef7-4866-afb9-814e400e4a14",
       "name": "V2 Config & Guardrails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-940, -20]
+      "position": [
+        -768,
+        400
+      ]
     },
     {
       "parameters": {
@@ -34,50 +53,101 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendQuery": true,
-        "queryParameters": {"parameters": [
-          {"name": "select", "value": "id,target_id,handle,client_id"},
-          {"name": "platform", "value": "eq.instagram"},
-          {"name": "is_active", "value": "eq.true"},
-          {"name": "order", "value": "created_at.asc"}
-        ]},
-        "options": {"response": {"response": {"neverError": true}}}
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,target_id,handle,client_id"
+            },
+            {
+              "name": "platform",
+              "value": "eq.instagram"
+            },
+            {
+              "name": "is_active",
+              "value": "eq.true"
+            },
+            {
+              "name": "order",
+              "value": "created_at.asc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "id": "v2-load-accounts",
+      "id": "b0ffbae9-a12f-4a1d-8dac-d6494805e996",
       "name": "Load Instagram Accounts",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-700, -20],
-      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "position": [
+        -528,
+        400
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const cfg=$('V2 Config & Guardrails').first().json; const flat=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const valid=flat.filter(a=>a.id&&a.target_id&&a.client_id&&a.handle); if(!valid.length) throw new Error('STRUCTURAL: no valid Instagram account with client_id'); return valid.slice(0,cfg.max_targets_per_run).map(a=>({json:{request_method:'GET',request_url:'https://instagram-scraper-api18.p.rapidapi.com/user/posts',query_parameters:{handle:a.handle},request_context:{account:{...a,...cfg}},max_attempts:3,base_delay_seconds:1}}));"
       },
-      "id": "v2-validate-accounts",
+      "id": "ca7244e8-05e9-4fa9-b0ec-d42084034aff",
       "name": "Validate Tenant Scope",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-460, -20]
+      "position": [
+        -288,
+        400
+      ]
     },
     {
-      "parameters": {"workflowId": {"__rl": true, "value": "NNVa2bGFLAMlxVnV", "mode": "list", "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV", "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"}, "workflowInputs": {"mappingMode": "defineBelow", "value": {}, "matchingColumns": [], "schema": [], "attemptToConvertTypes": false, "convertFieldsToString": true}, "mode": "each", "options": {"waitForSubWorkflow": true}},
-      "id": "v2-user-posts",
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "NNVa2bGFLAMlxVnV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV",
+          "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "9019da25-5c36-440a-abf1-4a4edeb1213e",
       "name": "CORE — GET user posts",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [-180, -420],
+      "position": [
+        0,
+        0
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const r=$json; const account=r.request_context?.account; if(!account) throw new Error('STRUCTURAL: retry response missing account context'); if(r.status!=='success') return [{json:{_v2_error:'user_posts_failed',account,raw_error:r.error_message||r.error_code||'provider error',retry_telemetry:r}}]; const body=r.response_body||{}; const items=body.items||body.data?.items||body.data||[]; return (Array.isArray(items)?items:[]).slice(0,account.max_posts_per_target).map(p=>{const id=String(p.id||p.pk||p.media_id||''); if(!id)return null; const mt=Number(p.media_type); const mediaType=mt===1?'image':mt===2?'video':mt===8?'carousel':String(p.media_type||'other').toLowerCase(); const image=p.image_versions2?.candidates?.[0]?.url||p.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url||null; const video=p.video_versions?.[0]?.url||null; return {json:{target_id:account.target_id,social_account_id:account.id,client_id:account.client_id,platform:'instagram',platform_post_id:id,shortcode:p.code||p.shortcode||null,post_url:(p.code||p.shortcode)?`https://www.instagram.com/p/${p.code||p.shortcode}/`:null,caption:typeof p.caption==='string'?p.caption:(p.caption?.text||null),media_type:mediaType,media_url:video||image,like_count:p.like_count??null,comment_count:p.comment_count??null,share_count:p.share_count??null,view_count:p.play_count??p.view_count??null,taken_at:p.taken_at?new Date(Number(p.taken_at)*1000).toISOString():null,raw_json:p,collected_at:new Date().toISOString()}}}).filter(Boolean);"
       },
-      "id": "v2-normalize-posts",
+      "id": "8bf2bf14-9776-4549-ab28-0affa01a79d9",
       "name": "Normalize Posts — Canonical Contract",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [60, -420]
+      "position": [
+        240,
+        0
+      ]
     },
     {
       "parameters": {
@@ -86,60 +156,116 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendQuery": true,
-        "queryParameters": {"parameters": [{"name": "on_conflict", "value": "platform,platform_post_id"}]},
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "platform,platform_post_id"
+            }
+          ]
+        },
         "sendHeaders": true,
-        "headerParameters": {"parameters": [{"name": "Prefer", "value": "resolution=merge-duplicates,return=representation"}]},
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify($json) }}",
-        "options": {"response": {"response": {"neverError": true}}}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "id": "v2-upsert-posts",
+      "id": "a08ecfb8-d703-4643-8b4c-db359226d668",
       "name": "UPSERT social_posts",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [300, -420],
-      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "position": [
+        480,
+        0
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const persisted=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const originals=$('Normalize Posts — Canonical Contract').all().map(i=>i.json).filter(r=>!r._v2_error); const key=r=>r?.client_id&&r?.platform&&r?.platform_post_id?`${r.client_id}::${r.platform}::${r.platform_post_id}`:null; const originalByKey=new Map(originals.map(r=>[key(r),r]).filter(([k])=>k)); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const confirmed=persisted.flatMap(r=>{if(isError(r)||!r?.id)return []; const k=key(r); const original=k?originalByKey.get(k):null; if(!original||original.client_id!==r.client_id)return []; return [{...original,...r,shortcode:r.shortcode||original.shortcode||null}];}); if(!confirmed.length)return [{json:{_v2_error:'posts_persistence_failed',skip_reason:'NO_CONFIRMED_PERSISTENCE',posts_normalized:originals.length,posts_confirmed:0,raw_error:persisted[0]?.message||persisted[0]?.error||persisted[0]?.code||'no deterministically matched persisted post'}}]; const eligible=confirmed.filter(r=>r.id&&r.client_id&&r.shortcode); if(!eligible.length)return [{json:{_v2_error:'no_eligible_posts',skip_reason:'NO_ELIGIBLE_POSTS',posts_normalized:originals.length,posts_confirmed:confirmed.length,posts_eligible:0}}]; return eligible.map(r=>({json:{...r,_v2_posts_normalized:originals.length,_v2_posts_confirmed:confirmed.length}}));"
       },
-      "id": "v2-load-posts",
+      "id": "6952636c-75d0-4e76-add6-f22a4705b7d7",
       "name": "Load Posts for Comments",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-180, -100],
+      "position": [
+        0,
+        320
+      ],
       "onError": "continueRegularOutput"
     },
     {
-      "parameters": {"jsCode": "const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); return rows.filter(p=>p.id&&p.client_id&&p.shortcode).map(p=>({json:{request_method:'GET',request_url:'https://instagram-scraper-api18.p.rapidapi.com/post/comments',query_parameters:{url:p.post_url||`https://www.instagram.com/p/${p.shortcode}/`,trim:true},request_context:{post:p},max_attempts:3,base_delay_seconds:1}}));"},
-      "id": "v2-prepare-comment-posts",
+      "parameters": {
+        "jsCode": "const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); return rows.filter(p=>p.id&&p.client_id&&p.shortcode).map(p=>({json:{request_method:'GET',request_url:'https://instagram-scraper-api18.p.rapidapi.com/post/comments',query_parameters:{url:p.post_url||`https://www.instagram.com/p/${p.shortcode}/`,trim:true},request_context:{post:p},max_attempts:3,base_delay_seconds:1}}));"
+      },
+      "id": "9034405a-5694-4f47-b8b9-747c4511c885",
       "name": "Prepare Comment Sources",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [60, -100]
+      "position": [
+        240,
+        320
+      ]
     },
     {
-      "parameters": {"workflowId": {"__rl": true, "value": "NNVa2bGFLAMlxVnV", "mode": "list", "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV", "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"}, "workflowInputs": {"mappingMode": "defineBelow", "value": {}, "matchingColumns": [], "schema": [], "attemptToConvertTypes": false, "convertFieldsToString": true}, "mode": "each", "options": {"waitForSubWorkflow": true}},
-      "id": "v2-post-comments",
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "NNVa2bGFLAMlxVnV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV",
+          "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "b507f6bc-2857-40c6-a605-7c79afb9c6b4",
       "name": "CORE — GET post comments",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [300, -100],
+      "position": [
+        480,
+        320
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const toIso=v=>{if(v===null||v===undefined||v==='')return null; const n=Number(v); const d=Number.isFinite(n)?new Date(n>1e12?n:n*1000):new Date(String(v)); return Number.isNaN(d.getTime())?null:d.toISOString();}; return $input.all().flatMap(i=>{const r=i.json; const post=r.request_context?.post; if(!post||r.status!=='success')return []; const body=r.response_body||{}; const rows=body.comments||body.items||body.data?.comments||body.data?.items||body.data||[]; return (Array.isArray(rows)?rows:[]).map(c=>{const cid=String(c.pk||c.id||c.comment_id||''); if(!cid)return null; return {json:{post_id:post.id,target_id:post.target_id,client_id:post.client_id,instagram_comment_id:cid,comment_user:c.user?.username||c.username||c.user_name||null,comment_text:c.text||c.comment_text||null,like_count:c.comment_like_count??c.like_count??null,created_at_instagram:toIso(c.created_at??c.created_at_utc),raw_json:c,collected_at:new Date().toISOString()}}}).filter(Boolean);});"
       },
-      "id": "v2-normalize-comments",
+      "id": "f6ee32cd-8205-4f0e-b721-754f34930aa6",
       "name": "Normalize Comments",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [540, -100]
+      "position": [
+        720,
+        320
+      ]
     },
     {
       "parameters": {
@@ -148,51 +274,102 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendQuery": true,
-        "queryParameters": {"parameters": [{"name": "on_conflict", "value": "instagram_comment_id"}]},
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "instagram_comment_id"
+            }
+          ]
+        },
         "sendHeaders": true,
-        "headerParameters": {"parameters": [{"name": "Prefer", "value": "resolution=merge-duplicates,return=representation"}]},
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify($json) }}",
-        "options": {"response": {"response": {"neverError": true}}}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "id": "v2-upsert-comments",
+      "id": "413ecdb5-c611-4673-8234-12125195c3d3",
       "name": "UPSERT instagram_comments",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [780, -100],
-      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "position": [
+        960,
+        320
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const cfg=$('V2 Config & Guardrails').first().json; const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); return rows.filter(p=>['REEL','CAROUSEL'].includes(p.content_type)&&p.shortcode).slice(0,cfg.max_enrichments_per_run).map(p=>({json:{request_method:'GET',request_url:'https://instagram-scraper-api18.p.rapidapi.com/post',query_parameters:{shortcode:p.shortcode},request_context:{post:p},max_attempts:3,base_delay_seconds:1}}));"
       },
-      "id": "v2-enrichment-decision",
+      "id": "ac3605c0-92d7-40a6-aa1f-a06f35814f4c",
       "name": "Enrichment Decision — Selective",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [300, 180]
+      "position": [
+        480,
+        608
+      ]
     },
     {
-      "parameters": {"workflowId": {"__rl": true, "value": "NNVa2bGFLAMlxVnV", "mode": "list", "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV", "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"}, "workflowInputs": {"mappingMode": "defineBelow", "value": {}, "matchingColumns": [], "schema": [], "attemptToConvertTypes": false, "convertFieldsToString": true}, "mode": "each", "options": {"waitForSubWorkflow": true}},
-      "id": "v2-post-enrichment",
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "NNVa2bGFLAMlxVnV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV",
+          "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "d916b590-96a6-4d55-91bb-36a9a55210fd",
       "name": "ENRICH — GET post",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [540, 180],
+      "position": [
+        720,
+        608
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const r=$json; const source=r.request_context?.post; if(!source||r.status!=='success')return []; const body=r.response_body||{}; const detail=body.data||body.item||body; return [{json:{id:source.id,raw_json:{...source.raw_json,_v2_enrichment:{collected_at:new Date().toISOString(),source:'/post',payload:detail,retry_telemetry:{logical_calls:r.logical_calls,physical_attempts:r.physical_attempts,retry_attempts:r.retry_attempts}}}}}];"
       },
-      "id": "v2-merge-enrichment",
+      "id": "50ea6949-b206-49b0-861f-fd4d24168efc",
       "name": "Merge Enrichment into raw_json",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [780, 180]
+      "position": [
+        960,
+        608
+      ]
     },
     {
       "parameters": {
@@ -201,49 +378,93 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendQuery": true,
-        "queryParameters": {"parameters": [{"name": "id", "value": "={{ 'eq.' + $json.id }}"}]},
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{ 'eq.' + $json.id }}"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({raw_json:$json.raw_json}) }}",
-        "options": {"response": {"response": {"neverError": true}}}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "id": "v2-save-enrichment",
+      "id": "5cd11a11-0dc2-4363-8c92-a5a185636861",
       "name": "PATCH enrichment raw_json only",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1020, 180],
-      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "position": [
+        1200,
+        608
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const cfg=$('V2 Config & Guardrails').first().json; const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const candidates=rows.filter(c=>{const r=c.raw_json||{}; return Number(r.child_comment_count??r.reply_count??r.preview_child_comments?.length??0)>0;}); return candidates.slice(0,cfg.max_posts_per_target).map(c=>({json:{request_method:'GET',request_url:'https://instagram-scraper-api18.p.rapidapi.com/post/comment/replies',query_parameters:{comment_id:c.instagram_comment_id},request_context:{parent:{...c,max_reply_pages:cfg.max_reply_pages}},max_attempts:3,base_delay_seconds:1}}));"
       },
-      "id": "v2-reply-decision",
+      "id": "625c5246-4df1-4387-bc36-6abdeec4bd0b",
       "name": "Reply Decision — child count only",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1020, -100]
+      "position": [
+        1200,
+        320
+      ]
     },
     {
-      "parameters": {"workflowId": {"__rl": true, "value": "NNVa2bGFLAMlxVnV", "mode": "list", "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV", "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"}, "workflowInputs": {"mappingMode": "defineBelow", "value": {}, "matchingColumns": [], "schema": [], "attemptToConvertTypes": false, "convertFieldsToString": true}, "mode": "each", "options": {"waitForSubWorkflow": true}},
-      "id": "v2-comment-replies",
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "NNVa2bGFLAMlxVnV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/NNVa2bGFLAMlxVnV",
+          "cachedResultName": "PolitixOS — Instagram — RapidAPI Selective Retry"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "aced5724-92eb-4801-8474-9a89d4f71298",
       "name": "SELECTIVE — GET comment replies",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [1260, -100],
+      "position": [
+        1440,
+        320
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const r=$json; const parent=r.request_context?.parent; if(!parent||r.status!=='success')return []; const body=r.response_body||{}; const rows=body.replies||body.items||body.data?.replies||body.data?.items||body.data||[]; return (Array.isArray(rows)?rows:[]).map(c=>{const cid=String(c.pk||c.id||c.comment_id||''); if(!cid)return null; return {json:{post_id:parent.post_id,target_id:parent.target_id,client_id:parent.client_id,parent_comment_id:parent.id,instagram_comment_id:cid,comment_user:c.user?.username||c.username||null,comment_text:c.text||null,like_count:c.comment_like_count??c.like_count??null,created_at_instagram:c.created_at?new Date(Number(c.created_at)*1000).toISOString():null,raw_json:c,collected_at:new Date().toISOString()}}}).filter(Boolean);"
       },
-      "id": "v2-normalize-replies",
+      "id": "0615517b-3875-440b-86cd-1f0a968588e8",
       "name": "Normalize Replies with Parent",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1500, -100]
+      "position": [
+        1680,
+        320
+      ]
     },
     {
       "parameters": {
@@ -252,32 +473,57 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendQuery": true,
-        "queryParameters": {"parameters": [{"name": "on_conflict", "value": "instagram_comment_id"}]},
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "instagram_comment_id"
+            }
+          ]
+        },
         "sendHeaders": true,
-        "headerParameters": {"parameters": [{"name": "Prefer", "value": "resolution=merge-duplicates,return=representation"}]},
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify($json) }}",
-        "options": {"response": {"response": {"neverError": true}}}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "id": "v2-upsert-replies",
+      "id": "b83ac6c6-c6b9-4c24-b4aa-8c594cba8b2c",
       "name": "UPSERT replies in instagram_comments",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1740, -100],
-      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "position": [
+        1920,
+        320
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const a=$('Validate Tenant Scope').first().json.request_context.account; const telemetry=$('CORE — GET user posts').all().map(i=>i.json); const logical=telemetry.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=telemetry.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=telemetry.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const normalized=$('Normalize Posts — Canonical Contract').all(); const normalizeError=normalized.find(i=>i.json?._v2_error); const discovered=normalized.filter(i=>!i.json?._v2_error).length; const results=$input.all(); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const failedItems=results.filter(i=>isError(i.json)).length+(normalizeError?1:0); const upserted=failedItems?Math.max(0,discovered-failedItems):discovered; const status=failedItems===0?'success':upserted>0?'partial':'error'; const failureMessage=normalizeError?.json?.raw_error||results.find(i=>isError(i.json))?.json?.message||null; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:upserted,comments_collected:0,error_message:failedItems?String(failureMessage||'posts stage returned an error'):null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'posts',calls_user_posts:logical,calls_post_comments:0,calls_post_enrichment:0,calls_replies:0,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,ai_calls:0,posts_discovered:discovered,posts_upserted:upserted,posts_skipped:failedItems?Math.max(0,discovered-upserted):0,comments_discovered:0,comments_upserted:0,comments_skipped:0,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failedItems,warnings_count:status==='partial'?1:0,limits_kind:a.limits_kind,max_posts_per_target:a.max_posts_per_target,max_comment_pages_per_post:a.max_comment_pages_per_post,max_reply_pages:a.max_reply_pages,max_enrichments_per_run:a.max_enrichments_per_run}}}];"
       },
-      "id": "v2-prepare-log",
+      "id": "0fa98aff-d71c-4a14-a2d7-b21cefcb9ded",
       "name": "Prepare V2 Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [540, -420]
+      "position": [
+        720,
+        0
+      ]
     },
     {
       "parameters": {
@@ -289,99 +535,625 @@
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify($json) }}",
-        "options": {"response": {"response": {"neverError": true}}}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "id": "v2-write-log",
+      "id": "1f57e73b-2c3a-4212-8248-b232913ca312",
       "name": "Write collection_logs metadata=v2",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [780, -420],
-      "credentials": {"supabaseApi": {"id": "62RqY3LtKsmVwNjf", "name": "Supabase account"}},
+      "position": [
+        960,
+        0
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "const r=$input.first().json; if(!r?._v2_error)return []; const a=$('Validate Tenant Scope').first().json.request_context.account; const persistenceFailure=r._v2_error==='posts_persistence_failed'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status:persistenceFailure?'error':'success',posts_collected:0,comments_collected:0,error_message:persistenceFailure?String(r.raw_error||'post persistence was not confirmed'):null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',phase:'eligibility',operational_outcome:'SKIPPED_NO_ELIGIBLE_POSTS',skip_reason:r.skip_reason||'NO_ELIGIBLE_POSTS',posts_normalized:Number(r.posts_normalized||0),posts_confirmed:Number(r.posts_confirmed||0),posts_eligible:0,calls_post_comments:0,logical_calls:0,physical_attempts:0,retry_attempts:0,rapidapi_calls_total:0,comments_returned:0,comments_persisted:0,errors_count:persistenceFailure?1:0,warnings_count:persistenceFailure?0:1}}}];"
       },
-      "id": "v2-comments-skip-log",
+      "id": "7bfd09ff-38da-4413-9f87-379769669c60",
       "name": "Prepare Comments Skip Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [60, 40]
+      "position": [
+        240,
+        464
+      ]
     },
     {
       "parameters": {
         "jsCode": "const responses=$input.all().map(i=>i.json); if(!responses.length)return []; const a=$('Validate Tenant Scope').first().json.request_context.account; const extract=r=>{const body=r.response_body||{}; const rows=body.comments||body.items||body.data?.comments||body.data?.items||body.data||[]; return Array.isArray(rows)?rows:[];}; const returned=responses.reduce((n,r)=>n+extract(r).length,0); const logical=responses.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=responses.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=responses.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const failed=responses.filter(r=>r.status!=='success').length; const status=failed===0?'success':returned>0?'partial':'error'; const outcome=failed?returned>0?'PARTIAL':'ERROR':returned>0?'SUCCESS_WITH_RESULTS':'SUCCESS_ZERO_RESULTS'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:0,error_message:failed?String(responses.find(r=>r.status!=='success')?.error_message||'comments fetch failed'):null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',phase:'fetch',operational_outcome:outcome,posts_eligible:responses.length,calls_post_comments:logical,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,comments_returned:returned,comments_persisted:0,errors_count:failed,warnings_count:status==='partial'?1:0}}}];"
       },
-      "id": "v2-comments-fetch-log",
+      "id": "1be0c6fa-e6fc-458b-9ff5-d451173088a3",
       "name": "Prepare Comments Fetch Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [540, 40]
+      "position": [
+        720,
+        464
+      ]
     },
     {
       "parameters": {
         "jsCode": "const a=$('Validate Tenant Scope').first().json.request_context.account; const telemetry=$('CORE — GET post comments').all().map(i=>i.json); const logical=telemetry.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=telemetry.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=telemetry.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const calls=$('Prepare Comment Sources').all().length; const discovered=$('Normalize Comments').all().filter(i=>i.json?.instagram_comment_id).length; const results=$input.all(); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const failedItems=results.filter(i=>isError(i.json)).length; const succeeded=Math.max(0,discovered-failedItems); const status=failedItems===0?'success':succeeded>0?'partial':'error'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:succeeded,error_message:failedItems?'one or more comments upserts failed':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'comments',phase:'persistence',operational_outcome:failedItems?(succeeded?'PARTIAL':'ERROR'):'SUCCESS',posts_eligible:calls,comments_returned:discovered,comments_persisted:succeeded,calls_user_posts:0,calls_post_comments:calls,calls_post_enrichment:0,calls_replies:0,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:discovered,comments_upserted:succeeded,comments_skipped:failedItems,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failedItems,warnings_count:status==='partial'?1:0}}}];"
       },
-      "id": "v2-comments-log",
+      "id": "e48caf51-cbb6-439e-95fa-6afd51f5d86b",
       "name": "Prepare V2 Comments Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1020, -260]
+      "position": [
+        1200,
+        160
+      ]
     },
     {
       "parameters": {
         "jsCode": "const a=$('Validate Tenant Scope').first().json.request_context.account; const telemetry=$('ENRICH — GET post').all().map(i=>i.json); const logical=telemetry.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=telemetry.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=telemetry.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const attempted=$('Enrichment Decision — Selective').all().length; const results=$input.all(); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const failedItems=results.filter(i=>isError(i.json)).length; const success=Math.max(0,attempted-failedItems); const status=failedItems===0?'success':success>0?'partial':'error'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:0,error_message:failedItems?'one or more enrichment calls failed':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'enrichment',calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:attempted,calls_replies:0,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:0,comments_upserted:0,comments_skipped:0,replies_discovered:0,replies_upserted:0,replies_skipped:0,enrichments_attempted:attempted,enrichments_success:success,enrichments_failed:failedItems,errors_count:failedItems,warnings_count:status==='partial'?1:0}}}];"
       },
-      "id": "v2-enrichment-log",
+      "id": "f9cc860d-d55b-43cc-9c2e-50a2b6ea7a9c",
       "name": "Prepare V2 Enrichment Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1260, 180]
+      "position": [
+        1440,
+        608
+      ]
     },
     {
       "parameters": {
         "jsCode": "const a=$('Validate Tenant Scope').first().json.request_context.account; const telemetry=$('SELECTIVE — GET comment replies').all().map(i=>i.json); const logical=telemetry.reduce((n,r)=>n+Number(r.logical_calls||0),0); const physical=telemetry.reduce((n,r)=>n+Number(r.physical_attempts||0),0); const retries=telemetry.reduce((n,r)=>n+Number(r.retry_attempts||0),0); const calls=$('Reply Decision — child count only').all().length; const discovered=$('Normalize Replies with Parent').all().filter(i=>i.json?.instagram_comment_id).length; const results=$input.all(); const isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400)); const failedItems=results.filter(i=>isError(i.json)).length; const succeeded=Math.max(0,discovered-failedItems); const status=failedItems===0?'success':succeeded>0?'partial':'error'; return [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:succeeded,error_message:failedItems?'one or more replies upserts failed':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'replies',calls_user_posts:0,calls_post_comments:0,calls_post_enrichment:0,calls_replies:calls,logical_calls:logical,physical_attempts:physical,retry_attempts:retries,rapidapi_calls_total:physical,ai_calls:0,posts_discovered:0,posts_upserted:0,posts_skipped:0,comments_discovered:0,comments_upserted:0,comments_skipped:0,replies_discovered:discovered,replies_upserted:succeeded,replies_skipped:failedItems,enrichments_attempted:0,enrichments_success:0,enrichments_failed:0,errors_count:failedItems,warnings_count:status==='partial'?1:0,reply_pagination:'NOT_CONFIRMED_NO_ELIGIBLE_ACTIVE_PAYLOAD',max_reply_pages:a.max_reply_pages}}}];"
       },
-      "id": "v2-replies-log",
+      "id": "ba698b16-57be-4e0f-b957-bea378b62ee3",
       "name": "Prepare V2 Replies Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1980, -100]
+      "position": [
+        2160,
+        320
+      ]
+    },
+    {
+      "id": "ai-decision-01",
+      "name": "AI Analysis Decision — Selective",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        900
+      ],
+      "parameters": {
+        "jsCode": "const cfg=$('V2 Config & Guardrails').first().json;\nif(!cfg.ai_enabled) return [];\nconst persistedComments=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]).filter(c=>c&&c.post_id&&!c.error&&!c.code);\nconst posts=$('Load Posts for Comments').all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]).filter(p=>p&&p.id&&!p._v2_error);\nconst byPost=new Map();\nfor(const c of persistedComments){const arr=byPost.get(c.post_id)||[]; arr.push(c); byPost.set(c.post_id,arr);}\nreturn posts.slice(0,cfg.max_ai_analyses_per_run||1).map(p=>({json:{post:p,comments:(byPost.get(p.id)||[]).sort((a,b)=>(b.like_count||0)-(a.like_count||0)).slice(0,80)}}));"
+      }
+    },
+    {
+      "id": "ai-prompt-01",
+      "name": "Prepare AI Prompt V2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        900
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(item=>{\n  const row=item.json;\n  const post=row.post||{};\n  const comments=row.comments||[];\n  const commentsText=comments.map((c,i)=>`${i+1}. @${c.comment_user||'usuario'}: ${c.comment_text||''} | likes: ${c.like_count||0}`).join('\\n');\n  const dataBlock=`Legenda do post: ${post.caption||''}\\nCurtidas: ${post.like_count||0}\\nComentarios: ${post.comment_count||0}\\nVisualizacoes: ${post.view_count||0}\\nCompartilhamentos: ${post.share_count||0}\\nData da postagem: ${post.taken_at||''}\\nURL: ${post.post_url||''}\\n\\nComentarios analisados (${comments.length}):\\n${commentsText||'Nenhum comentario capturado.'}`;\n  return {json:{post_id:post.id,target_id:post.target_id,client_id:post.client_id,data_block:dataBlock,comments_count_analyzed:comments.length}};\n});"
+      }
+    },
+    {
+      "id": "ai-gemini-01",
+      "name": "Analyze — Gemini Instagram Post",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        900
+      ],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-2.5-flash",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Voce e um analista senior de inteligencia politica e reputacao digital do PolitixOS. O PolitixOS nao resume o Instagram: ele produz inteligencia politica. Responda sempre, quando os dados permitirem: o que esta acontecendo, como o publico esta reagindo, qual assunto esta mobilizando, se existe risco e por que, se existe oportunidade, e qual acao estrategica e recomendavel. Retorne EXCLUSIVAMENTE um JSON valido, sem markdown, sem texto fora do JSON.",
+              "role": "model"
+            },
+            {
+              "content": "=Analise a percepcao publica da postagem abaixo com base no conteudo do post, metricas e comentarios coletados.\n\n{{ $json.data_block }}\n\nRetorne APENAS um JSON valido, sem markdown, no formato exato:\n{\n  \"sentiment\": \"positivo | neutro | negativo | misto\",\n  \"risk_level\": \"baixo | medio | alto | critico\",\n  \"risk_status\": \"novo\",\n  \"engagement_quality\": \"baixa | media | alta\",\n  \"polarization_level\": \"baixo | medio | alto\",\n  \"ai_topics\": [\"tema politico especifico 1\", \"tema politico especifico 2\"],\n  \"ai_entities\": [\"entidade 1\"],\n  \"risk_reason\": \"Explique o motivo do risco em ate 2 linhas, ou null se nao houver risco relevante.\",\n  \"summary\": \"Resumo executivo da percepcao publica em ate 3 linhas, respondendo o que esta acontecendo e como o publico reage.\",\n  \"recommended_action\": \"Acao estrategica recomendada para comunicacao politica.\"\n}"
+            }
+          ]
+        },
+        "simplify": true,
+        "jsonOutput": true,
+        "options": {
+          "systemMessage": "Voce e um analista senior de inteligencia politica e reputacao digital. Retorne EXCLUSIVAMENTE um JSON valido. Nao escreva explicacoes. Nao use markdown.",
+          "maxOutputTokens": 3072,
+          "temperature": 0.2,
+          "thinkingBudget": 0
+        }
+      }
+    },
+    {
+      "id": "ai-normalize-01",
+      "name": "Normalize AI Analysis V2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        900
+      ],
+      "parameters": {
+        "jsCode": "const bases=$('Prepare AI Prompt V2').all();\nconst extractText=r=>{\n  if(typeof r==='string') return r;\n  const parts=r?.content?.parts;\n  if(Array.isArray(parts)) return parts.map(p=>p?.text||'').join('');\n  return r?.output ?? r?.text ?? r?.message?.content ?? null;\n};\nreturn $input.all().map((item,idx)=>{\n  const base=(bases[idx]||bases[0]||{}).json||{};\n  const raw=item.json;\n  const rawText=extractText(raw);\n  let parsed;\n  if(rawText && typeof rawText==='string'){\n    try{ parsed=JSON.parse(rawText.replace(/```json|```/g,'').trim()); }\n    catch(e){ parsed={sentiment:'neutro',risk_level:'baixo',risk_status:'novo',ai_topics:[],ai_entities:[],risk_reason:'Falha ao interpretar resposta da IA.',summary:rawText,recommended_action:'Revisar manualmente.',raw_error:e.message,raw_text:rawText}; }\n  } else {\n    parsed={sentiment:'neutro',risk_level:'baixo',risk_status:'novo',ai_topics:[],ai_entities:[],risk_reason:'Resposta da IA vazia ou em formato inesperado.',summary:null,recommended_action:'Revisar manualmente.',raw_node_output:raw};\n  }\n  return {json:{target_id:base.target_id,client_id:base.client_id,content_type:'post',content_id:base.post_id,sentiment:parsed.sentiment||'neutro',ai_topics:parsed.ai_topics||[],ai_entities:parsed.ai_entities||[],risk_level:parsed.risk_level||'baixo',risk_status:parsed.risk_status||'novo',risk_reason:parsed.risk_reason||null,summary:parsed.summary||null,recommended_action:parsed.recommended_action||null,polarization_level:parsed.polarization_level||null,engagement_quality:parsed.engagement_quality||null,raw_ai_response:parsed,created_at:new Date().toISOString(),_v2_finish_reason:raw?.finishReason||null}};\n});"
+      }
+    },
+    {
+      "id": "ai-upsert-01",
+      "name": "UPSERT ai_analysis V2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        900
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://hhhwuajptkyposarfbzn.supabase.co/rest/v1/ai_analysis?on_conflict=content_type,content_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({target_id:$json.target_id,client_id:$json.client_id,content_type:$json.content_type,content_id:$json.content_id,sentiment:$json.sentiment,ai_topics:$json.ai_topics,ai_entities:$json.ai_entities,risk_level:$json.risk_level,risk_status:$json.risk_status,risk_reason:$json.risk_reason,summary:$json.summary,recommended_action:$json.recommended_action,polarization_level:$json.polarization_level,engagement_quality:$json.engagement_quality,raw_ai_response:$json.raw_ai_response,created_at:$json.created_at}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-log-01",
+      "name": "Prepare V2 AI Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        900
+      ],
+      "parameters": {
+        "jsCode": "const a=$('Validate Tenant Scope').first().json.request_context.account;\nconst results=$input.all();\nconst isError=r=>Boolean(r?.error||r?.code||(Number.isFinite(Number(r?.statusCode))&&Number(r.statusCode)>=400));\nconst attempted=results.length;\nconst failedItems=results.filter(i=>isError(i.json)).length;\nconst success=Math.max(0,attempted-failedItems);\nconst status=attempted===0?'success':failedItems===0?'success':success>0?'partial':'error';\nreturn [{json:{target_id:a.target_id,social_account_id:a.id,client_id:a.client_id,platform:'instagram',started_at:a.started_at,finished_at:new Date().toISOString(),status,posts_collected:0,comments_collected:0,error_message:failedItems?'one or more ai_analysis upserts failed':null,metadata:{workflow_id:$workflow.id,execution_id:String($execution.id),pipeline_version:'v2',shadow_mode:true,stage:'ai_analysis',ai_calls:attempted,ai_analyses_attempted:attempted,ai_analyses_success:success,ai_analyses_failed:failedItems,errors_count:failedItems,warnings_count:status==='partial'?1:0}}}];"
+      }
     }
   ],
   "connections": {
-    "Manual Shadow Test": {"main": [[{"node": "V2 Config & Guardrails", "type": "main", "index": 0}]]},
-    "Shadow Schedule — INTERNAL 6h": {"main": [[{"node": "V2 Config & Guardrails", "type": "main", "index": 0}]]},
-    "V2 Config & Guardrails": {"main": [[{"node": "Load Instagram Accounts", "type": "main", "index": 0}]]},
-    "Load Instagram Accounts": {"main": [[{"node": "Validate Tenant Scope", "type": "main", "index": 0}]]},
-    "Validate Tenant Scope": {"main": [[{"node": "CORE — GET user posts", "type": "main", "index": 0}]]},
-    "CORE — GET user posts": {"main": [[{"node": "Normalize Posts — Canonical Contract", "type": "main", "index": 0}]]},
-    "Normalize Posts — Canonical Contract": {"main": [[{"node": "UPSERT social_posts", "type": "main", "index": 0}]]},
-    "UPSERT social_posts": {"main": [[{"node": "Prepare V2 Log", "type": "main", "index": 0},{"node": "Load Posts for Comments", "type": "main", "index": 0}]]},
-    "Prepare V2 Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
-    "Load Posts for Comments": {"main": [[{"node": "Prepare Comment Sources", "type": "main", "index": 0},{"node": "Enrichment Decision — Selective", "type": "main", "index": 0},{"node": "Prepare Comments Skip Log", "type": "main", "index": 0}]]},
-    "Prepare Comment Sources": {"main": [[{"node": "CORE — GET post comments", "type": "main", "index": 0}]]},
-    "CORE — GET post comments": {"main": [[{"node": "Normalize Comments", "type": "main", "index": 0},{"node": "Prepare Comments Fetch Log", "type": "main", "index": 0}]]},
-    "Normalize Comments": {"main": [[{"node": "UPSERT instagram_comments", "type": "main", "index": 0}]]},
-    "UPSERT instagram_comments": {"main": [[{"node": "Reply Decision — child count only", "type": "main", "index": 0},{"node": "Prepare V2 Comments Log", "type": "main", "index": 0}]]},
-    "Prepare V2 Comments Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
-    "Prepare Comments Skip Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
-    "Prepare Comments Fetch Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
-    "Reply Decision — child count only": {"main": [[{"node": "SELECTIVE — GET comment replies", "type": "main", "index": 0}]]},
-    "SELECTIVE — GET comment replies": {"main": [[{"node": "Normalize Replies with Parent", "type": "main", "index": 0}]]},
-    "Normalize Replies with Parent": {"main": [[{"node": "UPSERT replies in instagram_comments", "type": "main", "index": 0}]]},
-    "UPSERT replies in instagram_comments": {"main": [[{"node": "Prepare V2 Replies Log", "type": "main", "index": 0}]]},
-    "Prepare V2 Replies Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]},
-    "Enrichment Decision — Selective": {"main": [[{"node": "ENRICH — GET post", "type": "main", "index": 0}]]},
-    "ENRICH — GET post": {"main": [[{"node": "Merge Enrichment into raw_json", "type": "main", "index": 0}]]},
-    "Merge Enrichment into raw_json": {"main": [[{"node": "PATCH enrichment raw_json only", "type": "main", "index": 0}]]},
-    "PATCH enrichment raw_json only": {"main": [[{"node": "Prepare V2 Enrichment Log", "type": "main", "index": 0}]]},
-    "Prepare V2 Enrichment Log": {"main": [[{"node": "Write collection_logs metadata=v2", "type": "main", "index": 0}]]}
+    "Manual Shadow Test": {
+      "main": [
+        [
+          {
+            "node": "V2 Config & Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shadow Schedule — INTERNAL 6h": {
+      "main": [
+        [
+          {
+            "node": "V2 Config & Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "V2 Config & Guardrails": {
+      "main": [
+        [
+          {
+            "node": "Load Instagram Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Instagram Accounts": {
+      "main": [
+        [
+          {
+            "node": "Validate Tenant Scope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Tenant Scope": {
+      "main": [
+        [
+          {
+            "node": "CORE — GET user posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CORE — GET user posts": {
+      "main": [
+        [
+          {
+            "node": "Normalize Posts — Canonical Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Posts — Canonical Contract": {
+      "main": [
+        [
+          {
+            "node": "UPSERT social_posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT social_posts": {
+      "main": [
+        [
+          {
+            "node": "Prepare V2 Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Posts for Comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare V2 Log": {
+      "main": [
+        [
+          {
+            "node": "Write collection_logs metadata=v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Posts for Comments": {
+      "main": [
+        [
+          {
+            "node": "Prepare Comment Sources",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enrichment Decision — Selective",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Comments Skip Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Comment Sources": {
+      "main": [
+        [
+          {
+            "node": "CORE — GET post comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CORE — GET post comments": {
+      "main": [
+        [
+          {
+            "node": "Normalize Comments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Comments Fetch Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Comments": {
+      "main": [
+        [
+          {
+            "node": "UPSERT instagram_comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT instagram_comments": {
+      "main": [
+        [
+          {
+            "node": "Reply Decision — child count only",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare V2 Comments Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Analysis Decision — Selective",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare V2 Comments Log": {
+      "main": [
+        [
+          {
+            "node": "Write collection_logs metadata=v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Comments Skip Log": {
+      "main": [
+        [
+          {
+            "node": "Write collection_logs metadata=v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Comments Fetch Log": {
+      "main": [
+        [
+          {
+            "node": "Write collection_logs metadata=v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Decision — child count only": {
+      "main": [
+        [
+          {
+            "node": "SELECTIVE — GET comment replies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SELECTIVE — GET comment replies": {
+      "main": [
+        [
+          {
+            "node": "Normalize Replies with Parent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Replies with Parent": {
+      "main": [
+        [
+          {
+            "node": "UPSERT replies in instagram_comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT replies in instagram_comments": {
+      "main": [
+        [
+          {
+            "node": "Prepare V2 Replies Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare V2 Replies Log": {
+      "main": [
+        [
+          {
+            "node": "Write collection_logs metadata=v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichment Decision — Selective": {
+      "main": [
+        [
+          {
+            "node": "ENRICH — GET post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ENRICH — GET post": {
+      "main": [
+        [
+          {
+            "node": "Merge Enrichment into raw_json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Enrichment into raw_json": {
+      "main": [
+        [
+          {
+            "node": "PATCH enrichment raw_json only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH enrichment raw_json only": {
+      "main": [
+        [
+          {
+            "node": "Prepare V2 Enrichment Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare V2 Enrichment Log": {
+      "main": [
+        [
+          {
+            "node": "Write collection_logs metadata=v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analysis Decision — Selective": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Prompt V2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Prompt V2": {
+      "main": [
+        [
+          {
+            "node": "Analyze — Gemini Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze — Gemini Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Normalize AI Analysis V2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize AI Analysis V2": {
+      "main": [
+        [
+          {
+            "node": "UPSERT ai_analysis V2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT ai_analysis V2": {
+      "main": [
+        [
+          {
+            "node": "Prepare V2 AI Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare V2 AI Log": {
+      "main": [
+        [
+          {
+            "node": "Write collection_logs metadata=v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": {"executionOrder": "v1", "timezone": "America/Sao_Paulo", "saveExecutionProgress": true},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "pipeline_version": "v2",
+    "shadow_mode": true
+  },
   "pinData": {},
-  "meta": {"templateCredsSetupCompleted": true, "pipeline_version": "v2", "shadow_mode": true},
   "tags": []
 }

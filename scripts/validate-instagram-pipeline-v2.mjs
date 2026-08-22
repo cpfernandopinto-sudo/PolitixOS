@@ -22,8 +22,8 @@ assert.ok(serialized.includes('/post/comment/replies'));
 assert.ok(serialized.includes('https://instagram-scraper-api18.p.rapidapi.com/post'));
 assert.ok(!serialized.includes('/user/reels'));
 assert.ok(!serialized.includes('/media/transcript'));
-assert.ok(!/openai|anthropic|gemini|embedding/i.test(serialized));
-assert.ok(!/openai|anthropic|gemini|embedding/i.test(retrySerialized));
+assert.ok(!/openai|anthropic|embedding/i.test(serialized), 'only the gated Gemini node is an approved AI integration');
+assert.ok(!/openai|anthropic|gemini|embedding/i.test(retrySerialized), 'the retry subworkflow must stay scoped to RapidAPI only, no AI');
 assert.ok(serialized.includes('pipeline_version'));
 assert.ok(serialized.includes('calls_user_posts'));
 assert.ok(serialized.includes('rapidapi_calls_total'));
@@ -87,4 +87,16 @@ assert.ok(!/next_cursor|end_cursor|has_next_page|while\s*\(/i.test(serialized), 
 assert.match(migration, /add column if not exists parent_comment_id uuid null/i);
 assert.doesNotMatch(migration, /alter column.+set not null|drop table|truncate|delete from/i);
 
-console.log(`PASS: V2 ${workflow.nodes.length} nodes; retry ${retryWorkflow.nodes.length} nodes; shadow/schedule/retry/topology/secrets/migration contracts valid.`);
+// 3B.5/3B.6A: AI enrichment must be gated off by default, never auto-scheduled.
+assert.ok(byName['V2 Config & Guardrails']?.parameters?.jsCode.includes('ai_enabled:false'), 'ai_enabled must default to false');
+assert.equal(byName['Analyze — Gemini Instagram Post']?.type, '@n8n/n8n-nodes-langchain.googleGemini');
+assert.equal(byName['Analyze — Gemini Instagram Post']?.parameters?.jsonOutput, true, 'AI output must be structured, not free text parsing');
+assert.ok(byName['AI Analysis Decision — Selective']?.parameters?.jsCode.includes('if(!cfg.ai_enabled) return []'), 'AI branch must no-op unless explicitly enabled');
+assert.ok(workflow.connections['UPSERT instagram_comments'].main[0].some((edge) => edge.node === 'AI Analysis Decision — Selective'), 'AI analysis must depend on confirmed comment persistence, not run in parallel');
+assert.ok(workflow.connections['UPSERT ai_analysis V2'].main[0].some((edge) => edge.node === 'Prepare V2 AI Log'));
+for (const field of ['sentiment', 'ai_topics', 'ai_entities', 'risk_level', 'risk_status', 'risk_reason', 'summary', 'recommended_action', 'polarization_level', 'engagement_quality']) {
+  assert.ok(byName['Normalize AI Analysis V2']?.parameters?.jsCode.includes(field), `AI contract must map ${field}`);
+}
+assert.match(byName['Normalize AI Analysis V2']?.parameters?.jsCode ?? '', /sentiment:'neutro'/, 'missing AI fields must fall back to the documented neutral/null contract, not fabricated content');
+
+console.log(`PASS: V2 ${workflow.nodes.length} nodes (AI enrichment present, ai_enabled=false by default); retry ${retryWorkflow.nodes.length} nodes; shadow/schedule/retry/topology/secrets/migration contracts valid.`);
