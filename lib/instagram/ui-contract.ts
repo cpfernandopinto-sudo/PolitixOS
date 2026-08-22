@@ -51,6 +51,8 @@ export interface InstagramUiRawAnalysis extends UnknownRecord {
   summary?: string | null;
   risk_reason?: string | null;
   recommended_action?: string | null;
+  engagement_quality?: unknown;
+  polarization_level?: unknown;
 }
 
 export interface InstagramUiBuildInput {
@@ -59,6 +61,9 @@ export interface InstagramUiBuildInput {
   analyses: InstagramUiRawAnalysis[];
   targetNames?: Map<string, string>;
   totalComments?: number;
+  totalAvailable?: number;
+  commentsTotalAvailable?: number;
+  analyticsLimit?: number | null;
   page?: number;
   pageSize?: number;
   now?: Date;
@@ -103,6 +108,13 @@ function metricFromRaw(raw: UnknownRecord | null, keys: string[]): InstagramMetr
 
 function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function analyticSignal(value: unknown) {
+  const normalized = stringValue(value);
+  return normalized
+    ? { value: normalized, availability: 'AVAILABLE' as const }
+    : { value: null, availability: 'UNAVAILABLE' as const };
 }
 
 function stringArray(value: unknown): string[] {
@@ -199,6 +211,8 @@ export function mapInstagramPost(
       summary: analysis?.summary ?? null,
       riskReason: analysis?.risk_reason ?? null,
       recommendedAction: analysis?.recommended_action ?? null,
+      engagementQuality: analyticSignal(analysis?.engagement_quality),
+      polarizationLevel: analyticSignal(analysis?.polarization_level),
     },
     reel: contentType === 'REEL' ? enrichment : null,
     carousel: contentType === 'CAROUSEL' ? { childCount: children.length || null, children } : null,
@@ -275,6 +289,9 @@ export function buildInstagramUiContract({
   analyses,
   targetNames = new Map(),
   totalComments = comments.length,
+  totalAvailable = posts.length,
+  commentsTotalAvailable = comments.length,
+  analyticsLimit = null,
   page = 1,
   pageSize = 20,
   now = new Date(),
@@ -291,6 +308,12 @@ export function buildInstagramUiContract({
   const freshnessValue = mappedPosts.reduce<string | null>((latest, post) => !latest || post.collectedAt > latest ? post.collectedAt : latest, null);
   const freshnessAge = freshnessValue ? now.getTime() - new Date(freshnessValue).getTime() : null;
   return {
+    completeness: {
+      totalAvailable,
+      totalLoaded: posts.length,
+      isComplete: posts.length >= totalAvailable,
+      limit: posts.length < totalAvailable ? analyticsLimit : null,
+    },
     filterOptions: {
       candidates: [...targetNames.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
       formats: ['IMAGE', 'REEL', 'CAROUSEL'],
@@ -325,6 +348,9 @@ export function buildInstagramUiContract({
       relevant: mappedComments.filter((comment) => comment.likeCount.availability === 'AVAILABLE').sort((a, b) => (b.likeCount.value ?? 0) - (a.likeCount.value ?? 0)).slice(0, 20),
       relevanceCriterion: mappedComments.some((comment) => comment.likeCount.availability === 'AVAILABLE') ? 'like_count' : null,
       repliesPresent: mappedComments.some((comment) => comment.parentCommentId !== null),
+      totalAvailable: commentsTotalAvailable,
+      totalLoaded: comments.length,
+      isComplete: comments.length >= commentsTotalAvailable,
     },
     collectionFreshness: { lastCollectedAt: freshnessValue, state: freshnessAge === null ? 'EMPTY' : freshnessAge <= 24 * 60 * 60 * 1000 ? 'FRESH' : 'STALE' },
     pagination: { page: safePage, pageSize: safePageSize, total: mappedPosts.length, totalPages: Math.ceil(mappedPosts.length / safePageSize), hasNextPage: offset + safePageSize < mappedPosts.length },

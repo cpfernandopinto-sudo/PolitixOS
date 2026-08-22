@@ -8,6 +8,11 @@ export interface InstagramMetric {
   source: 'structured' | 'raw_json' | null;
 }
 
+export interface InstagramAnalyticSignal {
+  value: string | null;
+  availability: InstagramMetricAvailability;
+}
+
 export interface InstagramUiMediaChild {
   id: string | null;
   mediaType: string | null;
@@ -50,6 +55,8 @@ export interface InstagramUiPost {
     summary: string | null;
     riskReason: string | null;
     recommendedAction: string | null;
+    engagementQuality: InstagramAnalyticSignal;
+    polarizationLevel: InstagramAnalyticSignal;
   };
   reel: InstagramUiEnrichment | null;
   carousel: {
@@ -76,6 +83,12 @@ export interface InstagramUiComment {
 }
 
 export interface InstagramUiContract {
+  completeness: {
+    totalAvailable: number;
+    totalLoaded: number;
+    isComplete: boolean;
+    limit: number | null;
+  };
   filterOptions: {
     candidates: Array<{ id: string; name: string }>;
     formats: Array<'IMAGE' | 'REEL' | 'CAROUSEL'>;
@@ -118,6 +131,9 @@ export interface InstagramUiContract {
     relevant: InstagramUiComment[];
     relevanceCriterion: 'like_count' | null;
     repliesPresent: boolean;
+    totalAvailable: number;
+    totalLoaded: number;
+    isComplete: boolean;
   };
   collectionFreshness: {
     lastCollectedAt: string | null;

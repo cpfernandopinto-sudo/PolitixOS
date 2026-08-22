@@ -176,4 +176,53 @@ describe('Instagram UI data contract', () => {
     expect(contract.priorityPosts.criterion).toBe('risk_desc_then_engagement_desc');
     expect(contract.filterOptions.sentiments).toEqual(['negativo', 'positivo']);
   });
+
+  it('transporta sinais V2 presentes sem normalização sintética', () => {
+    const mapped = mapInstagramPost(basePost(), {
+      content_id: 'post-1', engagement_quality: 'alto', polarization_level: 'baixa',
+    });
+    expect(mapped?.analysis.engagementQuality).toEqual({ value: 'alto', availability: 'AVAILABLE' });
+    expect(mapped?.analysis.polarizationLevel).toEqual({ value: 'baixa', availability: 'AVAILABLE' });
+  });
+
+  it('marca sinais V2 ausentes ou inválidos como UNAVAILABLE', () => {
+    const absent = mapInstagramPost(basePost(), { content_id: 'post-1' });
+    const invalid = mapInstagramPost(basePost(), {
+      content_id: 'post-1', engagement_quality: { synthetic: true }, polarization_level: 0,
+    });
+    expect(absent?.analysis.engagementQuality).toEqual({ value: null, availability: 'UNAVAILABLE' });
+    expect(absent?.analysis.polarizationLevel).toEqual({ value: null, availability: 'UNAVAILABLE' });
+    expect(invalid?.analysis.engagementQuality).toEqual({ value: null, availability: 'UNAVAILABLE' });
+    expect(invalid?.analysis.polarizationLevel).toEqual({ value: null, availability: 'UNAVAILABLE' });
+  });
+
+  it.each([
+    { available: 1999, loaded: 1999, complete: true },
+    { available: 2000, loaded: 2000, complete: true },
+    { available: 3800, loaded: 2000, complete: false },
+  ])('expõe completude para universo $available com $loaded carregados', ({ available, loaded, complete }) => {
+    const posts = Array.from({ length: loaded }, (_, index) => basePost({ id: `complete-${index}` }));
+    const contract = buildInstagramUiContract({
+      posts, comments: [], analyses: [], totalAvailable: available, analyticsLimit: 2000,
+    });
+    expect(contract.completeness).toEqual({
+      totalAvailable: available,
+      totalLoaded: loaded,
+      isComplete: complete,
+      limit: complete ? null : 2000,
+    });
+  });
+
+  it('mantém KPIs independentes da página visual e do limite de comentários', () => {
+    const posts = Array.from({ length: 25 }, (_, index) => basePost({ id: `stable-${index}`, comment_count: 10 }));
+    const comments = Array.from({ length: 3 }, (_, index) => ({
+      id: `comment-${index}`, instagram_comment_id: `ig-${index}`, post_id: 'stable-0', collected_at: '2026-08-21T10:00:00Z',
+    }));
+    const contract = buildInstagramUiContract({
+      posts, comments, analyses: [], page: 2, pageSize: 10, totalComments: 250, commentsTotalAvailable: 500,
+    });
+    expect(contract.recentPosts).toHaveLength(10);
+    expect(contract.summary).toMatchObject({ posts: 25, comments: 250 });
+    expect(contract.comments).toMatchObject({ totalAvailable: 500, totalLoaded: 3, isComplete: false });
+  });
 });

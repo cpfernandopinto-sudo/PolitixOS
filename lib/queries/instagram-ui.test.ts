@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chunkInstagramPostIds, intersectInstagramTargetScope } from './instagram-ui';
+import { chunkInstagramPostIds, instagramAnalyticsRanges, intersectInstagramTargetScope } from './instagram-ui';
 
 describe('Instagram UI server scope', () => {
   it('não permite candidato fora de allowedTargetIds', () => {
@@ -20,5 +20,18 @@ describe('Instagram UI server scope', () => {
     const chunks = chunkInstagramPostIds(ids, 150);
     expect(chunks.map((chunk) => chunk.length)).toEqual([150, 150, 150, 150, 52]);
     expect(chunks.flat()).toEqual(ids);
+  });
+
+  it.each([
+    { total: 1999, expectedLoaded: 1999, expectedComplete: true },
+    { total: 2000, expectedLoaded: 2000, expectedComplete: true },
+    { total: 3800, expectedLoaded: 3800, expectedComplete: true },
+    { total: 12000, expectedLoaded: 10000, expectedComplete: false },
+  ])('pagina universo analítico de $total sem truncamento silencioso', ({ total, expectedLoaded, expectedComplete }) => {
+    const ranges = instagramAnalyticsRanges(total);
+    const loaded = ranges.reduce((sum, range) => sum + range.to - range.from + 1, 0);
+    expect(loaded).toBe(expectedLoaded);
+    expect(loaded === total).toBe(expectedComplete);
+    expect(ranges.every((range) => range.to - range.from < 500)).toBe(true);
   });
 });

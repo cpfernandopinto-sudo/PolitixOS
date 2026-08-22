@@ -1,17 +1,28 @@
 import 'server-only';
 
 import { getActiveClientId, getAllowedTargetIds } from '@/lib/auth/dal';
-import { buildInstagramUiContract, normalizeInstagramContentTypeFilter } from '@/lib/instagram/ui-contract';
+import { buildInstagramUiContract, normalizeInstagramContentTypeFilter, type InstagramUiRawAnalysis } from '@/lib/instagram/ui-contract';
 import { createAdminClient } from '@/lib/supabaseClient';
 import type { InstagramUiContract, InstagramUiQuery } from '@/lib/types/instagram-ui';
 
-const MAX_ANALYTICS_POSTS = 2_000;
+export const ANALYTICS_POST_BATCH_SIZE = 500;
+export const MAX_ANALYTICS_POSTS = 10_000;
 const MAX_RECENT_COMMENTS = 500;
 const POSTGREST_IN_BATCH_SIZE = 150;
 
 const POST_FIELDS = 'id,target_id,client_id,platform,caption,content_type,media_type,media_url,post_url,taken_at,collected_at,like_count,comment_count,raw_json';
 const COMMENT_FIELDS = 'id,instagram_comment_id,post_id,parent_comment_id,comment_user,comment_text,like_count,created_at_instagram,collected_at,client_id,target_id';
-const ANALYSIS_FIELDS = 'content_id,sentiment,risk_level,ai_topics,summary,risk_reason,recommended_action,client_id,target_id';
+const ANALYSIS_FIELDS = 'content_id,sentiment,risk_level,ai_topics,summary,risk_reason,recommended_action,engagement_quality,polarization_level,client_id,target_id';
+
+export function instagramAnalyticsRanges(totalAvailable: number, limit = MAX_ANALYTICS_POSTS, batchSize = ANALYTICS_POST_BATCH_SIZE) {
+  const totalLoaded = Math.min(Math.max(0, totalAvailable), Math.max(0, limit));
+  const safeBatchSize = Math.max(1, Math.floor(batchSize));
+  const ranges: Array<{ from: number; to: number }> = [];
+  for (let from = 0; from < totalLoaded; from += safeBatchSize) {
+    ranges.push({ from, to: Math.min(totalLoaded - 1, from + safeBatchSize - 1) });
+  }
+  return ranges;
+}
 
 export function chunkInstagramPostIds(ids: string[], size = POSTGREST_IN_BATCH_SIZE): string[][] {
   const safeSize = Math.max(1, Math.floor(size));
@@ -65,36 +76,49 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
   if (availableTargetsResult.error) throw new Error(`Instagram targets query failed: ${availableTargetsResult.error.message}`);
   const targetNames = new Map((availableTargetsResult.data ?? []).map((target) => [target.id, target.candidate_name ?? null]).filter((entry): entry is [string, string] => Boolean(entry[1])));
   const contentTypes = normalizeInstagramContentTypeFilter(query.contentTypes);
-  let postsQuery = client
-    .from('social_posts')
-    .select(POST_FIELDS, { count: 'exact' })
-    .eq('platform', 'instagram')
-    .order('taken_at', { ascending: false })
-    .limit(MAX_ANALYTICS_POSTS);
+  const periodFrom = query.periodDays && Number.isFinite(query.periodDays) && query.periodDays > 0
+    ? new Date(Date.now() - Math.floor(query.periodDays) * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+  const createPostsQuery = (from: number, to: number, withCount = false) => {
+    let scoped = client
+      .from('social_posts')
+      .select(POST_FIELDS, withCount ? { count: 'exact' } : undefined)
+      .eq('platform', 'instagram')
+      .order('taken_at', { ascending: false })
+      .order('id', { ascending: false });
+    if (activeClientId) scoped = scoped.eq('client_id', activeClientId);
+    if (targetIds) scoped = scoped.in('target_id', targetIds);
+    if (contentTypes.length) scoped = scoped.in('content_type', contentTypes);
+    if (periodFrom) scoped = scoped.gte('taken_at', periodFrom);
+    return scoped.range(from, to);
+  };
 
-  if (activeClientId) postsQuery = postsQuery.eq('client_id', activeClientId);
-  if (targetIds) postsQuery = postsQuery.in('target_id', targetIds);
-  if (contentTypes.length) postsQuery = postsQuery.in('content_type', contentTypes);
-  if (query.periodDays && Number.isFinite(query.periodDays) && query.periodDays > 0) {
-    const from = new Date();
-    from.setUTCDate(from.getUTCDate() - Math.floor(query.periodDays));
-    postsQuery = postsQuery.gte('taken_at', from.toISOString());
+  const firstPostsResult = await createPostsQuery(0, ANALYTICS_POST_BATCH_SIZE - 1, true);
+  if (firstPostsResult.error) throw new Error(`Instagram posts query failed: ${firstPostsResult.error.message}`);
+  const postsCount = firstPostsResult.count ?? firstPostsResult.data?.length ?? 0;
+  const ranges = instagramAnalyticsRanges(postsCount).slice(1);
+  const posts = [...(firstPostsResult.data ?? [])];
+  for (let index = 0; index < ranges.length; index += 4) {
+    const results = await Promise.all(ranges.slice(index, index + 4).map(({ from, to }) => createPostsQuery(from, to)));
+    const error = results.find((result) => result.error)?.error;
+    if (error) throw new Error(`Instagram posts query failed: ${error.message}`);
+    posts.push(...results.flatMap((result) => result.data ?? []));
   }
-
-  const { data: postsData, error: postsError, count: postsCount } = await postsQuery;
-  if (postsError) throw new Error(`Instagram posts query failed: ${postsError.message}`);
-  const posts = postsData ?? [];
   const postIds = posts.map((post) => post.id);
   if (postIds.length === 0) return emptyContract(query, targetNames);
 
-  const analysesResults = await Promise.all(chunkInstagramPostIds(postIds).map((batch) => {
-    let batchQuery = client.from('ai_analysis').select(ANALYSIS_FIELDS).eq('content_type', 'post').in('content_id', batch);
-    if (activeClientId) batchQuery = batchQuery.eq('client_id', activeClientId);
-    return batchQuery;
-  }));
-  const analysesError = analysesResults.find((result) => result.error)?.error;
-  if (analysesError) throw new Error(`Instagram analysis query failed: ${analysesError.message}`);
-  const analyses = analysesResults.flatMap((result) => result.data ?? []);
+  const analyses: InstagramUiRawAnalysis[] = [];
+  const analysisBatches = chunkInstagramPostIds(postIds);
+  for (let index = 0; index < analysisBatches.length; index += 4) {
+    const results = await Promise.all(analysisBatches.slice(index, index + 4).map((batch) => {
+      let batchQuery = client.from('ai_analysis').select(ANALYSIS_FIELDS).eq('content_type', 'post').in('content_id', batch);
+      if (activeClientId) batchQuery = batchQuery.eq('client_id', activeClientId);
+      return batchQuery;
+    }));
+    const error = results.find((result) => result.error)?.error;
+    if (error) throw new Error(`Instagram analysis query failed: ${error.message}`);
+    analyses.push(...results.flatMap((result) => result.data ?? []));
+  }
   const normalizedRisk = query.risk?.trim().toLocaleLowerCase('pt-BR') ?? '';
   const normalizedSentiment = query.sentiment?.trim().toLocaleLowerCase('pt-BR') ?? '';
   const normalizedTopic = query.topic?.trim().toLocaleLowerCase('pt-BR') ?? '';
@@ -128,7 +152,7 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
     .slice(0, 10)
     .map((post) => post.id);
   const commentPostIds = [...new Set([...pagePostIds, ...topPostIds])];
-  let commentsQuery = client.from('instagram_comments').select(COMMENT_FIELDS).in('post_id', commentPostIds).order('created_at_instagram', { ascending: false }).limit(MAX_RECENT_COMMENTS);
+  let commentsQuery = client.from('instagram_comments').select(COMMENT_FIELDS, { count: 'exact' }).in('post_id', commentPostIds).order('created_at_instagram', { ascending: false }).limit(MAX_RECENT_COMMENTS);
   if (activeClientId) commentsQuery = commentsQuery.eq('client_id', activeClientId);
   if (targetIds) commentsQuery = commentsQuery.in('target_id', targetIds);
   const commentsResult = await commentsQuery;
@@ -140,16 +164,19 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
     comments,
     analyses,
     targetNames,
-    // Este contrato é uma janela operacional limitada, não um COUNT global.
-    // Evita uma varredura exata cara na tabela de comentários em cada request.
-    totalComments: comments.length,
+    // O contador global usa `comment_count` dos posts. A consulta de
+    // `instagram_comments` permanece uma janela operacional para UI/drawer.
+    totalComments: filteredPosts.reduce((sum, post) => sum + (post.comment_count ?? 0), 0),
+    totalAvailable: hasAnalysisFilter && posts.length >= postsCount ? filteredPosts.length : postsCount,
+    commentsTotalAvailable: commentsResult.count ?? comments.length,
+    analyticsLimit: MAX_ANALYTICS_POSTS,
     page: query.page,
     pageSize: query.pageSize,
   });
 
   // `postsCount` pode superar o teto analítico no futuro. A paginação nunca
   // afirma uma cobertura maior que o conjunto efetivamente mapeado.
-  if ((postsCount ?? posts.length) > MAX_ANALYTICS_POSTS) {
+  if (postsCount > MAX_ANALYTICS_POSTS) {
     contract.pagination.hasNextPage = true;
   }
   return contract;
