@@ -1,6 +1,10 @@
 # Proposta final de migration — X V2 — relações V2
 
-Status: **não executada**. Documento para revisão e aprovação humana.
+Status: **Phases 1–5 executadas no X.2D.1; Phase 6 operacional não executada**. Documento preservado como especificação e evidência da migration aprovada.
+
+## SECURITY PHASING REVISION X.2D.1
+
+Revisão humana aprovada após o security gate do X.2D: por estar no schema público, `social_post_targets` deve nascer protegida. Sua criação, `ENABLE ROW LEVEL SECURITY`, grant CRUD à service role e policy service-role-only passam a ocorrer na **mesma transação da Phase 1**, sem janela operacional persistente sem RLS. Nenhuma decisão arquitetural foi alterada. `tweet_replies`, por já existir, continua recebendo RLS e policy atomicamente apenas na Phase 5, depois do backfill e das constraints válidas.
 
 Esta versão substitui conceitualmente `PROPOSTA_MIGRATION_X_V2_RELACOES.md`. O desenho mantém `social_posts` como entidade canônica única e usa `social_post_targets` como verdade para associações externas. Cada fase deve ser executada e validada separadamente; não há um `BEGIN/COMMIT` único para todo o plano.
 
@@ -116,6 +120,14 @@ create index idx_social_post_targets_client_target
   on public.social_post_targets (client_id, target_id, created_at desc);
 create index idx_social_post_targets_post
   on public.social_post_targets (post_id);
+
+alter table public.social_post_targets enable row level security;
+
+grant select, insert, update, delete on public.social_post_targets to service_role;
+
+create policy service_role_full_access_social_post_targets
+  on public.social_post_targets for all to service_role
+  using (true) with check (true);
 
 alter table public.tweet_replies
   add column if not exists client_id uuid null references public.clients(id),
@@ -255,23 +267,14 @@ create index if not exists idx_tweet_replies_conversation
 commit;
 ```
 
-## Phase 5 — RLS/policies
+## Phase 5 — RLS/policy de `tweet_replies`
 
-O padrão real encontrado em `social_posts`, `instagram_comments` e `ai_analysis` é acesso direto apenas à `service_role`; não há policy para `anon` ou `authenticated`. A aplicação lê server-side e aplica `client_id + allowedTargetIds`. A proposta replica esse padrão, sem policy genérica autenticada.
+`social_post_targets` já nasce protegida atomicamente na Phase 1. O padrão real encontrado em `social_posts`, `instagram_comments` e `ai_analysis` é acesso direto apenas à `service_role`; não há policy para `anon` ou `authenticated`. A aplicação lê server-side e aplica `client_id + allowedTargetIds`. Para a tabela preexistente `tweet_replies`, habilitação e policy ocorrem na mesma transação, sem policy genérica autenticada.
 
 ```sql
 begin;
 
-alter table public.social_post_targets enable row level security;
 alter table public.tweet_replies enable row level security;
-
-grant select, insert, update, delete on public.social_post_targets to service_role;
-
-drop policy if exists service_role_full_access_social_post_targets
-  on public.social_post_targets;
-create policy service_role_full_access_social_post_targets
-  on public.social_post_targets for all to service_role
-  using (true) with check (true);
 
 drop policy if exists service_role_full_access_tweet_replies
   on public.tweet_replies;
