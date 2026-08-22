@@ -74,8 +74,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, code: 'INVALID_MODE', error: `Mode inválido. Use um de: ${X_PIPELINE_MODES.join(', ')}.` }, { status: 400 });
   }
   const mode = body.mode;
-  const aiEnabled = typeof body.ai_enabled === 'boolean' && ['ai', 'reprocess', 'full'].includes(mode)
-    ? body.ai_enabled
+  const aiEnabled = ['ai', 'reprocess', 'full'].includes(mode)
+    ? body.ai_enabled === true
     : undefined;
 
   if (mode === 'full' && session.role !== 'admin') {
