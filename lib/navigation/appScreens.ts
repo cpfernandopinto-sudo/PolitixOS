@@ -10,7 +10,7 @@ import {
   LineChart,
 } from 'lucide-react';
 import type { NavIcon } from './navIcons';
-import { InstagramNavIcon, XNavIcon } from './navIcons';
+import { InstagramNavIcon, XNavIcon, FacebookNavIcon } from './navIcons';
 
 /**
  * Catálogo canônico de telas do PolitixOS — fonte única para:
@@ -111,6 +111,18 @@ export const APP_SCREENS: AppScreen[] = [
     icon: XNavIcon,
     group: 'Inteligência',
     description: 'Discurso político em tempo real',
+    implemented: true,
+    supportsGlobalCandidate: true,
+    supportsGlobalPeriod: true,
+    showInNav: true,
+  },
+  {
+    key: 'facebook',
+    label: 'Facebook',
+    route: '/dashboard/facebook',
+    icon: FacebookNavIcon,
+    group: 'Inteligência',
+    description: 'Comunidades e engajamento político',
     implemented: true,
     supportsGlobalCandidate: true,
     supportsGlobalPeriod: true,

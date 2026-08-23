@@ -4,14 +4,8 @@ export type NavIconProps = { size?: number; className?: string };
 export type NavIcon = ComponentType<NavIconProps>;
 
 /**
- * Ícones dedicados de Instagram/X — mesmo desenho usado no Sidebar anterior
- * (components/Sidebar.tsx), reaproveitado aqui para não duplicar estilos
- * nem regredir a identidade visual dos itens de navegação.
- *
- * Vive em arquivo próprio (em vez de dashboardNavigation.tsx) porque tanto
- * `appScreens.ts` quanto `dashboardNavigation.tsx` precisam desses ícones —
- * mantê-los em dashboardNavigation.tsx criaria um import circular entre os
- * dois módulos.
+ * Ícones dedicados de Instagram/X/Facebook — mesmo desenho usado no Sidebar/Navegação,
+ * reaproveitado aqui para não duplicar estilos nem regredir a identidade visual.
  */
 export function InstagramNavIcon({ size = 20, className = '' }: NavIconProps) {
   return (
@@ -45,6 +39,18 @@ export function XNavIcon({ size = 20, className = '' }: NavIconProps) {
       aria-hidden="true"
     >
       X
+    </span>
+  );
+}
+
+export function FacebookNavIcon({ size = 20, className = '' }: NavIconProps) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-md border border-current/35 font-bold leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.78), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      f
     </span>
   );
 }
