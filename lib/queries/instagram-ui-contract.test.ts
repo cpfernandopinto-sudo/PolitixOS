@@ -11,7 +11,7 @@ vi.mock('@/lib/auth/dal', () => ({
  * configurado para aquela tabela/seleção. Só o suficiente para exercitar
  * getInstagramUiContract de ponta a ponta sem um banco real.
  */
-function makeChain(result: { data: unknown[] | null; error: { message: string } | null; count?: number | null }) {
+function makeChain(result: { data: unknown[] | null; error: { message: string } | null; count?: number | null }, delayMs = 0) {
   const chain: Record<string, unknown> = {
     select: () => chain,
     eq: () => chain,
@@ -20,7 +20,8 @@ function makeChain(result: { data: unknown[] | null; error: { message: string } 
     gte: () => chain,
     range: () => chain,
     limit: () => chain,
-    then: (resolve: (value: typeof result) => unknown) => Promise.resolve(result).then(resolve),
+    then: (resolve: (value: typeof result) => unknown) =>
+      (delayMs > 0 ? new Promise((r) => setTimeout(r, delayMs)) : Promise.resolve()).then(() => resolve(result)),
   };
   return chain;
 }
@@ -36,6 +37,7 @@ function makeSupabaseStub(options: {
   commentsError?: { message: string } | null;
   rawJsonDelayMs?: number;
   rawJsonByPostId?: Map<string, unknown>;
+  commentsDelayMs?: number;
 }) {
   const posts = options.posts ?? [];
   const postsCount = options.postsCount ?? posts.length;
@@ -73,7 +75,7 @@ function makeSupabaseStub(options: {
       return makeChain({ data: options.analysisError ? null : analyses, error: options.analysisError ?? null });
     }
     if (table === 'instagram_comments') {
-      return makeChain({ data: options.commentsError ? null : comments, error: options.commentsError ?? null, count: comments.length });
+      return makeChain({ data: options.commentsError ? null : comments, error: options.commentsError ?? null, count: comments.length }, options.commentsDelayMs ?? 0);
     }
     throw new Error(`unexpected table ${table}`);
   });
@@ -146,6 +148,27 @@ describe('getInstagramUiContract — timeout do raw_json nunca trava a página (
     expect(mappedPost.caption).toBe('post p1');
     expect(mappedPost.metrics.likes).toMatchObject({ value: 10, availability: 'AVAILABLE' }); // estrutural — nunca depende de raw_json
     expect(mappedPost.metrics.views).toMatchObject({ availability: 'UNAVAILABLE' }); // degradado, não travado
+  }, 15_000);
+
+  it('CAUSA RAIZ 2 CORRIGIDA: comentários além do orçamento (statement_timeout do Postgres em produção) nunca travam nem derrubam a página', async () => {
+    vi.resetModules();
+    const stub = makeSupabaseStub({
+      targets: [{ id: 'target-1', candidate_name: 'Fulano', client_id: 'client-1' }],
+      posts: [post('p1', { like_count: 2000, comment_count: 2189 })], // perfil real de um post viral encontrado em produção
+      analyses: [{ content_id: 'p1', sentiment: 'positivo', risk_level: 'alto' }],
+      comments: [{ id: 'c1', instagram_comment_id: 'ic1', post_id: 'p1', comment_text: 'oi', created_at_instagram: '2026-08-20T00:00:00Z', collected_at: '2026-08-20T00:00:00Z' }],
+      commentsDelayMs: 50_000, // simula o Sort real sobre milhares de linhas nunca resolvendo dentro do orçamento
+    });
+    vi.doMock('@/lib/supabaseClient', () => ({ createAdminClient: () => stub }));
+    const { getInstagramUiContract } = await import('./instagram-ui');
+
+    const t0 = Date.now();
+    const contract = await getInstagramUiContract({ page: 1, pageSize: 20 });
+    const elapsed = Date.now() - t0;
+
+    expect(elapsed).toBeLessThan(10_000); // preso ao orçamento (COMMENTS_FETCH_BUDGET_MS=4000), nunca aos 50s do delay
+    expect(contract.summary.posts).toBe(1); // o post em si renderiza normalmente
+    expect(contract.comments.recent).toEqual([]); // comentários degradam para vazio, não travam nem lançam erro
   }, 15_000);
 
   it('INSTAGRAM_QUERY_ERROR: erro na busca de raw_json não derruba a página (é engolido, não propagado)', async () => {

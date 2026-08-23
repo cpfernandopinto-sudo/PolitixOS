@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { getActiveClientId, getAllowedTargetIds } from '@/lib/auth/dal';
-import { buildInstagramUiContract, normalizeInstagramContentTypeFilter, type InstagramUiRawAnalysis } from '@/lib/instagram/ui-contract';
+import { buildInstagramUiContract, normalizeInstagramContentTypeFilter, type InstagramUiRawAnalysis, type InstagramUiRawComment } from '@/lib/instagram/ui-contract';
 import { createAdminClient } from '@/lib/supabaseClient';
 import type { InstagramUiContract, InstagramUiQuery } from '@/lib/types/instagram-ui';
 
@@ -25,6 +25,17 @@ const POSTGREST_IN_BATCH_SIZE = 150;
 // `UNAVAILABLE` — caminho já existente e testado (post sem raw_json nunca
 // foi um erro) — em vez de travar a página inteira.
 const RAW_JSON_FETCH_BUDGET_MS = 3500;
+// Medido nesta investigação (produção): `topPostIds` (usado para prefetch de
+// comentários de posts prioritários) é ordenado por risco e depois por
+// like_count+comment_count — por desenho, quase sempre inclui os posts com
+// MAIS comentários (alguns com 1.000-2.000+). Sem índice em
+// `created_at_instagram`, ordenar esse conjunto por data exigiu um Sort real
+// sobre milhares de linhas (confirmado via EXPLAIN), estourando o
+// statement_timeout do Postgres (8s) e derrubando a página inteira sem
+// nenhum handling. Mesmo princípio de orçamento do raw_json: dentro do
+// tempo, comportamento idêntico; além dele, a página renderiza sem esses
+// comentários em vez de travar.
+const COMMENTS_FETCH_BUDGET_MS = 4000;
 
 const POST_FIELDS = 'id,target_id,client_id,platform,caption,content_type,media_type,media_url,post_url,taken_at,collected_at,like_count,comment_count';
 const COMMENT_FIELDS = 'id,instagram_comment_id,post_id,parent_comment_id,comment_user,comment_text,like_count,created_at_instagram,collected_at,client_id,target_id';
@@ -56,6 +67,31 @@ async function fetchInstagramRawJsonMap(client: ReturnType<typeof createAdminCli
 
   await Promise.race([collect, timer]);
   return byId;
+}
+
+/**
+ * Busca comentários com orçamento de tempo — estourado, resolve com lista
+ * vazia (a página renderiza sem esses comentários) em vez de deixar o
+ * statement_timeout do Postgres derrubar a requisição inteira sem handling.
+ */
+async function fetchInstagramCommentsWithBudget(
+  client: ReturnType<typeof createAdminClient>,
+  postIds: string[],
+  activeClientId: string | null,
+  targetIds: string[] | null,
+  budgetMs: number,
+): Promise<InstagramUiRawComment[]> {
+  const run = (async () => {
+    let commentsQuery = client.from('instagram_comments').select(COMMENT_FIELDS).in('post_id', postIds).order('created_at_instagram', { ascending: false }).limit(MAX_RECENT_COMMENTS);
+    if (activeClientId) commentsQuery = commentsQuery.eq('client_id', activeClientId);
+    if (targetIds) commentsQuery = commentsQuery.in('target_id', targetIds);
+    const result = await commentsQuery;
+    if (result.error) return [];
+    return result.data ?? [];
+  })();
+
+  const timer = new Promise<InstagramUiRawComment[]>((resolve) => setTimeout(() => resolve([]), budgetMs));
+  return Promise.race([run, timer]);
 }
 
 export function instagramAnalyticsRanges(totalAvailable: number, limit = MAX_ANALYTICS_POSTS, batchSize = ANALYTICS_POST_BATCH_SIZE) {
@@ -214,12 +250,22 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
     .slice(0, 10)
     .map((post) => post.id);
   const commentPostIds = [...new Set([...pagePostIds, ...topPostIds])];
-  let commentsQuery = client.from('instagram_comments').select(COMMENT_FIELDS, { count: 'exact' }).in('post_id', commentPostIds).order('created_at_instagram', { ascending: false }).limit(MAX_RECENT_COMMENTS);
-  if (activeClientId) commentsQuery = commentsQuery.eq('client_id', activeClientId);
-  if (targetIds) commentsQuery = commentsQuery.in('target_id', targetIds);
-  const commentsResult = await commentsQuery;
-  if (commentsResult.error) throw new Error(`Instagram comments query failed: ${commentsResult.error.message}`);
-  const comments = commentsResult.data ?? [];
+  // `topPostIds` é ordenado por (risco, depois like_count+comment_count) —
+  // ou seja, por desenho, quase sempre inclui os posts com MAIS comentários.
+  // Medido em produção: alguns posts têm 1.000-2.000+ comentários; sem índice
+  // em `created_at_instagram`, ordenar esse conjunto por data custa um Sort
+  // sobre milhares de linhas (confirmado via EXPLAIN real) — o suficiente
+  // para estourar o statement_timeout do Postgres (8s, papel `authenticator`
+  // usado por baixo do service role via PostgREST). Isso já derrubava a
+  // requisição com um throw (existe app/dashboard/instagram/error.tsx, mas
+  // seu botão "tentar novamente" usava um prop inexistente, `unstable_retry`,
+  // corrigido nesta mesma correção para `reset`). `count: 'exact'` foi
+  // removido — fazia um segundo scan completo do mesmo conjunto só para um
+  // número exibido de forma informativa. A busca em si segue com orçamento
+  // de tempo: dentro dele, comportamento idêntico; além dele, a página
+  // renderiza sem esses comentários em vez de depender do timeout do
+  // Postgres — mesmo princípio já aplicado ao raw_json.
+  const comments = await fetchInstagramCommentsWithBudget(client, commentPostIds, activeClientId, targetIds, COMMENTS_FETCH_BUDGET_MS);
 
   const contract = buildInstagramUiContract({
     posts: filteredPosts,
@@ -230,7 +276,7 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
     // `instagram_comments` permanece uma janela operacional para UI/drawer.
     totalComments: filteredPosts.reduce((sum, post) => sum + (post.comment_count ?? 0), 0),
     totalAvailable: hasAnalysisFilter && posts.length >= postsCount ? filteredPosts.length : postsCount,
-    commentsTotalAvailable: commentsResult.count ?? comments.length,
+    commentsTotalAvailable: comments.length,
     analyticsLimit: MAX_ANALYTICS_POSTS,
     page: query.page,
     pageSize: query.pageSize,
