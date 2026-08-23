@@ -159,7 +159,13 @@ describe('POST /api/automations/facebook/analyze', () => {
       expect(body.status).toBe('SUCCESS');
       expect(body.termination).toBe('COMPLETED');
       expect(body.commentsAudience).toMatchObject({ status: 'SUCCESS', eligible: 2, success: 2, failed: 0, commentsCollected: 301, commentsAnalyzed: 51 });
-      expect(mockRunComments).toHaveBeenCalledWith(expect.objectContaining({ clientId, targetId, maxPosts: 5, maxComments: 50, maxPages: 5 }));
+      // maxPosts=3 (não 5): reduzido após achado real de produção (execução n8n 28397) — ver runner.ts.
+      expect(mockRunComments).toHaveBeenCalledWith(expect.objectContaining({ clientId, targetId, maxPosts: 3, maxComments: 50, maxPages: 5 }));
+      // deadlineAt é um timestamp futuro real (Date.now() + orçamento) — nunca um Promise.race que abandona
+      // o trabalho em andamento (causa raiz real do bug de FAILED/eligible=0 já corrigido).
+      const calledWith = mockRunComments.mock.calls[0][0];
+      expect(typeof calledWith.deadlineAt).toBe('number');
+      expect(calledWith.deadlineAt).toBeGreaterThan(Date.now());
     });
 
     it('falha no estágio de comentários não derruba a resposta principal de sentimento (isolamento de etapa)', async () => {
@@ -172,21 +178,40 @@ describe('POST /api/automations/facebook/analyze', () => {
       expect(body.commentsAudience).toMatchObject({ status: 'FAILED', eligible: 0 });
     });
 
-    it('timeout total do estágio de comentários não derruba a resposta principal', async () => {
-      vi.useFakeTimers();
-      try {
-        process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY = 'test-key';
-        mockRunComments.mockReturnValue(new Promise(() => undefined));
-        const responsePromise = POST(request({ clientId, targetId }));
-        await vi.advanceTimersByTimeAsync(45_000);
-        const response = await responsePromise;
-        const body = await response.json();
-        expect(response.status).toBe(200);
-        expect(body.status).toBe('SUCCESS');
-        expect(body.commentsAudience).toMatchObject({ status: 'FAILED', eligible: 0 });
-      } finally {
-        vi.useRealTimers();
-      }
+    it('quando parte do lote esgota o orçamento de tempo, reporta SUCCESS_WITH_FAILURES com os números REAIS (nunca FAILED com tudo zerado)', async () => {
+      // Reproduz o cenário real de produção (execução n8n 28397): alguns
+      // posts foram processados e persistidos de verdade dentro do orçamento,
+      // outros foram adiados (deadline cooperativo, não abandono via
+      // Promise.race) — a resposta deve refletir o que REALMENTE aconteceu.
+      process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY = 'test-key';
+      mockRunComments.mockResolvedValue({
+        eligible: 5, processed: 5, success: 2, failed: 0, skipped: 3,
+        items: [
+          { postId: 'post-1', outcome: 'success', commentsCollected: 50, commentsAnalyzed: 46 },
+          { postId: 'post-2', outcome: 'success', commentsCollected: 50, commentsAnalyzed: 50 },
+          { postId: 'post-3', outcome: 'skipped', reason: 'TIMEOUT_BUDGET_EXCEEDED' },
+          { postId: 'post-4', outcome: 'skipped', reason: 'TIMEOUT_BUDGET_EXCEEDED' },
+          { postId: 'post-5', outcome: 'skipped', reason: 'TIMEOUT_BUDGET_EXCEEDED' },
+        ],
+      });
+      const response = await POST(request({ clientId, targetId }));
+      const body = await response.json();
+      expect(response.status).toBe(200);
+      expect(body.status).toBe('SUCCESS');
+      expect(body.commentsAudience).toMatchObject({ status: 'SUCCESS_WITH_FAILURES', eligible: 5, success: 2, commentsCollected: 100, commentsAnalyzed: 96 });
+    });
+
+    it('FAILED carrega stage/errorCode sanitizados (nunca segredos) — antes desta correção, o erro real era engolido', async () => {
+      process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY = 'test-key';
+      mockRunComments.mockRejectedValue(new Error('FACEBOOK_PENDING_AUDIENCE_QUERY_FAILED: relation does not exist'));
+      const response = await POST(request({ clientId, targetId }));
+      const body = await response.json();
+      expect(response.status).toBe(200);
+      expect(body.commentsAudience).toMatchObject({
+        status: 'FAILED', eligible: 0, stage: 'RUN_FOR_CLIENT',
+        errorCode: 'FACEBOOK_PENDING_AUDIENCE_QUERY_FAILED: relation does not exist',
+      });
+      expect(JSON.stringify(body)).not.toMatch(/rapidapi.*key|gemini.*key|service.role|x-webhook-secret/i);
     });
   });
 });

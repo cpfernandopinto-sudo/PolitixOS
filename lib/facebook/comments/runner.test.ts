@@ -116,6 +116,45 @@ describe('runFacebookCommentsForClient', () => {
     expect(summary).toMatchObject({ eligible: 0, processed: 0, success: 0, failed: 0, skipped: 0 });
     expect(source.getPostComments).not.toHaveBeenCalled();
   });
+
+  it('CAUSA RAIZ CORRIGIDA (produção, execução n8n 28397): deadline cooperativo nunca abandona trabalho em segundo plano nem mente "tudo zerado" — posts já processados continuam contando, e os que sobraram são adiados de forma honesta', async () => {
+    const post2 = { ...basePost, id: 'post-2', platform_post_id: 'ext-2' };
+    const post3 = { ...basePost, id: 'post-3', platform_post_id: 'ext-3' };
+    const { db } = dbStub([basePost, post2, post3]);
+    const source = commentsSource([{ comment_id: 'c1', message: 'texto real' }]);
+    // Date.now() controlado deterministicamente: "agora" nas 2 primeiras
+    // checagens (antes do post-1 e antes do post-2), depois do deadline a
+    // partir da checagem do post-3 — sem depender de timing real de wall clock.
+    const deadlineAt = 1_000_000;
+    const nowSpy = vi.spyOn(Date, 'now')
+      .mockReturnValueOnce(deadlineAt - 100) // checagem antes do post-1: dentro do orçamento
+      .mockReturnValueOnce(deadlineAt - 50)  // checagem antes do post-2: ainda dentro
+      .mockReturnValue(deadlineAt + 1);       // checagem antes do post-3 em diante: já vencido
+
+    const summary = await runFacebookCommentsForClient({
+      source, db, clientId: 'client-1', targetId: 'target-1', geminiClient: geminiStub() as never, deadlineAt,
+    });
+    nowSpy.mockRestore();
+
+    // post-1 e post-2 (processados antes do deadline vencer) contam como
+    // sucesso real — nunca são reescritos como falha só porque o orçamento
+    // acabou depois, no post-3.
+    expect(summary.eligible).toBe(3);
+    expect(summary.items[0]).toMatchObject({ postId: 'post-1', outcome: 'success' });
+    expect(summary.items[1]).toMatchObject({ postId: 'post-2', outcome: 'success' });
+    expect(summary.items[2]).toMatchObject({ postId: 'post-3', outcome: 'skipped', reason: 'TIMEOUT_BUDGET_EXCEEDED' });
+    expect(source.getPostComments).toHaveBeenCalledTimes(2); // nunca chama o provider para um post já além do deadline
+  });
+
+  it('deadline já vencido no início: nenhum post é sequer tentado, mas o total elegível continua correto (nunca eligible=0 mentiroso)', async () => {
+    const post2 = { ...basePost, id: 'post-2', platform_post_id: 'ext-2' };
+    const { db } = dbStub([basePost, post2]);
+    const source = commentsSource([{ comment_id: 'c1', message: 'texto' }]);
+    const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1', deadlineAt: Date.now() - 1 });
+    expect(summary.eligible).toBe(2); // reflete a fila real, não zera por causa do timeout
+    expect(summary.items.every((item) => item.reason === 'TIMEOUT_BUDGET_EXCEEDED')).toBe(true);
+    expect(source.getPostComments).not.toHaveBeenCalled();
+  });
 });
 
 describe('runFacebookCommentsAudience — comentários sem texto (sticker/emoji/gif) não travam a análise', () => {

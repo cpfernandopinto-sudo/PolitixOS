@@ -92,6 +92,18 @@ export async function runFacebookCommentsForClient(input: {
   maxPages?: number;
   geminiApiKey?: string;
   geminiClient?: GoogleGenAI;
+  /**
+   * Epoch ms além do qual paramos de INICIAR novos posts. Checado
+   * COOPERATIVAMENTE entre iterações do loop (nunca aborta um post já em
+   * andamento) — deliberadamente diferente de um `Promise.race` com timeout
+   * ao redor da função inteira: aquele padrão não cancela o trabalho real
+   * (RapidAPI + Gemini + persistência continuam rodando em segundo plano,
+   * sem coordenação), e a chamadora relata FAILED com tudo zerado mesmo
+   * quando alguns posts já foram processados e persistidos com sucesso —
+   * causa raiz real encontrada em produção (execução n8n 28397: 2 posts
+   * analisados de verdade, resposta ainda assim reportou FAILED/eligible=0).
+   */
+  deadlineAt?: number;
 }): Promise<FacebookCommentsClientRunSummary> {
   const maxPosts = input.maxPosts ?? 5;
   const { data, error } = await input.db
@@ -113,6 +125,10 @@ export async function runFacebookCommentsForClient(input: {
     }
     if (!row.client_id || !row.target_id) {
       items.push({ postId: row.id, outcome: 'skipped', reason: 'SCOPE_MISSING' });
+      continue;
+    }
+    if (input.deadlineAt !== undefined && Date.now() >= input.deadlineAt) {
+      items.push({ postId: row.id, outcome: 'skipped', reason: 'TIMEOUT_BUDGET_EXCEEDED' });
       continue;
     }
     try {

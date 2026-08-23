@@ -25,12 +25,24 @@ function boundedEnvInteger(name: string, fallback: number, maximum: number): num
   return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, maximum) : fallback;
 }
 
-const COMMENTS_MAX_POSTS_PER_RUN = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_POSTS_PER_RUN', 5, 20);
+// maxPosts=3 (não 5): evidência real de produção (execução n8n 28397) mostrou
+// ~16-22s por post (RapidAPI paginado + Gemini) — 5 posts podem passar de 80s,
+// acima do que já se provou funcionar de forma confiável. 3 posts por chamada
+// é sustentável hoje; o restante fica na fila (facebook_posts_pending_audience,
+// que não depende de estado de sentimento) para a próxima chamada de /analyze.
+const COMMENTS_MAX_POSTS_PER_RUN = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_POSTS_PER_RUN', 3, 20);
 const COMMENTS_MAX_PER_POST = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_PER_POST', 50, 100);
 const COMMENTS_MAX_PAGES = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_PAGES', 5, 10);
-const COMMENTS_STAGE_TIMEOUT_MS = boundedEnvInteger('FACEBOOK_COMMENTS_STAGE_TIMEOUT_MS', 45_000, 120_000);
+const COMMENTS_STAGE_TIMEOUT_MS = boundedEnvInteger('FACEBOOK_COMMENTS_STAGE_TIMEOUT_MS', 50_000, 120_000);
 
 type CommentsStatus = 'SUCCESS' | 'SUCCESS_WITH_FAILURES' | 'NOTHING_TO_PROCESS' | 'SKIPPED_PROVIDER_CREDENTIAL_MISSING' | 'FAILED';
+
+interface CommentsAudienceStageResult {
+  status: CommentsStatus;
+  summary?: FacebookCommentsClientRunSummary;
+  stage?: string;
+  errorCode?: string;
+}
 
 /**
  * Coleta/analisa comentários (audience intelligence) para posts do client/target
@@ -40,37 +52,55 @@ type CommentsStatus = 'SUCCESS' | 'SUCCESS_WITH_FAILURES' | 'NOTHING_TO_PROCESS'
  * princípio de isolamento por etapa já usado em runFacebookAnalysis/
  * runFacebookOwnedCollection). Sem credencial RapidAPI configurada, pula de
  * forma explícita e não vaza detalhe de configuração ao chamador.
+ *
+ * IMPORTANTE (causa raiz corrigida aqui): o orçamento de tempo é um deadline
+ * COOPERATIVO passado para runFacebookCommentsForClient, checado entre
+ * iterações — nunca um `Promise.race` ao redor da chamada inteira. Um
+ * `Promise.race` com timeout não cancela o trabalho real (RapidAPI + Gemini +
+ * persistência continuam rodando "órfãos" em segundo plano) e faz a resposta
+ * mentir "FAILED, tudo zerado" mesmo quando parte do lote já foi processada e
+ * persistida com sucesso — exatamente o que a execução real n8n 28397
+ * demonstrou (2 de 5 posts efetivamente analisados e gravados no banco,
+ * resposta ainda assim reportou commentsAudience.eligible=0/status=FAILED).
  */
-async function runCommentsAudienceStage(db: FacebookCommentsRunnerDb, clientId: string, targetId: string): Promise<{ status: CommentsStatus; summary?: FacebookCommentsClientRunSummary; code?: string }> {
+async function runCommentsAudienceStage(db: FacebookCommentsRunnerDb, clientId: string, targetId: string): Promise<CommentsAudienceStageResult> {
   let source: FacebookCommentsProvider;
   try {
     source = new FacebookCommentsProvider(facebookCommentsProviderConfigFromEnv());
-  } catch {
-    return { status: 'SKIPPED_PROVIDER_CREDENTIAL_MISSING' };
+  } catch (error) {
+    console.info('[FacebookCommentsAudience] pulado — credencial do provider de comentários ausente', { clientId, targetId });
+    return { status: 'SKIPPED_PROVIDER_CREDENTIAL_MISSING', stage: 'PROVIDER_INIT', errorCode: error instanceof Error ? error.message : 'PROVIDER_CREDENTIAL_MISSING' };
   }
   try {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const deadline = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('FACEBOOK_COMMENTS_STAGE_TIMEOUT')), COMMENTS_STAGE_TIMEOUT_MS);
+    const summary = await runFacebookCommentsForClient({
+      source,
+      db,
+      clientId,
+      targetId,
+      maxPosts: COMMENTS_MAX_POSTS_PER_RUN,
+      maxComments: COMMENTS_MAX_PER_POST,
+      maxPages: COMMENTS_MAX_PAGES,
+      deadlineAt: Date.now() + COMMENTS_STAGE_TIMEOUT_MS,
     });
-    const summary = await Promise.race([
-      runFacebookCommentsForClient({
-        source,
-        db,
-        clientId,
-        targetId,
-        maxPosts: COMMENTS_MAX_POSTS_PER_RUN,
-        maxComments: COMMENTS_MAX_PER_POST,
-        maxPages: COMMENTS_MAX_PAGES,
-      }),
-      deadline,
-    ]).finally(() => {
-      if (timer) clearTimeout(timer);
-    });
-    const status: CommentsStatus = summary.eligible === 0 ? 'NOTHING_TO_PROCESS' : summary.failed > 0 ? 'SUCCESS_WITH_FAILURES' : 'SUCCESS';
+    const hasTimeoutSkips = summary.items.some((item) => item.reason === 'TIMEOUT_BUDGET_EXCEEDED');
+    const status: CommentsStatus = summary.eligible === 0
+      ? 'NOTHING_TO_PROCESS'
+      : summary.failed > 0 || hasTimeoutSkips
+        ? 'SUCCESS_WITH_FAILURES'
+        : 'SUCCESS';
+    if (hasTimeoutSkips) {
+      console.info('[FacebookCommentsAudience] orçamento de tempo esgotado — parte do lote adiada para a próxima chamada', {
+        clientId, targetId, timeoutMs: COMMENTS_STAGE_TIMEOUT_MS,
+        skippedByTimeout: summary.items.filter((item) => item.reason === 'TIMEOUT_BUDGET_EXCEEDED').length,
+      });
+    }
     return { status, summary };
   } catch (error) {
-    return { status: 'FAILED', code: error instanceof Error ? error.message : 'FACEBOOK_COMMENTS_AUDIENCE_FAILED' };
+    const errorCode = error instanceof Error ? error.message : String(error);
+    console.error('[FacebookCommentsAudience] falha não isolada no estágio de comentários — não deveria acontecer (cada post já é isolado individualmente); ver errorCode', {
+      clientId, targetId, stage: 'RUN_FOR_CLIENT', errorCode,
+    });
+    return { status: 'FAILED', stage: 'RUN_FOR_CLIENT', errorCode };
   }
 }
 
@@ -208,6 +238,12 @@ export async function POST(request: NextRequest) {
         skipped: commentsAudience.summary?.skipped ?? 0,
         commentsCollected: commentsAudience.summary?.items.reduce((sum, item) => sum + (item.commentsCollected ?? 0), 0) ?? 0,
         commentsAnalyzed: commentsAudience.summary?.items.reduce((sum, item) => sum + (item.commentsAnalyzed ?? 0), 0) ?? 0,
+        // Diagnóstico sanitizado — nunca segredos, só o suficiente para saber
+        // ONDE e POR QUE, sem precisar de log de servidor para um diagnóstico
+        // básico (achado real: antes desta correção, FAILED não carregava
+        // nenhuma informação operacional, nem no log, nem na resposta).
+        ...(commentsAudience.stage ? { stage: commentsAudience.stage } : {}),
+        ...(commentsAudience.errorCode ? { errorCode: commentsAudience.errorCode } : {}),
       },
     };
     console.info('[FacebookAnalyze]', {
@@ -218,6 +254,8 @@ export async function POST(request: NextRequest) {
       commentsAudienceEligible: commentsAudience.summary?.eligible ?? 0,
       commentsCollected: response.commentsAudience.commentsCollected,
       commentsAnalyzed: response.commentsAudience.commentsAnalyzed,
+      commentsAudienceStage: commentsAudience.stage,
+      commentsAudienceErrorCode: commentsAudience.errorCode,
     });
     return NextResponse.json(response);
   } catch (error) {
