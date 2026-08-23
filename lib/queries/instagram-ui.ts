@@ -9,10 +9,54 @@ export const ANALYTICS_POST_BATCH_SIZE = 500;
 export const MAX_ANALYTICS_POSTS = 10_000;
 const MAX_RECENT_COMMENTS = 500;
 const POSTGREST_IN_BATCH_SIZE = 150;
+// Medido nesta investigação (produção, 665 posts): buscar `raw_json` junto do
+// lote principal de posts custa ~10-13s sozinho — TOAST/payload do Postgres,
+// não round-trip de rede (confirmado: chunking em lotes menores NÃO reduz o
+// tempo total, só adiciona overhead). Isso, somado às demais etapas
+// (~6-7s), ultrapassava o teto rígido de 10s de execução do plano Hobby da
+// Vercel, matando a função no meio do stream e deixando o skeleton de
+// loading.tsx congelado para sempre — sem erro, sem timeout visível, sem
+// dado nenhum chegando para substituí-lo. `raw_json` só alimenta métricas
+// SECUNDÁRIAS (plays/views/reach/impressions/shares/saves/carrossel) — likes,
+// comentários, sentimento, risco e ordenação usam colunas estruturadas e
+// nunca dependem dele (ver mapInstagramPost/engagementValue). Por isso é
+// seguro buscá-lo com orçamento de tempo limitado: dentro do orçamento, tudo
+// funciona como sempre; se ultrapassar, essas métricas ficam
+// `UNAVAILABLE` — caminho já existente e testado (post sem raw_json nunca
+// foi um erro) — em vez de travar a página inteira.
+const RAW_JSON_FETCH_BUDGET_MS = 3500;
 
-const POST_FIELDS = 'id,target_id,client_id,platform,caption,content_type,media_type,media_url,post_url,taken_at,collected_at,like_count,comment_count,raw_json';
+const POST_FIELDS = 'id,target_id,client_id,platform,caption,content_type,media_type,media_url,post_url,taken_at,collected_at,like_count,comment_count';
 const COMMENT_FIELDS = 'id,instagram_comment_id,post_id,parent_comment_id,comment_user,comment_text,like_count,created_at_instagram,collected_at,client_id,target_id';
 const ANALYSIS_FIELDS = 'content_id,sentiment,risk_level,ai_topics,summary,risk_reason,recommended_action,engagement_quality,polarization_level,client_id,target_id';
+
+/**
+ * Busca `raw_json` de todos os posts em lotes (mesmo padrão de
+ * fetchInstagramAnalyses), mas nunca espera além de `budgetMs` no total —
+ * estourado o orçamento, resolve com o que já tiver sido coletado até ali
+ * (posts restantes ficam com enrichment UNAVAILABLE, nunca um erro).
+ */
+async function fetchInstagramRawJsonMap(client: ReturnType<typeof createAdminClient>, postIds: string[], budgetMs: number): Promise<Map<string, unknown>> {
+  const byId = new Map<string, unknown>();
+  const chunks = chunkInstagramPostIds(postIds);
+  let timedOut = false;
+  const timer = new Promise<void>((resolve) => setTimeout(() => { timedOut = true; resolve(); }, budgetMs));
+
+  const collect = (async () => {
+    for (let index = 0; index < chunks.length && !timedOut; index += 4) {
+      const results = await Promise.all(
+        chunks.slice(index, index + 4).map((batch) => client.from('social_posts').select('id,raw_json').in('id', batch)),
+      );
+      for (const result of results) {
+        if (result.error) return; // não trava a página por causa de um erro nesta busca acessória — enrichment fica UNAVAILABLE.
+        for (const row of result.data ?? []) byId.set(row.id, row.raw_json);
+      }
+    }
+  })();
+
+  await Promise.race([collect, timer]);
+  return byId;
+}
 
 export function instagramAnalyticsRanges(totalAvailable: number, limit = MAX_ANALYTICS_POSTS, batchSize = ANALYTICS_POST_BATCH_SIZE) {
   const totalLoaded = Math.min(Math.max(0, totalAvailable), Math.max(0, limit));
@@ -112,18 +156,31 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
   const postIds = posts.map((post) => post.id);
   if (postIds.length === 0) return emptyContract(query, targetNames);
 
-  const analyses: InstagramUiRawAnalysis[] = [];
-  const analysisBatches = chunkInstagramPostIds(postIds);
-  for (let index = 0; index < analysisBatches.length; index += 4) {
-    const results = await Promise.all(analysisBatches.slice(index, index + 4).map((batch) => {
-      let batchQuery = client.from('ai_analysis').select(ANALYSIS_FIELDS).eq('content_type', 'post').in('content_id', batch);
-      if (activeClientId) batchQuery = batchQuery.eq('client_id', activeClientId);
-      return batchQuery;
-    }));
-    const error = results.find((result) => result.error)?.error;
-    if (error) throw new Error(`Instagram analysis query failed: ${error.message}`);
-    analyses.push(...results.flatMap((result) => result.data ?? []));
-  }
+  const fetchAnalyses = async (): Promise<InstagramUiRawAnalysis[]> => {
+    const analyses: InstagramUiRawAnalysis[] = [];
+    const analysisBatches = chunkInstagramPostIds(postIds);
+    for (let index = 0; index < analysisBatches.length; index += 4) {
+      const results = await Promise.all(analysisBatches.slice(index, index + 4).map((batch) => {
+        let batchQuery = client.from('ai_analysis').select(ANALYSIS_FIELDS).eq('content_type', 'post').in('content_id', batch);
+        if (activeClientId) batchQuery = batchQuery.eq('client_id', activeClientId);
+        return batchQuery;
+      }));
+      const error = results.find((result) => result.error)?.error;
+      if (error) throw new Error(`Instagram analysis query failed: ${error.message}`);
+      analyses.push(...results.flatMap((result) => result.data ?? []));
+    }
+    return analyses;
+  };
+
+  // ai_analysis (obrigatório — sentimento/risco/tópicos) e raw_json (acessório
+  // — enrichment de reel/carrossel) são independentes entre si: rodam em
+  // paralelo, e raw_json nunca segura a página além do próprio orçamento.
+  const [analyses, rawJsonById] = await Promise.all([
+    fetchAnalyses(),
+    fetchInstagramRawJsonMap(client, postIds, RAW_JSON_FETCH_BUDGET_MS),
+  ]);
+  for (const post of posts) (post as { raw_json?: unknown }).raw_json = rawJsonById.get(post.id) ?? null;
+
   const normalizedRisk = query.risk?.trim().toLocaleLowerCase('pt-BR') ?? '';
   const normalizedSentiment = query.sentiment?.trim().toLocaleLowerCase('pt-BR') ?? '';
   const normalizedTopic = query.topic?.trim().toLocaleLowerCase('pt-BR') ?? '';
