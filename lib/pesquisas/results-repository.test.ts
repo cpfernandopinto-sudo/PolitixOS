@@ -299,4 +299,120 @@ describe('buildTemporalSeries — evolução temporal real (PESQUISAS-DATA-02)',
     expect(series[0].points).toHaveLength(2);
     expect(series[0].points.map((p) => p.percentage)).toEqual([32, 34]);
   });
+
+  // PESQUISAS-N8N-01 — correção pós-validação real: buildTemporalSeries não pode
+  // ser mais permissiva que calculateCockpitMetrics/deriveElectoralSignals.
+
+  it('CASO A — 3 leituras reais do mesmo candidato, cenários/metodologias incompatíveis → NÃO gera tendência (série vazia)', () => {
+    // Réplica fiel do caso real: Michelle Bolsonaro/Senado/DF (Instituto Opinião 38,8% / Paraná
+    // Pesquisas 36% / Real Time Big Data 25%) — cada leitura com roster de candidatos diferente
+    // no cenário "dois votos"/"consolidado", exatamente como a provenance real documenta.
+    const polls = [
+      poll({
+        id: 'opiniao',
+        campoInicio: '2026-06-11',
+        results: [
+          result({ candidateName: 'Michelle', percentage: 38.8, pollId: 'opiniao', cenario: 'Consolidado (1º+2º somados)' }),
+          result({ candidateName: 'Leila', percentage: 30.2, pollId: 'opiniao', cenario: 'Consolidado (1º+2º somados)' }),
+          result({ candidateName: 'Ibaneis', percentage: 22.6, pollId: 'opiniao', cenario: 'Consolidado (1º+2º somados)' }),
+        ],
+      }),
+      poll({
+        id: 'parana',
+        campoInicio: '2026-07-17',
+        results: [
+          result({ candidateName: 'Michelle', percentage: 36, pollId: 'parana', cenario: 'Dois votos consolidados' }),
+          result({ candidateName: 'Leila', percentage: 39.2, pollId: 'parana', cenario: 'Dois votos consolidados' }),
+          result({ candidateName: 'Rafael', percentage: 15.6, pollId: 'parana', cenario: 'Dois votos consolidados' }),
+        ],
+      }),
+      poll({
+        id: 'realtime',
+        campoInicio: '2026-08-14',
+        results: [
+          result({ candidateName: 'Michelle', percentage: 25, pollId: 'realtime', cenario: 'Senado Estimulado (dois votos)' }),
+          result({ candidateName: 'Leila', percentage: 17, pollId: 'realtime', cenario: 'Senado Estimulado (dois votos)' }),
+          result({ candidateName: 'Bia', percentage: 15, pollId: 'realtime', cenario: 'Senado Estimulado (dois votos)' }),
+        ],
+      }),
+    ];
+
+    expect(buildTemporalSeries(polls)).toEqual([]);
+  });
+
+  it('CASO B — 2+ pesquisas com roster de candidatos equivalente (mesmo cargo/UF) → série gerada normalmente', () => {
+    const polls = [
+      poll({
+        id: 'antiga',
+        campoInicio: '2026-06-01',
+        results: [
+          result({ candidateName: 'Michelle', percentage: 30, pollId: 'antiga', cenario: 'Cenário X' }),
+          result({ candidateName: 'Leila', percentage: 28, pollId: 'antiga', cenario: 'Cenário X' }),
+        ],
+      }),
+      poll({
+        id: 'recente',
+        campoInicio: '2026-08-01',
+        results: [
+          result({ candidateName: 'Michelle', percentage: 33, pollId: 'recente', cenario: 'Cenário Y' }),
+          result({ candidateName: 'Leila', percentage: 26, pollId: 'recente', cenario: 'Cenário Y' }),
+        ],
+      }),
+    ];
+
+    const series = buildTemporalSeries(polls);
+    const michelle = series.find((s) => s.candidateName === 'Michelle');
+    expect(michelle?.points.map((p) => p.percentage)).toEqual([30, 33]);
+  });
+
+  it('CASO C — Governador e Senador no mesmo poll_id → isolamento por office preservado (nunca mistura cargos na série)', () => {
+    const polls = [
+      poll({
+        id: 'p-gov-sen-1',
+        cargo: 'Governador',
+        campoInicio: '2026-06-01',
+        results: [result({ candidateName: 'Celina', percentage: 34, pollId: 'p-gov-sen-1', office: 'Governador', cenario: 'Cenário único' })],
+      }),
+      poll({
+        id: 'p-gov-sen-2',
+        cargo: 'Governador',
+        campoInicio: '2026-08-01',
+        results: [result({ candidateName: 'Celina', percentage: 36, pollId: 'p-gov-sen-2', office: 'Governador', cenario: 'Cenário único' })],
+      }),
+    ];
+    // getPriorityRacePolls já filtra por office antes de chegar aqui (results-repository.ts) —
+    // este teste confirma que, mesmo recebendo só resultados de Governador, buildTemporalSeries
+    // nunca precisaria misturar Senador (não há Senador nestes polls; office permanece 'Governador'
+    // em todos os pontos gerados).
+    const series = buildTemporalSeries(polls);
+    const celina = series.find((s) => s.candidateName === 'Celina');
+    expect(celina?.points.map((p) => p.percentage)).toEqual([34, 36]);
+  });
+
+  it('CASO D — institutos diferentes mas metodologicamente comparáveis (mesmo roster de candidatos) → série gerada, conforme comparability.ts', () => {
+    const polls = [
+      poll({
+        id: 'instituto-a',
+        instituto: 'Instituto A',
+        campoInicio: '2026-07-01',
+        results: [
+          result({ candidateName: 'Cleitinho', percentage: 40, pollId: 'instituto-a', cenario: 'Estimulada A' }),
+          result({ candidateName: 'Kalil', percentage: 35, pollId: 'instituto-a', cenario: 'Estimulada A' }),
+        ],
+      }),
+      poll({
+        id: 'instituto-b',
+        instituto: 'Instituto B',
+        campoInicio: '2026-08-01',
+        results: [
+          result({ candidateName: 'Cleitinho', percentage: 42, pollId: 'instituto-b', cenario: 'Estimulada B' }),
+          result({ candidateName: 'Kalil', percentage: 33, pollId: 'instituto-b', cenario: 'Estimulada B' }),
+        ],
+      }),
+    ];
+
+    const series = buildTemporalSeries(polls);
+    const cleitinho = series.find((s) => s.candidateName === 'Cleitinho');
+    expect(cleitinho?.points.map((p) => p.percentage)).toEqual([40, 42]);
+  });
 });
