@@ -284,12 +284,13 @@ export function computeXAlert(posts: XPosts) { return [...new Map(posts.map((pos
 export async function getXAlert(filters?: XFilters) { const data = await fetchXData(filters); return computeXAlert(data.analyticsPosts); }
 
 export async function getXFiltersOptions(allowedTargetIds?: string[] | null, clientId?: string | null) {
-  const data = await fetchXData({ allowedTargetIds, clientId });
   const client = createAdminClient();
   let query = client.from('targets').select('id,candidate_name,client_id').order('candidate_name');
   if (clientId) query = query.eq('client_id', clientId);
   if (allowedTargetIds) query = query.in('id', allowedTargetIds);
-  const result = await query;
+  // fetchXData (escopo diferente, ver nota histórica) e a query de targets são
+  // independentes entre si — paralelizadas em vez de sequenciais.
+  const [data, result] = await Promise.all([fetchXData({ allowedTargetIds, clientId }), query]);
   if (result.error) throw new Error(`X filter targets query failed: ${result.error.message}`);
   return { candidates: (result.data ?? []).map((target) => ({ id: target.id, name: target.candidate_name })), topics: unique(data.analyticsPosts.map((post) => post.topic).filter((topic): topic is string => typeof topic === 'string' && topic.length > 0)).sort() };
 }

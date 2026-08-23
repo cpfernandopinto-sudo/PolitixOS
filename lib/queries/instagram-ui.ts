@@ -72,9 +72,6 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
   let availableTargetsQuery = client.from('targets').select('id,candidate_name,client_id');
   if (activeClientId) availableTargetsQuery = availableTargetsQuery.eq('client_id', activeClientId);
   if (allowedTargetIds) availableTargetsQuery = availableTargetsQuery.in('id', allowedTargetIds);
-  const availableTargetsResult = await availableTargetsQuery;
-  if (availableTargetsResult.error) throw new Error(`Instagram targets query failed: ${availableTargetsResult.error.message}`);
-  const targetNames = new Map((availableTargetsResult.data ?? []).map((target) => [target.id, target.candidate_name ?? null]).filter((entry): entry is [string, string] => Boolean(entry[1])));
   const contentTypes = normalizeInstagramContentTypeFilter(query.contentTypes);
   const periodFrom = query.periodDays && Number.isFinite(query.periodDays) && query.periodDays > 0
     ? new Date(Date.now() - Math.floor(query.periodDays) * 24 * 60 * 60 * 1000).toISOString()
@@ -93,7 +90,15 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
     return scoped.range(from, to);
   };
 
-  const firstPostsResult = await createPostsQuery(0, ANALYTICS_POST_BATCH_SIZE - 1, true);
+  // availableTargetsQuery (nomes de candidato) e firstPostsResult (primeira
+  // página de posts) são independentes entre si — paralelizados em vez de
+  // sequenciais (nenhum dos dois depende do resultado do outro).
+  const [availableTargetsResult, firstPostsResult] = await Promise.all([
+    availableTargetsQuery,
+    createPostsQuery(0, ANALYTICS_POST_BATCH_SIZE - 1, true),
+  ]);
+  if (availableTargetsResult.error) throw new Error(`Instagram targets query failed: ${availableTargetsResult.error.message}`);
+  const targetNames = new Map((availableTargetsResult.data ?? []).map((target) => [target.id, target.candidate_name ?? null]).filter((entry): entry is [string, string] => Boolean(entry[1])));
   if (firstPostsResult.error) throw new Error(`Instagram posts query failed: ${firstPostsResult.error.message}`);
   const postsCount = firstPostsResult.count ?? firstPostsResult.data?.length ?? 0;
   const ranges = instagramAnalyticsRanges(postsCount).slice(1);
