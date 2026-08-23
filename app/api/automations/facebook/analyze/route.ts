@@ -34,6 +34,13 @@ const COMMENTS_MAX_POSTS_PER_RUN = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_POST
 const COMMENTS_MAX_PER_POST = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_PER_POST', 50, 100);
 const COMMENTS_MAX_PAGES = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_PAGES', 5, 10);
 const COMMENTS_STAGE_TIMEOUT_MS = boundedEnvInteger('FACEBOOK_COMMENTS_STAGE_TIMEOUT_MS', 50_000, 120_000);
+// Máquina de estados de retry (correção da re-elegibilidade infinita): um
+// post cuja tentativa falha de forma RETRYABLE (rate limit, timeout, rede,
+// 5xx) volta a ficar elegível, mas só depois do cooldown, e só até
+// MAX_ATTEMPTS tentativas — depois disso vira FAILED_TERMINAL e nunca mais
+// reaparece. Ver lib/facebook/comments/runner.ts (classifyCommentsAudienceFailure).
+const COMMENTS_MAX_ATTEMPTS = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_ATTEMPTS', 3, 10);
+const COMMENTS_RETRY_COOLDOWN_MS = boundedEnvInteger('FACEBOOK_COMMENTS_RETRY_COOLDOWN_MS', 60 * 60 * 1000, 24 * 60 * 60 * 1000);
 
 type CommentsStatus = 'SUCCESS' | 'SUCCESS_WITH_FAILURES' | 'NOTHING_TO_PROCESS' | 'SKIPPED_PROVIDER_CREDENTIAL_MISSING' | 'FAILED';
 
@@ -81,6 +88,8 @@ async function runCommentsAudienceStage(db: FacebookCommentsRunnerDb, clientId: 
       maxComments: COMMENTS_MAX_PER_POST,
       maxPages: COMMENTS_MAX_PAGES,
       deadlineAt: Date.now() + COMMENTS_STAGE_TIMEOUT_MS,
+      maxAttempts: COMMENTS_MAX_ATTEMPTS,
+      retryCooldownMs: COMMENTS_RETRY_COOLDOWN_MS,
     });
     const hasTimeoutSkips = summary.items.some((item) => item.reason === 'TIMEOUT_BUDGET_EXCEEDED');
     const status: CommentsStatus = summary.eligible === 0

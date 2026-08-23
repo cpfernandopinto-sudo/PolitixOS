@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runFacebookCommentsAudience, runFacebookCommentsForClient, type FacebookCommentsRunnerDb } from './runner';
+import { FacebookProviderError } from '../provider';
+import { classifyCommentsAudienceFailure, runFacebookCommentsAudience, runFacebookCommentsForClient, type FacebookCommentsRunnerDb } from './runner';
 
 function pendingAudienceChain(rows: Array<Record<string, unknown>>) {
   const chain = { eq: vi.fn(), limit: vi.fn().mockResolvedValue({ data: rows, error: null }) };
@@ -80,7 +81,9 @@ describe('runFacebookCommentsForClient', () => {
     const source = { getPostComments: vi.fn().mockRejectedValueOnce(new Error('provider down')).mockResolvedValue({ comments: [{ comment_id: 'c1', message: 'ok' }], cursor: null, raw: {} }) };
     const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1', geminiClient: geminiStub() as never });
     expect(summary).toMatchObject({ eligible: 2, processed: 2, success: 1, failed: 1 });
-    expect(summary.items.find((i) => i.postId === 'post-1')).toMatchObject({ outcome: 'failed', reason: 'provider down' });
+    const failedItem = summary.items.find((i) => i.postId === 'post-1');
+    expect(failedItem?.outcome).toBe('failed');
+    expect(failedItem?.reason).toContain('provider down');
     expect(summary.items.find((i) => i.postId === 'post-2')).toMatchObject({ outcome: 'success' });
   });
 
@@ -158,7 +161,7 @@ describe('runFacebookCommentsForClient', () => {
 });
 
 describe('runFacebookCommentsAudience — comentários sem texto (sticker/emoji/gif) não travam a análise', () => {
-  it('coleta e persiste comentários mesmo quando nenhum é textual, mas não chama o Gemini (sample vazia)', async () => {
+  it('coleta e persiste comentários mesmo quando nenhum é textual, não chama o Gemini (sample vazia), e registra SUCCESS_NO_CONTENT honesto (sem inventar sentimento) para nunca mais reaparecer como elegível', async () => {
     const { db, upsertCalls } = dbStub([]);
     const source = commentsSource([{ comment_id: 'c1', message: null, is_sticker: true, sticker: { label: 'joia' } }]);
     const result = await runFacebookCommentsAudience({
@@ -167,6 +170,102 @@ describe('runFacebookCommentsAudience — comentários sem texto (sticker/emoji/
       totalComments: 1,
     });
     expect(result).toMatchObject({ persisted: 1, sampled: 0, analyzed: false });
-    expect(upsertCalls.find((c) => c.table === 'facebook_audience_analysis')).toBeUndefined();
+    const audienceUpsert = upsertCalls.find((c) => c.table === 'facebook_audience_analysis');
+    expect(audienceUpsert?.rows).toMatchObject({
+      client_id: 'client-1', target_id: 'target-1', social_post_id: 'post-1', status: 'SUCCESS',
+      post_sentiment: null, comments_analyzed: 0, comments_available: false, attempt_count: 1,
+    });
+  });
+});
+
+describe('classifyCommentsAudienceFailure', () => {
+  it('classifica erro HTTP 5xx/429 do provider de comentários como RETRYABLE', () => {
+    expect(classifyCommentsAudienceFailure(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR', 503)).failureClass).toBe('RETRYABLE');
+    expect(classifyCommentsAudienceFailure(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR', 429)).failureClass).toBe('RETRYABLE');
+    expect(classifyCommentsAudienceFailure(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_TIMEOUT', null)).failureClass).toBe('RETRYABLE');
+  });
+
+  it('classifica erro HTTP 4xx do provider de comentários como TERMINAL (repetir não resolve)', () => {
+    expect(classifyCommentsAudienceFailure(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR', 404)).failureClass).toBe('TERMINAL');
+    expect(classifyCommentsAudienceFailure(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR', 400)).failureClass).toBe('TERMINAL');
+  });
+
+  it('classifica erro não reconhecido como TERMINAL por padrão (mais seguro que retry indefinido de um bug não mapeado)', () => {
+    expect(classifyCommentsAudienceFailure(new Error('algo inesperado')).failureClass).toBe('TERMINAL');
+  });
+});
+
+describe('TESTE C — falha TERMINAL persiste corretamente e nunca é reprocessada', () => {
+  it('post com falha 4xx do provider é gravado como FAILED_TERMINAL com error_code/error_message/attempt_count, sem inventar dado de análise', async () => {
+    const { db, upsertCalls } = dbStub([basePost]);
+    const source = { getPostComments: vi.fn().mockRejectedValue(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR', 404)) };
+    const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1', geminiClient: geminiStub() as never });
+
+    expect(summary).toMatchObject({ eligible: 1, failed: 1, success: 0 });
+    expect(summary.items[0]).toMatchObject({ outcome: 'failed', retryable: false });
+
+    const audienceUpsert = upsertCalls.find((c) => c.table === 'facebook_audience_analysis');
+    expect(audienceUpsert?.rows).toMatchObject({
+      client_id: 'client-1', target_id: 'target-1', social_post_id: 'post-1',
+      status: 'FAILED_TERMINAL', error_code: 'FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR',
+      attempt_count: 1, comments_analyzed: 0, comments_available: false,
+    });
+    expect(audienceUpsert?.rows).not.toHaveProperty('post_sentiment');
+  });
+
+  it('post já FAILED_TERMINAL não aparece mais na fila (a própria view exclui — aqui simulamos a view já filtrando)', async () => {
+    // facebook_posts_pending_audience só devolve linhas com faa.id is null OU
+    // faa.status = 'FAILED_RETRYABLE' — um post FAILED_TERMINAL nunca é
+    // devolvido pela query, então o dbStub([]) já representa esse estado.
+    const { db } = dbStub([]);
+    const source = commentsSource([]);
+    const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1' });
+    expect(summary).toMatchObject({ eligible: 0, processed: 0, failed: 0 });
+    expect(source.getPostComments).not.toHaveBeenCalled();
+  });
+});
+
+describe('TESTE D — falha RETRYABLE tem política de retry controlada (cooldown + limite de tentativas), nunca loop infinito', () => {
+  it('post com falha 5xx é gravado como FAILED_RETRYABLE (não TERMINAL) na primeira tentativa', async () => {
+    const { db, upsertCalls } = dbStub([basePost]);
+    const source = { getPostComments: vi.fn().mockRejectedValue(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR', 503)) };
+    const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1', geminiClient: geminiStub() as never, maxAttempts: 3 });
+
+    expect(summary.items[0]).toMatchObject({ outcome: 'failed', retryable: true });
+    const audienceUpsert = upsertCalls.find((c) => c.table === 'facebook_audience_analysis');
+    expect(audienceUpsert?.rows).toMatchObject({ status: 'FAILED_RETRYABLE', attempt_count: 1 });
+  });
+
+  it('post FAILED_RETRYABLE dentro do cooldown é pulado sem chamar o provider (não reprocessa a cada /analyze)', async () => {
+    const row = { ...basePost, audience_status: 'FAILED_RETRYABLE', audience_attempt_count: 1, audience_last_attempt_at: new Date(Date.now() - 5 * 60 * 1000).toISOString() };
+    const { db } = dbStub([row]);
+    const source = commentsSource([]);
+    const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1', retryCooldownMs: 60 * 60 * 1000 });
+
+    expect(summary).toMatchObject({ eligible: 1, skipped: 1, failed: 0 });
+    expect(summary.items[0]).toMatchObject({ outcome: 'skipped', reason: 'RETRY_COOLDOWN' });
+    expect(source.getPostComments).not.toHaveBeenCalled();
+  });
+
+  it('post FAILED_RETRYABLE após o cooldown é tentado de novo, incrementando attempt_count corretamente', async () => {
+    const row = { ...basePost, audience_status: 'FAILED_RETRYABLE', audience_attempt_count: 1, audience_last_attempt_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() };
+    const { db, upsertCalls } = dbStub([row]);
+    const source = commentsSource([{ comment_id: 'c1', message: 'agora funcionou' }]);
+    const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1', geminiClient: geminiStub() as never, retryCooldownMs: 60 * 60 * 1000 });
+
+    expect(summary).toMatchObject({ eligible: 1, success: 1, failed: 0, skipped: 0 });
+    const audienceUpsert = upsertCalls.find((c) => c.table === 'facebook_audience_analysis');
+    expect(audienceUpsert?.rows).toMatchObject({ status: 'SUCCESS', attempt_count: 2 });
+  });
+
+  it('limite de tentativas esgotado: uma falha RETRYABLE na última tentativa permitida vira FAILED_TERMINAL (nunca volta a ser elegível)', async () => {
+    const row = { ...basePost, audience_status: 'FAILED_RETRYABLE', audience_attempt_count: 2, audience_last_attempt_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() };
+    const { db, upsertCalls } = dbStub([row]);
+    const source = { getPostComments: vi.fn().mockRejectedValue(new FacebookProviderError('FACEBOOK_COMMENTS_PROVIDER_HTTP_ERROR', 503)) };
+    const summary = await runFacebookCommentsForClient({ source, db, clientId: 'client-1', targetId: 'target-1', geminiClient: geminiStub() as never, maxAttempts: 3, retryCooldownMs: 60 * 60 * 1000 });
+
+    expect(summary.items[0]).toMatchObject({ outcome: 'failed', retryable: false });
+    const audienceUpsert = upsertCalls.find((c) => c.table === 'facebook_audience_analysis');
+    expect(audienceUpsert?.rows).toMatchObject({ status: 'FAILED_TERMINAL', attempt_count: 3 });
   });
 });
