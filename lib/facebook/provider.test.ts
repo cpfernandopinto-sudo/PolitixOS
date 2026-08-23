@@ -34,8 +34,17 @@ describe('Facebook Scraper provider', () => {
   });
 
   it('classifica erro HTTP sem incluir corpo ou segredo', async () => {
-    const provider = new FacebookScraperProvider({ apiKey: 'secret-test', pagePostsPath: '/page-posts', maxRetries: 0 }, vi.fn().mockResolvedValue(new Response('provider secret stack', { status: 401 })));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const provider = new FacebookScraperProvider({ apiKey: 'secret-test', pagePostsPath: '/page-posts', maxRetries: 0 }, vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 'AUTH_ERROR', message: 'invalid secret-test credential' }), { status: 401 })));
     await expect(provider.getPagePosts({ pageId: 'page-1' })).rejects.toMatchObject({ code: 'FACEBOOK_PROVIDER_HTTP_ERROR', status: 401 });
+    expect(errorSpy).toHaveBeenCalledWith('FACEBOOK_PROVIDER_HTTP_ERROR', {
+      provider_status: 401,
+      provider_code: 'AUTH_ERROR',
+      provider_message_sanitized: 'invalid [REDACTED] credential',
+      provider_host: 'facebook-scraper3.p.rapidapi.com',
+      provider_path: '/page-posts',
+    });
+    errorSpy.mockRestore();
   });
 
   it('classifica timeout após abort', async () => {

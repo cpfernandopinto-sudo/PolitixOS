@@ -4,6 +4,26 @@ const DEFAULT_HOST = 'facebook-scraper3.p.rapidapi.com';
 const DEFAULT_PAGE_POSTS_PATH = '/page/posts';
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+function sanitizeProviderText(value: unknown, apiKey: string): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const redacted = value.split(apiKey).join('[REDACTED]').replace(/[\r\n\t]+/g, ' ').trim();
+  return redacted.slice(0, 500);
+}
+
+async function readProviderError(response: Response, apiKey: string): Promise<{ code: string | null; message: string | null }> {
+  const raw = await response.text().catch(() => '');
+  let body: unknown = raw;
+  try { body = JSON.parse(raw); } catch { /* plain-text provider error */ }
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    const record = body as Record<string, unknown>;
+    return {
+      code: sanitizeProviderText(record.code ?? record.error, apiKey),
+      message: sanitizeProviderText(record.message ?? record.detail ?? record.error_description, apiKey),
+    };
+  }
+  return { code: null, message: sanitizeProviderText(body, apiKey) };
+}
+
 export interface FacebookProviderConfig {
   apiKey: string;
   pagePostsPath: string;
@@ -71,6 +91,14 @@ export class FacebookScraperProvider {
         });
         if (!response.ok) {
           if ((response.status === 429 || response.status >= 500) && attempt < this.maxRetries) continue;
+          const providerError = await readProviderError(response, this.config.apiKey);
+          console.error('FACEBOOK_PROVIDER_HTTP_ERROR', {
+            provider_status: response.status,
+            provider_code: providerError.code,
+            provider_message_sanitized: providerError.message,
+            provider_host: this.host,
+            provider_path: url.pathname,
+          });
           throw new FacebookProviderError('FACEBOOK_PROVIDER_HTTP_ERROR', response.status);
         }
         const body: unknown = await response.json();
