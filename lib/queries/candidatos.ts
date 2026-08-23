@@ -8,6 +8,10 @@ export interface Target {
   state: string | null;
   keywords: string | null;
   is_active: boolean;
+  /** PESQUISAS-N8N-01 — liga a captura seletiva de pesquisas eleitorais (TSE/PesqEle) para este candidato. Default false. */
+  poll_monitoring_enabled: boolean;
+  /** Cargo específico monitorado (ex.: "Governador"). Só tem efeito quando poll_monitoring_enabled=true. */
+  poll_monitoring_office: string | null;
 }
 
 export interface SocialAccount {
@@ -38,6 +42,8 @@ export interface TargetInput {
   state: string;
   keywords: string;
   is_active: boolean;
+  poll_monitoring_enabled: boolean;
+  poll_monitoring_office: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,6 +61,8 @@ export async function fetchTargets(): Promise<TargetWithAccounts[]> {
       state,
       keywords,
       is_active,
+      poll_monitoring_enabled,
+      poll_monitoring_office,
       social_accounts (
         id,
         target_id,
@@ -90,6 +98,8 @@ export async function fetchTargetById(id: string): Promise<TargetWithAccounts | 
       state,
       keywords,
       is_active,
+      poll_monitoring_enabled,
+      poll_monitoring_office,
       social_accounts (
         id,
         target_id,
@@ -129,6 +139,8 @@ export async function createTarget(
       state: target.state || null,
       keywords: target.keywords || null,
       is_active: target.is_active,
+      poll_monitoring_enabled: target.poll_monitoring_enabled,
+      poll_monitoring_office: target.poll_monitoring_enabled ? target.poll_monitoring_office || null : null,
     })
     .select()
     .single();
@@ -185,6 +197,8 @@ export async function updateTarget(
       state: target.state || null,
       keywords: target.keywords || null,
       is_active: target.is_active,
+      poll_monitoring_enabled: target.poll_monitoring_enabled,
+      poll_monitoring_office: target.poll_monitoring_enabled ? target.poll_monitoring_office || null : null,
     })
     .eq('id', id)
     .select()

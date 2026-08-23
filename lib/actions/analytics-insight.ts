@@ -1,10 +1,12 @@
 'use server';
 
 import { requireAuth } from '@/lib/auth/dal';
+import { createAdminClient } from '@/lib/supabaseClient';
 import { getExecutiveOverviewData, type OverviewFilters } from '@/lib/queries/overview';
 import { buildAnalyticsContext } from '@/lib/ai/analytics-context';
 import { getOrGenerateInsight } from '@/lib/ai/analytics-service';
 import type { AssistedInsightResult } from '@/lib/ai/analytics-schema';
+import { getElectoralSignalsSummaryForCandidate, type ElectoralSignalSummary } from '@/lib/pesquisas/monitoring';
 
 export interface AnalyticsInsightRequest {
   candidate: string | null;
@@ -32,6 +34,20 @@ export async function generateExecutiveInsight(request: AnalyticsInsightRequest)
 
   const data = await getExecutiveOverviewData(filters);
 
+  // PESQUISAS-N8N-01 — só busca sinais eleitorais quando há candidato
+  // filtrado; getElectoralSignalsSummaryForCandidate já devolve [] quando o
+  // candidato não é um target monitorado ou não há pesquisa com resultado
+  // real na corrida dele (nunca inventa dado eleitoral).
+  let electoralSignals: ElectoralSignalSummary[] = [];
+  if (filters.candidate) {
+    try {
+      electoralSignals = await getElectoralSignalsSummaryForCandidate(createAdminClient(), filters.candidate);
+    } catch (error) {
+      // Falha na busca de sinais eleitorais nunca derruba a Leitura Analítica Assistida (Fase 27/TESTE L) — segue sem esse bloco.
+      console.error('[analytics-insight] Falha ao buscar sinais eleitorais:', error);
+    }
+  }
+
   const context = buildAnalyticsContext({
     filters: { candidate: filters.candidate ?? null, period: filters.period ?? 'all' },
     politicalStatus: data.politicalStatus,
@@ -41,6 +57,7 @@ export async function generateExecutiveInsight(request: AnalyticsInsightRequest)
     entities: data.entities,
     themes: data.themes,
     synthesis: data.synthesis,
+    electoralSignals,
   });
 
   return getOrGenerateInsight(context, { forceRefresh: request.forceRefresh });

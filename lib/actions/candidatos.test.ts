@@ -52,7 +52,16 @@ function chain(result: { data: unknown; error: unknown }) {
 const targetRow = { id: 't-allowed', candidate_name: 'Ana', city: null, state: null, keywords: null, is_active: true };
 
 function targetInput(overrides: Partial<{ candidate_name: string; city: string; state: string; keywords: string; is_active: boolean }> = {}) {
-  return { candidate_name: 'Ana', city: '', state: '', keywords: '', is_active: true, ...overrides };
+  return {
+    candidate_name: 'Ana',
+    city: '',
+    state: '',
+    keywords: '',
+    is_active: true,
+    poll_monitoring_enabled: false,
+    poll_monitoring_office: '',
+    ...overrides,
+  };
 }
 
 beforeEach(() => {

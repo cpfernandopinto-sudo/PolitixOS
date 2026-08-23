@@ -61,6 +61,32 @@ export const AnalyticsContextSchema = z.object({
     .array(z.object({ nome: z.string(), volume: z.number(), sentimento: z.string().nullable(), alertas: z.number() }))
     .max(10),
   temas: z.array(z.object({ tema: z.string(), frequencia: z.number() })).max(10),
+  /**
+   * PESQUISAS-N8N-01 — resumo determinístico de pesquisas eleitorais para o
+   * candidato filtrado, quando ele é um target com poll_monitoring_enabled.
+   * Nunca resultado bruto por pesquisa — só o resumo já calculado por
+   * lib/pesquisas/monitoring.ts (getElectoralSignalsSummaryForCandidate).
+   * Vazio quando o candidato não é monitorado ou não há dado (nunca inventado).
+   */
+  pesquisasEleitorais: z
+    .array(
+      z.object({
+        candidato: z.string(),
+        cargo: z.string(),
+        percentualAtual: z.number().nullable(),
+        percentualAnterior: z.number().nullable(),
+        variacaoPp: z.number().nullable(),
+        lider: z.string().nullable(),
+        gap: z.number().nullable(),
+        tendencia: z.string(),
+        totalPesquisas: z.number(),
+        comparabilidade: z.enum(['sufficient', 'insufficient']),
+        confianca: z.enum(['baixa', 'media', 'alta']),
+        sinais: z.array(z.object({ tipo: z.string(), descricao: z.string(), intensidade: z.string().nullable() })).max(9),
+      })
+    )
+    .max(5)
+    .default([]),
   evidenciasDisponiveis: z.array(EvidenceRefSchema).max(30),
   limitacoesConhecidas: z.array(z.string()).max(10),
 });

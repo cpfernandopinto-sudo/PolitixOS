@@ -3,11 +3,21 @@ import { createAdminClient } from '@/lib/supabaseClient';
 import { getPesquisasSourceDescriptor } from './source';
 import { parseZipCsvResources, type ParsedCsvResource } from './csv';
 import { normalizePesquisaRow } from './normalizer';
+import { runMonitoredPollIngestion, type MonitoredCollectionCounters } from './monitoring';
 import type { ElectoralPollUpsert } from './types';
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 export type CollectorRunStatus = 'completed' | 'partial' | 'failed';
+/**
+ * PESQUISAS-N8N-01 — 'all' preserva o comportamento histórico (ingere toda
+ * pesquisa do CSV, usado pelo botão manual em CollectButton.tsx — UX já
+ * aprovada, não muda). 'monitored' é o modo seletivo novo: só persiste
+ * pesquisa relevante para algum target com poll_monitoring_enabled=true
+ * (ver lib/pesquisas/monitoring.ts). Default 'all' — endpoint de automação
+ * (app/api/automation/pesquisas/collect) é quem passa 'monitored'.
+ */
+export type CollectorMode = 'all' | 'monitored';
 
 export interface DiscoveredResource {
   fileName: string;
@@ -21,6 +31,8 @@ export interface CollectorResult {
   reason: string;
   discoveredResources?: DiscoveredResource[];
   pollsInserted: number;
+  /** Só presente quando mode='monitored' — contadores completos do pipeline seletivo. */
+  monitored?: MonitoredCollectionCounters;
 }
 
 const SOURCE_KEY = 'TSE/PESQUISA_ELEITORAL';
@@ -66,16 +78,17 @@ async function finishRun(
 }
 
 /**
- * Coletor MVP — chega até "baixar + descobrir schema real", mas
- * deliberadamente NÃO insere nenhuma pesquisa em `electoral_polls`: o
- * mapeamento coluna-do-TSE → campo-do-PolitixOS ainda não foi verificado
- * contra dados reais (ver docs/relatorios/CLAUDE_PESQUISAS_01A_CORE_TSE.md).
- * Quando o acesso à fonte funcionar, esta execução grava os headers reais
- * descobertos em `source_collection_runs.metadata.discovered_resources` —
- * é esse relatório, gerado automaticamente, que autoriza escrever o
- * mapeamento real na próxima rodada (PESQUISAS-01B), não suposição.
+ * Baixa o ZIP oficial TSE/PesqEle, normaliza o recurso BRASIL (rollup
+ * nacional) e grava em `electoral_polls`. `mode='all'` (default) ingere
+ * toda pesquisa normalizada — comportamento histórico, usado pelo botão
+ * manual (CollectButton.tsx). `mode='monitored'` (PESQUISAS-N8N-01) filtra
+ * antes de gravar: só persiste pesquisa relevante para algum target com
+ * `poll_monitoring_enabled=true` (lib/pesquisas/monitoring.ts). Em ambos os
+ * modos, `source_collection_runs.metadata.discovered_resources` sempre
+ * registra os headers reais descobertos, mesmo quando nada é persistido.
  */
-export async function runPesquisasCollector(): Promise<CollectorResult> {
+export async function runPesquisasCollector(options?: { mode?: CollectorMode; targetIds?: string[] }): Promise<CollectorResult> {
+  const mode: CollectorMode = options?.mode ?? 'all';
   const client = createAdminClient();
   const runId = await startRun(client);
   const source = getPesquisasSourceDescriptor();
@@ -143,16 +156,22 @@ export async function runPesquisasCollector(): Promise<CollectorResult> {
   const skipped = canonicalResource.rows.length - normalized.length;
 
   let upserted = 0;
+  let monitored: MonitoredCollectionCounters | undefined;
   try {
-    const result = await upsertPolls(client, normalized);
-    upserted = result.upserted;
+    if (mode === 'monitored') {
+      monitored = await runMonitoredPollIngestion(client, normalized, upsertPolls, options?.targetIds);
+      upserted = monitored.pollsInserted + monitored.pollsUpdated;
+    } else {
+      const result = await upsertPolls(client, normalized);
+      upserted = result.upserted;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await finishRun(
       client,
       runId,
       'failed',
-      { reason: 'DB_WRITE_ERROR', source_url: source.sourceUrl, sha256, discovered_resources: discoveredResources, error: message },
+      { reason: 'DB_WRITE_ERROR', mode, source_url: source.sourceUrl, sha256, discovered_resources: discoveredResources, error: message },
       0,
       message
     );
@@ -165,12 +184,14 @@ export async function runPesquisasCollector(): Promise<CollectorResult> {
     'completed',
     {
       reason: 'OK',
+      mode,
       source_url: source.sourceUrl,
       sha256,
       discovered_resources: discoveredResources,
       canonical_resource: canonicalResource.fileName,
       rows_read: canonicalResource.rows.length,
       rows_skipped_no_identity: skipped,
+      ...(monitored ? { monitored } : {}),
     },
     upserted
   );
@@ -181,6 +202,7 @@ export async function runPesquisasCollector(): Promise<CollectorResult> {
     reason: 'OK',
     discoveredResources,
     pollsInserted: upserted,
+    ...(monitored ? { monitored } : {}),
   };
 }
 

@@ -5,24 +5,35 @@ type AdminClient = ReturnType<typeof createAdminClient>;
 
 /**
  * Upsert idempotente por chave natural — (poll_id, cenario, turno,
- * tipo_pergunta, candidate_name). Não é um UNIQUE constraint no banco
- * (percentuais legitimamente repetem entre candidatos diferentes; a chave
- * natural é o que torna uma linha "a mesma" entre reingestões), então a
- * checagem é feita aqui antes de decidir INSERT vs. UPDATE.
+ * tipo_pergunta, candidate_name, office). Não é um UNIQUE constraint no
+ * banco (percentuais legitimamente repetem entre candidatos diferentes; a
+ * chave natural é o que torna uma linha "a mesma" entre reingestões), então
+ * a checagem é feita aqui antes de decidir INSERT vs. UPDATE.
+ *
+ * PESQUISAS-N8N-01 Fase 10: `office` entra na checagem porque uma mesma
+ * pesquisa multi-cargo pode, em tese, ter Governador e Senador com o mesmo
+ * `cenario`/`turno`/`tipo_pergunta` e por coincidência o mesmo nome de
+ * candidato — sem `office` na chave, o segundo upsert sobrescreveria o
+ * primeiro por engano. Verificado contra produção (2026-08-23): 0 colisões
+ * reais nas 205 linhas existentes, mas o pipeline seletivo passa a gravar
+ * resultado continuamente, então corrigimos preventivamente em vez de
+ * esperar o bug acontecer. Quando `office` é null (linhas antigas/legado),
+ * a comparação usa `is(null)` para não quebrar a compatibilidade.
  */
 export async function upsertPollResult(
   client: AdminClient,
   result: ElectoralPollResultUpsert
 ): Promise<{ id: string; created: boolean }> {
-  const { data: existing } = await client
+  let query = client
     .from('electoral_poll_results')
     .select('id')
     .eq('poll_id', result.pollId)
     .eq('cenario', result.cenario)
     .eq('turno', result.turno)
     .eq('tipo_pergunta', result.tipoPergunta)
-    .eq('candidate_name', result.candidateName)
-    .maybeSingle();
+    .eq('candidate_name', result.candidateName);
+  query = result.office ? query.eq('office', result.office) : query.is('office', null);
+  const { data: existing } = await query.maybeSingle();
 
   const row = {
     poll_id: result.pollId,
