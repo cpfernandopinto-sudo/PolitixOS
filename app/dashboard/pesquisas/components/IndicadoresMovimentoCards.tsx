@@ -1,7 +1,7 @@
 'use client';
 
 import type { ExecutiveCockpitMetrics } from '@/lib/pesquisas/types';
-import { TrendingUp, TrendingDown, Minus, Activity, Layers, ShieldCheck } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface Props {
   metrics: ExecutiveCockpitMetrics;
@@ -70,69 +70,58 @@ export function IndicadoresMovimentoCards({ metrics }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-      {/* 1. Tendência do Líder */}
-      <div className="bg-[#12192A] border border-white/5 rounded-xl p-3.5 space-y-1.5 shadow-lg">
-        <div className="flex items-center justify-between text-gray-400">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Tendência do Líder</span>
-          <TrendingUp size={13} className="text-blue-400" />
-        </div>
-        <div>{renderMovementBadge(leaderMovement)}</div>
+    <div className="flex flex-wrap items-center gap-2 py-2 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+      {/* Líder */}
+      <div className="flex items-center gap-1.5 text-[10px] shrink-0">
+        <span className="text-slate-500 font-semibold uppercase tracking-wider">Líder</span>
+        {renderMovementBadge(leaderMovement, '↑', '↓', '=')}
       </div>
 
-      {/* 2. Movimento do 2º Colocado */}
-      <div className="bg-[#12192A] border border-white/5 rounded-xl p-3.5 space-y-1.5 shadow-lg">
-        <div className="flex items-center justify-between text-gray-400">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Movimento 2º Colocado</span>
-          <TrendingDown size={13} className="text-purple-400" />
-        </div>
-        <div>{renderMovementBadge(runnerUpMovement)}</div>
+      <span className="h-3 w-px bg-white/[0.1]" />
+
+      {/* 2º Colocado */}
+      <div className="flex items-center gap-1.5 text-[10px] shrink-0">
+        <span className="text-slate-500 font-semibold uppercase tracking-wider">2º</span>
+        {renderMovementBadge(runnerUpMovement, '↑', '↓', '=')}
       </div>
 
-      {/* 3. Gap Líder × 2º */}
-      <div className="bg-[#12192A] border border-white/5 rounded-xl p-3.5 space-y-1.5 shadow-lg">
-        <div className="flex items-center justify-between text-gray-400">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Comportamento do Gap</span>
-          <Activity size={13} className="text-blue-400" />
-        </div>
-        <div>{renderGapBadge(gapBehavior)}</div>
+      <span className="h-3 w-px bg-white/[0.1]" />
+
+      {/* Gap */}
+      <div className="flex items-center gap-1.5 text-[10px] shrink-0">
+        <span className="text-slate-500 font-semibold uppercase tracking-wider">Gap</span>
+        {renderGapBadge(gapBehavior)}
       </div>
 
-      {/* 4. Volatilidade */}
-      <div className="bg-[#12192A] border border-white/5 rounded-xl p-3.5 space-y-1.5 shadow-lg">
-        <div className="flex items-center justify-between text-gray-400">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Volatilidade</span>
-          <Activity size={13} className="text-amber-400" />
-        </div>
-        <div>
-          <span className="inline-block font-extrabold text-xs text-gray-200 font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded">
-            {volatility}
-          </span>
-        </div>
+      <span className="h-3 w-px bg-white/[0.1]" />
+
+      {/* Volatilidade */}
+      <div className="flex items-center gap-1.5 text-[10px] shrink-0">
+        <span className="text-slate-500 font-semibold uppercase tracking-wider">Volatilidade</span>
+        <span className="font-bold text-[10px] text-slate-300 font-mono bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+          {volatility}
+        </span>
       </div>
 
-      {/* 5. Consistência entre Institutos */}
-      <div className="bg-[#12192A] border border-white/5 rounded-xl p-3.5 space-y-1.5 shadow-lg">
-        <div className="flex items-center justify-between text-gray-400">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Consistência Institutos</span>
-          <ShieldCheck size={13} className="text-emerald-400" />
-        </div>
-        <div>
-          <span className="inline-block font-extrabold text-xs text-gray-200 font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded">
-            {instituteConsistency}
-          </span>
-        </div>
+      <span className="h-3 w-px bg-white/[0.1]" />
+
+      {/* Consistência */}
+      <div className="flex items-center gap-1.5 text-[10px] shrink-0">
+        <span className="text-slate-500 font-semibold uppercase tracking-wider">Institutos</span>
+        <span className="font-bold text-[10px] text-slate-300 font-mono bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+          {instituteConsistency}
+        </span>
       </div>
 
-      {/* 6. Cobertura de Dados (Funil) */}
-      <div className="bg-[#12192A] border border-white/5 rounded-xl p-3.5 space-y-1.5 shadow-lg">
-        <div className="flex items-center justify-between text-gray-400">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Funil de Dados</span>
-          <Layers size={13} className="text-blue-400" />
-        </div>
-        <p className="text-[11px] font-mono text-gray-300 font-semibold truncate" title={`${totalPollsInSlice} registradas | ${pollsWithResultsCount} c/ resultado | ${pesquisasComparaveisCount} comparáveis`}>
-          {totalPollsInSlice} reg · {pollsWithResultsCount} res · {pesquisasComparaveisCount} comp
-        </p>
+      <span className="h-3 w-px bg-white/[0.1]" />
+
+      {/* Funil */}
+      <div className="flex items-center gap-1 text-[10px] shrink-0 ml-auto text-slate-500 font-mono" title={`${totalPollsInSlice} registradas | ${pollsWithResultsCount} com resultado | ${pesquisasComparaveisCount} comparáveis`}>
+        <span>{totalPollsInSlice} reg</span>
+        <span className="text-slate-700">·</span>
+        <span>{pollsWithResultsCount} res</span>
+        <span className="text-slate-700">·</span>
+        <span className="text-cyan-500 font-semibold">{pesquisasComparaveisCount} comp</span>
       </div>
     </div>
   );

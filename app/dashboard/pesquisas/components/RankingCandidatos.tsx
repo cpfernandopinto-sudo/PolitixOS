@@ -39,19 +39,19 @@ export function RankingCandidatos({
   const values = realCandidates.map((r) => r.percentage).reverse();
 
   return (
-    <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+    <section className="surface-primary p-5 space-y-4">
+      <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
         <div>
           <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-            <Crown size={15} className="text-blue-500" /> Ranking Atual — Pesquisa mais recente
+            <Crown size={15} className="text-cyan-400" /> Ranking Atual — Pesquisa mais recente
           </h3>
-          <p className="text-gray-400 text-xs mt-0.5">
+          <p className="text-slate-400 text-xs mt-0.5">
             {pollInstituto ? `${pollInstituto}` : 'TSE/PesqEle'}
             {pollDate ? ` (${pollDate})` : ''}
             {cenarioLabel ? ` · ${cenarioLabel}` : ''}
           </p>
         </div>
-        <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded font-bold">
+        <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-0.5 rounded-sm font-bold tracking-wider uppercase">
           {realCandidates.length} Candidatos
         </span>
       </div>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import DonutChart from '@/components/charts/DonutChart';
 import LineChart from '@/components/charts/LineChart';
+import Drawer from '@/components/ui/Drawer';
 import type { InstagramMetric, InstagramUiContract, InstagramUiPost, InstagramUiComment } from '@/lib/types/instagram-ui';
 
 const nf = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
@@ -759,138 +760,105 @@ function PostDrawer({
   comments: InstagramUiComment[];
   onClose: () => void;
 }) {
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onClose]);
-
   const hasAnalysis = Boolean(post.analysis.sentiment || post.analysis.risk);
   const actionText = recommendedActionText(post.analysis.recommendedAction, hasAnalysis);
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <Drawer
+      open={true}
+      onClose={onClose}
+      badge={<span className="text-[10px] uppercase font-bold tracking-[.16em] text-cyan-400">Investigação de Inteligência</span>}
+      title={post.candidateName || 'Instagram Post'}
     >
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="instagram-post-title"
-        className="ml-auto h-full w-full overflow-y-auto border-l border-white/10 bg-[#080d18] shadow-2xl sm:max-w-[768px]"
-      >
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#080d18]/95 p-4 backdrop-blur">
-          <div>
-            <p className="text-[10px] uppercase font-bold tracking-[.16em] text-cyan-400">Investigação de Inteligência</p>
-            <h2 id="instagram-post-title" className="mt-0.5 text-sm font-bold text-white">
-              {post.candidateName || 'Instagram Post'}
-            </h2>
+      <div className="space-y-6">
+        <Media post={post} />
+
+        <section className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-bold text-cyan-300">
+              {post.contentType}
+            </span>
+            <span className={`rounded border px-2.5 py-1 text-[10px] ${riskTone(post.analysis.risk)}`}>
+              Risco {label(post.analysis.risk)}
+            </span>
+            <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
+              Sentimento {label(post.analysis.sentiment)}
+            </span>
+            <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
+              Data {post.publishedAt ? new Intl.DateTimeFormat('pt-BR').format(new Date(post.publishedAt)) : '—'}
+            </span>
+            <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
+              Engajamento {metric(engagementMetric(post))}
+            </span>
           </div>
-          <button
-            type="button"
-            aria-label="Fechar análise"
-            onClick={onClose}
-            className="rounded-md border border-white/10 p-2 text-slate-300 hover:text-white transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </header>
+          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-200 font-normal bg-white/[0.02] p-4 rounded-lg border border-white/5">
+            {post.caption || 'Publicação sem legenda.'}
+          </p>
+          {post.url ? (
+            <a
+              href={post.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:underline"
+            >
+              <ExternalLink size={13} /> Abrir Publicação Original no Instagram
+            </a>
+          ) : null}
+        </section>
 
-        <div className="space-y-6 p-4 sm:p-6">
-          <Media post={post} />
+        <section className="grid grid-cols-3 gap-3">
+          <Kpi title="Likes" value={metric(post.metrics.likes)} detail="Informado" />
+          <Kpi title="Comentários" value={metric(post.metrics.comments)} detail="No post" />
+          <Kpi title="Plays" value={metric(post.metrics.plays)} detail="Quando disponível" />
+        </section>
 
-          <section className="space-y-3">
+        <AnalysisBlock title="Resumo de IA" text={post.analysis.summary} />
+        <AnalysisBlock title="Motivo do Risco" text={post.analysis.riskReason} />
+
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-2">
+            <Zap size={14} /> Protocolo & Ação Recomendada
+          </h3>
+          <div className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200 leading-relaxed">
+            {actionText}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Temas Detectados</h3>
+          {post.analysis.themes.length ? (
             <div className="flex flex-wrap gap-2">
-              <span className="rounded border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-bold text-cyan-300">
-                {post.contentType}
-              </span>
-              <span className={`rounded border px-2.5 py-1 text-[10px] ${riskTone(post.analysis.risk)}`}>
-                Risco {label(post.analysis.risk)}
-              </span>
-              <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
-                Sentimento {label(post.analysis.sentiment)}
-              </span>
-              <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
-                Data {post.publishedAt ? new Intl.DateTimeFormat('pt-BR').format(new Date(post.publishedAt)) : '—'}
-              </span>
-              <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
-                Engajamento {metric(engagementMetric(post))}
-              </span>
+              {post.analysis.themes.map((theme) => (
+                <span key={theme} className="rounded bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-slate-300 font-medium">
+                  {theme}
+                </span>
+              ))}
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-200 font-normal bg-white/[0.02] p-4 rounded-lg border border-white/5">
-              {post.caption || 'Publicação sem legenda.'}
-            </p>
-            {post.url ? (
-              <a
-                href={post.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:underline"
-              >
-                <ExternalLink size={13} /> Abrir Publicação Original no Instagram
-              </a>
-            ) : null}
-          </section>
+          ) : (
+            <p className="text-xs text-slate-500 italic">TEMA INDISPONÍVEL</p>
+          )}
+        </section>
 
-          <section className="grid grid-cols-3 gap-3">
-            <Kpi title="Likes" value={metric(post.metrics.likes)} detail="Informado" />
-            <Kpi title="Comentários" value={metric(post.metrics.comments)} detail="No post" />
-            <Kpi title="Plays" value={metric(post.metrics.plays)} detail="Quando disponível" />
-          </section>
-
-          <AnalysisBlock title="Resumo de IA" text={post.analysis.summary} />
-          <AnalysisBlock title="Motivo do Risco" text={post.analysis.riskReason} />
-
-          <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-2">
-              <Zap size={14} /> Protocolo & Ação Recomendada
-            </h3>
-            <div className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200 leading-relaxed">
-              {actionText}
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Temas Detectados</h3>
-            {post.analysis.themes.length ? (
-              <div className="flex flex-wrap gap-2">
-                {post.analysis.themes.map((theme) => (
-                  <span key={theme} className="rounded bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-slate-300 font-medium">
-                    {theme}
-                  </span>
-                ))}
-              </div>
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Comentários Coletados ({comments.length})</h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {comments.length ? (
+              comments.map((comment) => (
+                <article key={comment.id} className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
+                  <div className="flex justify-between text-[11px] text-slate-400 font-semibold mb-1">
+                    <span>@{comment.author || 'usuário'}</span>
+                    <span className="text-cyan-400">{metric(comment.likeCount)} likes</span>
+                  </div>
+                  <p className="text-sm text-slate-200 leading-5">{comment.text || 'Comentário sem texto.'}</p>
+                </article>
+              ))
             ) : (
-              <p className="text-xs text-slate-500 italic">TEMA INDISPONÍVEL</p>
+              <p className="text-sm text-slate-500 italic py-4 text-center">Nenhum comentário disponível neste recorte.</p>
             )}
-          </section>
-
-          <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Comentários Coletados ({comments.length})</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {comments.length ? (
-                comments.map((comment) => (
-                  <article key={comment.id} className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
-                    <div className="flex justify-between text-[11px] text-slate-400 font-semibold mb-1">
-                      <span>@{comment.author || 'usuário'}</span>
-                      <span className="text-cyan-400">{metric(comment.likeCount)} likes</span>
-                    </div>
-                    <p className="text-sm text-slate-200 leading-5">{comment.text || 'Comentário sem texto.'}</p>
-                  </article>
-                ))
-              ) : (
-                <p className="text-sm text-slate-500 italic py-4 text-center">Nenhum comentário disponível neste recorte.</p>
-              )}
-            </div>
-          </section>
-        </div>
-      </aside>
-    </div>
+          </div>
+        </section>
+      </div>
+    </Drawer>
   );
 }
 

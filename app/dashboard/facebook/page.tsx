@@ -54,23 +54,17 @@ export default async function FacebookPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <header className="border-b border-white/10 pb-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-cyan-400">Social Intelligence</p>
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-base font-bold text-white tracking-tight">Facebook</h1>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Monitoramento de páginas, engajamento e inteligência reputacional no Facebook.
-            </p>
-          </div>
-
-          <p className="text-xs text-slate-500">
-            {lastPostDate
-              ? `Última publicação: ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(lastPostDate))}`
-              : 'Sem atualizações recentes'}
-          </p>
-        </div>
+      {/* Header Ultra-Compacto */}
+      <header className="flex items-center gap-3 border-b border-white/[0.08] pb-3 mb-1">
+        <span className="text-[9px] font-bold uppercase tracking-[.2em] text-cyan-400 shrink-0">Social Intelligence</span>
+        <span className="h-3 w-px bg-white/[0.12] shrink-0" />
+        <h1 className="text-[15px] font-bold text-white tracking-tight leading-none">Facebook</h1>
+        <span className="text-[10px] text-slate-500 leading-none hidden sm:inline">Monitoramento de páginas, engajamento e inteligência reputacional.</span>
+        <span className="ml-auto text-[10px] text-slate-500 font-mono shrink-0">
+          {lastPostDate
+            ? `Última pub.: ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(lastPostDate))}`
+            : 'Sem atualizações recentes'}
+        </span>
       </header>
 
       {/* Filters Bar */}

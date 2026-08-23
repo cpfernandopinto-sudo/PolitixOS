@@ -68,52 +68,52 @@ export function ExecutiveSnapshotCards({ metrics, statusResult }: Props) {
       {/* LINHA 1: INDICADORES POLÍTICOS PRIMÁRIOS (Maior peso visual) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* 1. Líder Atual */}
-        <div className="bg-[#12192A] border border-blue-500/30 rounded-xl p-4 space-y-1 shadow-xl">
-          <div className="flex items-center justify-between text-gray-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Líder Atual</span>
-            <Crown size={15} className="text-blue-400" />
+        <div className="surface-primary p-4 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Líder Atual</span>
+            <Crown size={15} className="text-cyan-400" />
           </div>
-          <div className="text-lg font-extrabold text-white truncate" title={lider}>
+          <div className="text-base font-bold text-white truncate" title={lider}>
             {lider}
           </div>
         </div>
 
         {/* 2. 2º Colocado / Candidato Analisado */}
-        <div className="bg-[#12192A] border border-white/10 rounded-xl p-4 space-y-1 shadow-xl">
-          <div className="flex items-center justify-between text-gray-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-300">{segundoOuAnalisadoTitle}</span>
+        <div className="surface-primary p-4 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{segundoOuAnalisadoTitle}</span>
             <Target size={15} className="text-purple-400" />
           </div>
-          <div className="text-lg font-extrabold text-white truncate" title={segundoOuAnalisadoVal}>
+          <div className="text-base font-bold text-white truncate" title={segundoOuAnalisadoVal}>
             {segundoOuAnalisadoVal}
           </div>
         </div>
 
         {/* 3. Gap Líder x 2º / Distância p/ Líder */}
-        <div className="bg-[#12192A] border border-white/10 rounded-xl p-4 space-y-1 shadow-xl">
-          <div className="flex items-center justify-between text-gray-400">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-300">{gapTitle}</span>
-            <Activity size={15} className="text-blue-400" />
+        <div className="surface-primary p-4 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{gapTitle}</span>
+            <Activity size={15} className="text-cyan-400" />
           </div>
-          <div className="text-lg font-extrabold font-mono text-blue-400">
+          <div className="text-base font-bold font-mono text-cyan-400">
             {gapStr}
           </div>
         </div>
 
         {/* 4. Situação Analítica */}
-        <div className="bg-[#12192A] border border-white/10 rounded-xl p-4 flex flex-col justify-between shadow-xl">
-          <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-300">Situação Analítica</span>
+        <div className="surface-primary p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Situação Analítica</span>
             <ShieldAlert size={15} className="text-amber-400" />
           </div>
           <div>
             <span
-              className={`inline-block text-xs font-extrabold px-2.5 py-0.5 rounded border font-mono ${statusBadgeColor}`}
+              className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded border font-mono ${statusBadgeColor}`}
               title={statusResult.reason}
             >
               {statusResult.status}
             </span>
-            <p className="text-[10px] text-gray-400 truncate mt-1" title={statusResult.reason}>
+            <p className="text-[10px] text-slate-400 truncate mt-1" title={statusResult.reason}>
               {statusResult.reason}
             </p>
           </div>

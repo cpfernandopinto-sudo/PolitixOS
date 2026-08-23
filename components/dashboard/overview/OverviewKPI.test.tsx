@@ -24,10 +24,12 @@ describe('OverviewKPI — cards executivos (Camada 1, reintegração Sprint 6)',
     politicalStatus: mockPoliticalStatus,
   };
 
-  it('exibe os 6 cards executivos com os valores reais recebidos (nenhum valor simulado)', () => {
+  it('exibe os 7 cards executivos com os valores reais recebidos (nenhum valor simulado)', () => {
     render(<OverviewKPI {...props} />);
     expect(screen.getByText('Estado Político')).toBeInTheDocument();
     expect(screen.getByText('Estável')).toBeInTheDocument();
+    expect(screen.getByText('Pesquisas')).toBeInTheDocument();
+    expect(screen.getByText('Sem dados')).toBeInTheDocument();
     expect(screen.getByText('Saúde')).toBeInTheDocument();
     expect(screen.getByText('72')).toBeInTheDocument();
     expect(screen.getByText('Temperatura')).toBeInTheDocument();
@@ -40,10 +42,47 @@ describe('OverviewKPI — cards executivos (Camada 1, reintegração Sprint 6)',
     expect(screen.getByText((1234).toLocaleString('pt-BR'))).toBeInTheDocument();
   });
 
+  it('exibe dados reais de pesquisas quando há sinal eleitoral', () => {
+    render(
+      <OverviewKPI
+        {...props}
+        pesquisasSignal={{
+          movementPp: 2.5,
+          currentPercentage: 35.0,
+          comparability: 'sufficient',
+          confidence: 'alta',
+          pollCount: 6,
+        }}
+      />
+    );
+    expect(screen.getByText('+2.5')).toBeInTheDocument();
+    expect(screen.getByText(/6 levant\./)).toBeInTheDocument();
+    expect(screen.getByText(/série compar\./)).toBeInTheDocument();
+  });
+
+  it('exibe percentual recente e aviso de sem tendência quando comparabilidade é insuficiente', () => {
+    render(
+      <OverviewKPI
+        {...props}
+        pesquisasSignal={{
+          movementPp: null,
+          currentPercentage: 32.0,
+          comparability: 'insufficient',
+          confidence: 'baixa',
+          pollCount: 4,
+        }}
+      />
+    );
+    expect(screen.getByText('32%')).toBeInTheDocument();
+    expect(screen.getByText(/4 levant\./)).toBeInTheDocument();
+    expect(screen.getByText(/sem tendência/)).toBeInTheDocument();
+  });
+
   it('cada card explica seu papel de forma distinta (sem repetir o mesmo texto do Estado Político)', () => {
     render(<OverviewKPI {...props} />);
     const captions = [
-      'Consolidação sintética operacional',
+      'Selecione um candidato',
+      'Consolidação sintética',
       'Nível de tensão',
       'Variação de volume',
       'Ocorrências ativas',

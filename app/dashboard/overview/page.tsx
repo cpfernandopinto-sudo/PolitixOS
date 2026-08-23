@@ -31,6 +31,7 @@ import {
   getExecutiveTable,
   getTimelineEvents,
   getExecutiveOverviewData,
+  getOverviewPesquisasSignal,
   type OverviewFilters,
 } from '@/lib/queries/overview';
 import { parseGlobalFilters, getEffectiveCandidateIds, searchParamsToURLSearchParams } from '@/lib/filters/global';
@@ -59,9 +60,12 @@ async function NarrativeSection({ filters }: { filters: OverviewFilters }) {
 }
 
 async function KPISection({ filters }: { filters: OverviewFilters }) {
-  const kpis = await getOverviewKPIs(filters);
-  const { politicalStatus } = await getExecutiveOverviewData(filters);
-  return <OverviewKPI {...kpis} politicalStatus={politicalStatus} />;
+  const [kpis, { politicalStatus }, pesquisasSignal] = await Promise.all([
+    getOverviewKPIs(filters),
+    getExecutiveOverviewData(filters),
+    getOverviewPesquisasSignal(filters),
+  ]);
+  return <OverviewKPI {...kpis} politicalStatus={politicalStatus} pesquisasSignal={pesquisasSignal} />;
 }
 
 async function SynthesisSection({ filters }: { filters: OverviewFilters }) {

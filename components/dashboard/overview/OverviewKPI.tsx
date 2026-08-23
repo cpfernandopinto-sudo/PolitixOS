@@ -1,9 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Activity, AlertTriangle, BarChart3, Thermometer, TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight, Info, ChevronRight } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, Thermometer, TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight, Info, ChevronRight, Vote } from 'lucide-react';
 import type { PoliticalStatusResult } from '@/lib/analytics/political-status';
 import Drawer from '@/components/ui/Drawer';
+
+export interface ElectoralPollSignalKPI {
+  movementPp: number | null;
+  currentPercentage: number | null;
+  label?: string | null;
+  comparability: 'sufficient' | 'insufficient';
+  confidence?: 'baixa' | 'media' | 'alta';
+  pollCount?: number | null;
+  leader?: string | null;
+}
 
 interface KPIProps {
   score_geral: number;
@@ -12,6 +22,7 @@ interface KPIProps {
   alertas_ativos: number;
   volume_total: number;
   politicalStatus: PoliticalStatusResult;
+  pesquisasSignal?: ElectoralPollSignalKPI | null;
 }
 
 const SEVERITY_TEXT: Record<PoliticalStatusResult['severidade'], string> = {
@@ -52,6 +63,7 @@ export default function OverviewKPI({
   alertas_ativos,
   volume_total,
   politicalStatus,
+  pesquisasSignal,
 }: KPIProps) {
   const [showMethodology, setShowMethodology] = useState(false);
   // Add a slight delay to close so it doesn't flicker when moving mouse to popover
@@ -85,10 +97,10 @@ export default function OverviewKPI({
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5">
         {/* 1. Estado Político — Agora consolidado com Popover Executivo */}
         <div
-          className={`surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-cyan-400/30 transition-colors relative col-span-2 md:col-span-1 lg:col-span-2 bg-gradient-to-br from-white/[0.04] to-transparent cursor-pointer ${isHovered ? 'z-50' : 'z-10'}`}
+          className={`surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-cyan-400/30 transition-colors relative col-span-2 sm:col-span-1 lg:col-span-1 bg-gradient-to-br from-white/[0.04] to-transparent cursor-pointer ${isHovered ? 'z-50' : 'z-10'}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onFocus={() => setIsHovered(true)}
@@ -181,7 +193,59 @@ export default function OverviewKPI({
           )}
         </div>
 
-        {/* 2. Score de Saúde */}
+        {/* 2. Pesquisas Eleitorais */}
+        <div
+          className="surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-cyan-400/30 transition-colors relative overflow-hidden col-span-1"
+          title="Sinal de evolução eleitoral baseado em séries metodologicamente comparáveis do TSE/PesqEle."
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider truncate">Pesquisas</span>
+            <Vote className="text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" size={16} />
+          </div>
+          {/* Linha principal: percentual ou movimento */}
+          {pesquisasSignal ? (
+            <div>
+              {pesquisasSignal.comparability === 'sufficient' && pesquisasSignal.movementPp !== null ? (
+                // Série comparável: mostra movimento em p.p.
+                <div className={`text-xl font-bold font-mono leading-none ${pesquisasSignal.movementPp > 0 ? 'text-emerald-400' : pesquisasSignal.movementPp < 0 ? 'text-rose-400' : 'text-slate-200'}`}>
+                  {pesquisasSignal.movementPp > 0 ? `+${pesquisasSignal.movementPp}` : `${pesquisasSignal.movementPp}`} <span className="text-xs font-normal">p.p.</span>
+                </div>
+              ) : pesquisasSignal.currentPercentage !== null ? (
+                // Sem série mas com dado atual: mostra percentual
+                <div className="text-xl font-bold font-mono leading-none text-cyan-300">
+                  {pesquisasSignal.currentPercentage}% <span className="text-xs font-normal text-slate-500">intenção</span>
+                </div>
+              ) : (
+                <div className="text-sm font-bold text-slate-400 leading-none">Coletando...</div>
+              )}
+              <div className="text-[10px] text-slate-400 font-medium truncate mt-1">
+                {pesquisasSignal.pollCount ? `${pesquisasSignal.pollCount} levant.` : ''}
+                {pesquisasSignal.pollCount && pesquisasSignal.comparability === 'sufficient' ? ' · série compar.' : ''}
+                {pesquisasSignal.pollCount && pesquisasSignal.comparability !== 'sufficient' ? ' · sem tendência' : ''}
+                {!pesquisasSignal.pollCount && pesquisasSignal.currentPercentage !== null ? 'Último levantamento' : ''}
+                {!pesquisasSignal.pollCount && pesquisasSignal.currentPercentage === null ? 'Aguardando dados' : ''}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="text-sm font-bold text-slate-500 leading-none">Sem dados</div>
+              <div className="text-[10px] text-slate-600 font-medium truncate mt-1">Selecione um candidato</div>
+            </div>
+          )}
+          {/* Accent Line */}
+          <div className="absolute bottom-0 left-0 h-1 w-full bg-cyan-400/20">
+            <div
+              className={`h-full ${
+                pesquisasSignal && pesquisasSignal.comparability === 'sufficient' && pesquisasSignal.movementPp !== null
+                  ? pesquisasSignal.movementPp >= 0 ? 'bg-emerald-400' : 'bg-rose-400'
+                  : 'bg-slate-600'
+              }`}
+              style={{ width: pesquisasSignal && pesquisasSignal.comparability === 'sufficient' ? '100%' : '30%' }}
+            />
+          </div>
+        </div>
+
+        {/* 3. Score de Saúde */}
         <div
           className="surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-cyan-400/30 transition-colors relative overflow-hidden col-span-1"
           title="Consolidação sintética operacional — inverso do risco consolidado usado no Estado Político e no Termômetro de Crise (100 − risco)."
@@ -194,14 +258,14 @@ export default function OverviewKPI({
             {score_geral}
             <span className="text-xs text-slate-500 ml-1 font-normal">/100</span>
           </div>
-          <div className="text-[10px] text-cyan-400/80 font-medium truncate mb-1">Consolidação sintética operacional</div>
+          <div className="text-[10px] text-cyan-400/80 font-medium truncate mb-1">Consolidação sintética</div>
           {/* Accent Progress Line */}
           <div className="absolute bottom-0 left-0 h-1 w-full bg-cyan-400/20">
             <div className="h-full bg-cyan-400 transition-all duration-500" style={{ width: `${score_geral}%` }} />
           </div>
         </div>
 
-        {/* 3. Temperatura */}
+        {/* 4. Temperatura */}
         <div
           className="surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-orange-400/30 transition-colors relative overflow-hidden col-span-1"
           title="Nível atual de tensão — rótulo qualitativo derivado do mesmo score de crise, sem a classificação executiva do Estado Político."
@@ -218,7 +282,7 @@ export default function OverviewKPI({
           <div className={`absolute bottom-0 left-0 h-1 w-full ${getTempBgColor(temperatura_geral)}`} />
         </div>
 
-        {/* 4. Tendência */}
+        {/* 5. Tendência */}
         <div
           className="surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-blue-400/30 transition-colors relative overflow-hidden col-span-1"
           title="Direção temporal do volume monitorado no período, comparado ao período imediatamente anterior."
@@ -233,7 +297,7 @@ export default function OverviewKPI({
           <div className="text-[10px] text-slate-500 font-medium truncate mb-1">Variação de volume</div>
         </div>
 
-        {/* 5. Alertas */}
+        {/* 6. Alertas */}
         <div
           className="surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-red-400/30 transition-colors relative overflow-hidden col-span-1"
           title="Volume de ocorrências relevantes (contagem) — a leitura de severidade fica em Riscos Prioritários e Alertas Prioritários."
@@ -246,7 +310,7 @@ export default function OverviewKPI({
           <div className="text-[10px] text-slate-500 font-medium truncate mb-1">Ocorrências ativas</div>
         </div>
 
-        {/* 6. Volume */}
+        {/* 7. Volume */}
         <div
           className="surface-primary px-4 py-3.5 h-[92px] flex flex-col justify-between group hover:border-purple-400/30 transition-colors relative overflow-hidden col-span-1"
           title="Dimensão bruta da base monitorada (notícias + posts) no período selecionado."

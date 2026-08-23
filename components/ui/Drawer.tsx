@@ -87,25 +87,28 @@ export default function Drawer({
 
   if (!open || !mounted) return null;
 
-  // Largura lateral responsiva (38% a 45% da tela em desktop)
+  // Largura lateral executiva controlada:
+  // Mobile: w-full (100vw)
+  // Tablet/Desktop: 600px a 700px fixos, nunca vw excessivo que tome metade ou mais da tela
   const panelWidthClass =
-    widthClassName ?? 'w-full sm:w-[480px] lg:w-[540px] xl:w-[600px] sm:max-w-[45vw]';
+    widthClassName ?? 'w-full sm:w-[600px] md:w-[640px] lg:w-[680px] xl:w-[700px] max-w-[700px]';
 
   return createPortal(
-    <div className="fixed inset-0 z-[150] flex justify-end" role="presentation">
-      {/* Backdrop Moderado para preservar visualização do dashboard ao fundo */}
+    <div role="presentation" className="drawer-portal-root">
+      {/* 1. Backdrop / Overlay: cobre a viewport inteira (100vw, 100vh) com escurecimento moderado (45-60%) */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={onClose}
+        aria-hidden="true"
       />
 
-      {/* Painel Lateral (Drawer) */}
+      {/* 2. Painel Lateral (Drawer): ancorado estritamente à direita (top:0, right:0, bottom:0), sem ocupar a tela inteira */}
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : 'Painel de detalhes'}
-        className={`relative h-full ${panelWidthClass} bg-[#0F131C] border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200`}
+        className={`fixed top-0 right-0 bottom-0 z-[151] ${panelWidthClass} bg-[#0F131C] border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200`}
       >
         {/* Header Fixo Sticky */}
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 p-4 sm:p-5 border-b border-white/10 bg-[#0F131C]/95 backdrop-blur-md">
@@ -131,7 +134,7 @@ export default function Drawer({
             data-drawer-close
             onClick={onClose}
             aria-label="Fechar painel"
-            className="shrink-0 p-2 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="shrink-0 p-2 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
           >
             <X size={18} />
           </button>

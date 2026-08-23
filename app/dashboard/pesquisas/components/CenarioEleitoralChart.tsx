@@ -190,24 +190,24 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
   };
 
   return (
-    <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between pb-2 border-b border-white/5 flex-wrap gap-2">
+    <section className="surface-primary p-5 space-y-4">
+      <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] flex-wrap gap-2">
         <div>
           <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-            <ScatterChart size={15} className="text-blue-500" /> Cenário Eleitoral no Período (Todos os Candidatos)
+            <ScatterChart size={15} className="text-cyan-400" /> Cenário Eleitoral no Período (Todos os Candidatos)
           </h3>
-          <p className="text-gray-400 text-xs mt-0.5">
+          <p className="text-slate-400 text-xs mt-0.5">
             Evolução multissérie de intenções de voto no tempo com levantamentos reais.
           </p>
         </div>
 
-        <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded font-bold">
+        <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-1 rounded-sm font-bold tracking-wider uppercase">
           {pollGroups.length} Levantamentos · {candidateList.length} Candidatos
         </span>
       </div>
 
-      <p className="text-gray-500 text-[11px] flex items-center gap-1.5">
-        <Info size={12} className="text-blue-400 shrink-0" />
+      <p className="text-slate-400 text-[11px] flex items-center gap-1.5">
+        <Info size={12} className="text-cyan-400 shrink-0" />
         Passe o mouse sobre os pontos para visualizar a lista completa de todos os concorrentes na data selecionada.
       </p>
 
