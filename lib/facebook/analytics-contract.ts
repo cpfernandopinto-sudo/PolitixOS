@@ -47,6 +47,9 @@ export interface FacebookAnalyticsPost {
   text: string | null;
   publishedAt: string | null;
   url: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  thumbnailUrl: string | null;
   engagement: FacebookAnalyticsEngagement;
 }
 
@@ -56,9 +59,13 @@ export interface FacebookAnalyticsSourceRow {
   target_id?: string | null;
   content_origin?: string | null;
   content_type?: string | null;
+  media_type?: string | null;
+  media_url?: string | null;
   caption?: string | null;
   taken_at?: string | null;
   post_url?: string | null;
+  platform_post_id?: string | null;
+  comment_count?: number | null;
   raw_json?: unknown;
 }
 
@@ -72,6 +79,12 @@ function toNumber(value: unknown): number | null {
 
 function toText(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function toVisualAssetUrl(value: unknown): string | null {
+  const url = toText(value);
+  if (!url) return null;
+  return /^https?:\/\/(?:www\.)?facebook\.com\/reel(?:\/|$)/i.test(url) ? null : url;
 }
 
 function reactionsBreakdown(raw: Record<string, unknown>): FacebookReactionBreakdown {
@@ -90,6 +103,33 @@ function reactionsBreakdown(raw: Record<string, unknown>): FacebookReactionBreak
 /** Normaliza uma linha de social_posts/facebook_posts_pending_analysis para o contrato analítico. Nunca converte ausência em zero. */
 export function toFacebookAnalyticsContract(row: FacebookAnalyticsSourceRow): FacebookAnalyticsPost {
   const raw = asRecord(row.raw_json);
+  const payload = asRecord(raw.payload);
+  const payloadImage = asRecord(payload.image);
+
+  const mediaUrl =
+    toVisualAssetUrl(row.media_url) ??
+    toVisualAssetUrl(raw.media_url) ??
+    toVisualAssetUrl(payload.image_url) ??
+    toVisualAssetUrl(payload.media_url) ??
+    toText(payloadImage.uri) ??
+    toText(payloadImage.url) ??
+    toText(payloadImage.src) ??
+    toText(payload.image) ??
+    null;
+
+  const thumbnailUrl =
+    toText(raw.thumbnail_url) ??
+    toText(payload.thumbnail_url) ??
+    toText(payload.video_thumbnail) ??
+    toText(payload.profile_picture_url) ??
+    null;
+
+  const mediaType =
+    toText(row.media_type) ??
+    toText(raw.post_type) ??
+    toText(payload.type) ??
+    (mediaUrl ? 'image' : null);
+
   return {
     id: row.id,
     clientId: row.client_id ?? null,
@@ -100,6 +140,9 @@ export function toFacebookAnalyticsContract(row: FacebookAnalyticsSourceRow): Fa
     text: toText(row.caption),
     publishedAt: row.taken_at ?? null,
     url: row.post_url ?? null,
+    mediaUrl,
+    mediaType,
+    thumbnailUrl,
     engagement: {
       likes: null,
       reactionsTotal: toNumber(raw.reactions_count),

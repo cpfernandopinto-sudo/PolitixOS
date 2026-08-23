@@ -9,11 +9,70 @@ import {
   type FacebookAnalysisDbClient,
   type FacebookAnalysisRunSummary,
 } from '@/lib/facebook/analysis-runner';
+import {
+  runFacebookCommentsForClient,
+  type FacebookCommentsClientRunSummary,
+  type FacebookCommentsRunnerDb,
+} from '@/lib/facebook/comments/runner';
+import { FacebookCommentsProvider, facebookCommentsProviderConfigFromEnv } from '@/lib/facebook/comments/provider';
 import { createAdminClient } from '@/lib/supabaseClient';
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
+import { consumeRateLimit } from '@/lib/facebook/analyze-rate-limit';
+
 const MAX_POSTS = 20;
-const rateLimitBuckets = new Map<string, number>();
+function boundedEnvInteger(name: string, fallback: number, maximum: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, maximum) : fallback;
+}
+
+const COMMENTS_MAX_POSTS_PER_RUN = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_POSTS_PER_RUN', 5, 20);
+const COMMENTS_MAX_PER_POST = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_PER_POST', 50, 100);
+const COMMENTS_MAX_PAGES = boundedEnvInteger('FACEBOOK_COMMENTS_MAX_PAGES', 5, 10);
+const COMMENTS_STAGE_TIMEOUT_MS = boundedEnvInteger('FACEBOOK_COMMENTS_STAGE_TIMEOUT_MS', 45_000, 120_000);
+
+type CommentsStatus = 'SUCCESS' | 'SUCCESS_WITH_FAILURES' | 'NOTHING_TO_PROCESS' | 'SKIPPED_PROVIDER_CREDENTIAL_MISSING' | 'FAILED';
+
+/**
+ * Coleta/analisa comentários (audience intelligence) para posts do client/target
+ * já elegíveis (ver facebook_posts_pending_audience — independente do estado
+ * de análise de sentimento do post). Isolada da análise de sentimento: uma
+ * falha aqui NUNCA derruba a resposta principal de `/analyze` (mesmo
+ * princípio de isolamento por etapa já usado em runFacebookAnalysis/
+ * runFacebookOwnedCollection). Sem credencial RapidAPI configurada, pula de
+ * forma explícita e não vaza detalhe de configuração ao chamador.
+ */
+async function runCommentsAudienceStage(db: FacebookCommentsRunnerDb, clientId: string, targetId: string): Promise<{ status: CommentsStatus; summary?: FacebookCommentsClientRunSummary; code?: string }> {
+  let source: FacebookCommentsProvider;
+  try {
+    source = new FacebookCommentsProvider(facebookCommentsProviderConfigFromEnv());
+  } catch {
+    return { status: 'SKIPPED_PROVIDER_CREDENTIAL_MISSING' };
+  }
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('FACEBOOK_COMMENTS_STAGE_TIMEOUT')), COMMENTS_STAGE_TIMEOUT_MS);
+    });
+    const summary = await Promise.race([
+      runFacebookCommentsForClient({
+        source,
+        db,
+        clientId,
+        targetId,
+        maxPosts: COMMENTS_MAX_POSTS_PER_RUN,
+        maxComments: COMMENTS_MAX_PER_POST,
+        maxPages: COMMENTS_MAX_PAGES,
+      }),
+      deadline,
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
+    const status: CommentsStatus = summary.eligible === 0 ? 'NOTHING_TO_PROCESS' : summary.failed > 0 ? 'SUCCESS_WITH_FAILURES' : 'SUCCESS';
+    return { status, summary };
+  } catch (error) {
+    return { status: 'FAILED', code: error instanceof Error ? error.message : 'FACEBOOK_COMMENTS_AUDIENCE_FAILED' };
+  }
+}
 
 const payloadSchema = z.object({
   clientId: z.string().uuid(),
@@ -40,13 +99,6 @@ function correlationIdFrom(request: NextRequest): string {
   return received && /^[A-Za-z0-9._:-]{1,128}$/.test(received) ? received : randomUUID();
 }
 
-function consumeRateLimit(key: string, now = Date.now()): boolean {
-  const previous = rateLimitBuckets.get(key);
-  if (previous && now - previous < RATE_LIMIT_WINDOW_MS) return false;
-  rateLimitBuckets.set(key, now);
-  return true;
-}
-
 function operationalStatus(summary: FacebookAnalysisRunSummary): OperationalStatus {
   if (summary.eligible === 0) return 'NOTHING_TO_PROCESS';
   if (summary.failed > 0) return 'SUCCESS_WITH_FAILURES';
@@ -70,9 +122,7 @@ function safeFailure(error: unknown): { code: string; status: number } {
   return { code: 'FACEBOOK_ANALYSIS_FAILED', status: 500 };
 }
 
-export function __resetFacebookAnalyzeRateLimitForTests() {
-  rateLimitBuckets.clear();
-}
+
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
@@ -131,6 +181,9 @@ export async function POST(request: NextRequest) {
     });
     const status = operationalStatus(summary);
     const items = summary.items.map((item) => ({ ...item, reason: safeItemReason(item.reason) }));
+
+    const commentsAudience = await runCommentsAudienceStage(db as unknown as FacebookCommentsRunnerDb, clientId, targetId);
+
     const response = {
       ok: true,
       status,
@@ -146,11 +199,25 @@ export async function POST(request: NextRequest) {
       analysisComplete: summary.failed === 0,
       termination: status === 'NOTHING_TO_PROCESS' ? 'NOTHING_TO_PROCESS' : status === 'SUCCESS' ? 'COMPLETED' : 'COMPLETED_WITH_FAILURES',
       items,
+      commentsAudience: {
+        status: commentsAudience.status,
+        eligible: commentsAudience.summary?.eligible ?? 0,
+        processed: commentsAudience.summary?.processed ?? 0,
+        success: commentsAudience.summary?.success ?? 0,
+        failed: commentsAudience.summary?.failed ?? 0,
+        skipped: commentsAudience.summary?.skipped ?? 0,
+        commentsCollected: commentsAudience.summary?.items.reduce((sum, item) => sum + (item.commentsCollected ?? 0), 0) ?? 0,
+        commentsAnalyzed: commentsAudience.summary?.items.reduce((sum, item) => sum + (item.commentsAnalyzed ?? 0), 0) ?? 0,
+      },
     };
     console.info('[FacebookAnalyze]', {
       correlationId, clientId, targetId, platform: 'facebook', status,
       eligible: summary.eligible, success: summary.success, failed: summary.failed,
       skipped: summary.skipped, durationMs: Date.now() - startedAt,
+      commentsAudienceStatus: commentsAudience.status,
+      commentsAudienceEligible: commentsAudience.summary?.eligible ?? 0,
+      commentsCollected: response.commentsAudience.commentsCollected,
+      commentsAnalyzed: response.commentsAudience.commentsAnalyzed,
     });
     return NextResponse.json(response);
   } catch (error) {

@@ -46,6 +46,40 @@ describe('Facebook V1 normalizer', () => {
     expect(post).toMatchObject({ mediaType: 'video', mediaUrl: 'https://cdn.example/video.mp4', publishedAt: '2026-08-20T12:00:00.000Z' });
   });
 
+  it('Reel real: post.video é a URL DA PÁGINA do Reel (string), nunca deve virar mediaUrl (quebraria o <img>) — usa video_thumbnail', () => {
+    const post = normalizeFacebookPost({
+      post_id: 'reel-1', type: 'post', timestamp: 1_787_400_000,
+      video: 'https://www.facebook.com/reel/1877133286597772/',
+      video_thumbnail: 'https://scontent.example/thumb.jpg',
+      video_files: { video_hd_file: 'https://video.example/hd.mp4', video_sd_file: 'https://video.example/sd.mp4' },
+    }, 'page-1');
+    expect(post.mediaUrl).toBeNull();
+    expect(post.thumbnailUrl).toBe('https://scontent.example/thumb.jpg');
+    expect(post.mediaType).toBe('video');
+  });
+
+  it('Reel real: também rejeita URL da página quando o provider a envia em media_url', () => {
+    const post = normalizeFacebookPost({
+      post_id: 'reel-media-url', type: 'reel',
+      media_url: 'https://www.facebook.com/reel/1877133286597772/',
+      video_thumbnail: 'https://scontent.example/reel-thumb.jpg',
+    }, 'page-1');
+    expect(post.mediaUrl).toBeNull();
+    expect(post.thumbnailUrl).toBe('https://scontent.example/reel-thumb.jpg');
+    expect(post.mediaType).toBe('reel');
+  });
+
+  it('minimização de payload: nunca persiste video_files (URLs assinadas temporárias e pesadas, sem consumidor) em rawPayload', () => {
+    const post = normalizeFacebookPost({
+      post_id: 'reel-2', type: 'post', timestamp: 1_787_400_000,
+      video: 'https://www.facebook.com/reel/999/', video_thumbnail: 'https://scontent.example/thumb2.jpg',
+      video_files: { video_hd_file: 'https://video.example/hd2.mp4', video_sd_file: 'https://video.example/sd2.mp4' },
+      message: 'legenda preservada',
+    }, 'page-1');
+    expect(post.rawPayload).not.toHaveProperty('video_files');
+    expect(post.rawPayload.message).toBe('legenda preservada');
+  });
+
   it('falha fechada sem post_id estável', () => {
     expect(() => normalizeFacebookPost({ message: 'sem id' }, 'page-1')).toThrow('FACEBOOK_POST_ID_MISSING');
   });

@@ -9,7 +9,8 @@ vi.mock('@/lib/auth/session', () => ({ getSession: mockGetSession }));
 vi.mock('@/lib/facebook/operational', () => ({ runFacebookCollectionForSocialAccount: mockRun }));
 vi.mock('@/lib/supabaseClient', () => ({ createAdminClient: () => ({ kind: 'admin' }) }));
 
-import { __resetFacebookTriggerRateLimitForTests, POST } from './route';
+import { POST } from './route';
+import { __resetFacebookTriggerRateLimitForTests } from '@/lib/facebook/trigger-rate-limit';
 
 const gestor = {
   userId: 'user-1', role: 'gestor', permissions: ['automacoes'],

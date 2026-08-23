@@ -6,9 +6,8 @@ import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
 import { runFacebookCollectionForSocialAccount } from '@/lib/facebook/operational';
 import { createAdminClient } from '@/lib/supabaseClient';
+import { consumeTriggerRateLimit } from '@/lib/facebook/trigger-rate-limit';
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const rateLimitBuckets = new Map<string, number>();
 const payloadSchema = z.object({
   socialAccountId: z.string().uuid(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -21,13 +20,6 @@ function validServiceSecret(received: string | null, expected: string | undefine
   const left = Buffer.from(received);
   const right = Buffer.from(expected);
   return left.length === right.length && timingSafeEqual(left, right);
-}
-
-function consumeRateLimit(key: string, now = Date.now()): boolean {
-  const previous = rateLimitBuckets.get(key);
-  if (previous && now - previous < RATE_LIMIT_WINDOW_MS) return false;
-  rateLimitBuckets.set(key, now);
-  return true;
 }
 
 function sameOrigin(request: NextRequest): boolean {
@@ -44,10 +36,6 @@ function safeOperationalError(error: unknown): { code: string; status: number } 
   if (code.includes('PROVIDER_')) return { code, status: 502 };
   if (code === 'FACEBOOK_CROSS_TENANT_POST_CONFLICT' || code === 'FACEBOOK_POST_CONTEXT_CONFLICT') return { code, status: 409 };
   return { code: 'FACEBOOK_OPERATIONAL_FAILED', status: 500 };
-}
-
-export function __resetFacebookTriggerRateLimitForTests() {
-  rateLimitBuckets.clear();
 }
 
 export async function POST(request: NextRequest) {
@@ -76,7 +64,7 @@ export async function POST(request: NextRequest) {
   const rateLimitKey = serviceAuthenticated
     ? `service:${parsed.data.socialAccountId}`
     : `user:${session!.userId}:${parsed.data.socialAccountId}`;
-  if (!consumeRateLimit(rateLimitKey)) {
+  if (!consumeTriggerRateLimit(rateLimitKey)) {
     return NextResponse.json({ ok: false, code: 'RATE_LIMITED' }, { status: 429, headers: { 'Retry-After': '60' } });
   }
 

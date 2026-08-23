@@ -1,14 +1,16 @@
 import { NextRequest } from 'next/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockGetSession, mockRun, mockFrom } = vi.hoisted(() => ({
-  mockGetSession: vi.fn(), mockRun: vi.fn(), mockFrom: vi.fn(),
+const { mockGetSession, mockRun, mockFrom, mockRunComments } = vi.hoisted(() => ({
+  mockGetSession: vi.fn(), mockRun: vi.fn(), mockFrom: vi.fn(), mockRunComments: vi.fn(),
 }));
 vi.mock('@/lib/auth/session', () => ({ getSession: mockGetSession }));
 vi.mock('@/lib/facebook/analysis-runner', () => ({ runFacebookAnalysis: mockRun }));
+vi.mock('@/lib/facebook/comments/runner', () => ({ runFacebookCommentsForClient: mockRunComments }));
 vi.mock('@/lib/supabaseClient', () => ({ createAdminClient: () => ({ from: mockFrom }) }));
 
-import { __resetFacebookAnalyzeRateLimitForTests, POST } from './route';
+import { POST } from './route';
+import { __resetFacebookAnalyzeRateLimitForTests } from '@/lib/facebook/analyze-rate-limit';
 
 const clientId = '11111111-1111-4111-8111-111111111111';
 const targetId = '22222222-2222-4222-8222-222222222222';
@@ -127,5 +129,64 @@ describe('POST /api/automations/facebook/analyze', () => {
     const response = await POST(request({ clientId, targetId }, { 'x-webhook-secret': 'server-secret' }));
     expect(response.status).toBe(200);
     expect(mockGetSession).not.toHaveBeenCalled();
+  });
+
+  describe('estágio de comentários/audiência (aditivo, isolado da análise de sentimento)', () => {
+    afterEach(() => { delete process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY; });
+
+    it('sem credencial RapidAPI configurada, reporta SKIPPED sem afetar status/HTTP principal', async () => {
+      delete process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY;
+      const response = await POST(request({ clientId, targetId }));
+      const body = await response.json();
+      expect(response.status).toBe(200);
+      expect(body.status).toBe('SUCCESS');
+      expect(body.commentsAudience).toMatchObject({ status: 'SKIPPED_PROVIDER_CREDENTIAL_MISSING', eligible: 0, commentsCollected: 0, commentsAnalyzed: 0 });
+      expect(mockRunComments).not.toHaveBeenCalled();
+    });
+
+    it('com credencial disponível, agrega comentários coletados/analisados no payload sem alterar status/termination da análise de sentimento', async () => {
+      process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY = 'test-key';
+      mockRunComments.mockResolvedValue({
+        eligible: 2, processed: 2, success: 2, failed: 0, skipped: 0,
+        items: [
+          { postId: 'post-1', outcome: 'success', commentsCollected: 300, commentsAnalyzed: 50 },
+          { postId: 'post-2', outcome: 'success', commentsCollected: 1, commentsAnalyzed: 1 },
+        ],
+      });
+      const response = await POST(request({ clientId, targetId }));
+      const body = await response.json();
+      expect(response.status).toBe(200);
+      expect(body.status).toBe('SUCCESS');
+      expect(body.termination).toBe('COMPLETED');
+      expect(body.commentsAudience).toMatchObject({ status: 'SUCCESS', eligible: 2, success: 2, failed: 0, commentsCollected: 301, commentsAnalyzed: 51 });
+      expect(mockRunComments).toHaveBeenCalledWith(expect.objectContaining({ clientId, targetId, maxPosts: 5, maxComments: 50, maxPages: 5 }));
+    });
+
+    it('falha no estágio de comentários não derruba a resposta principal de sentimento (isolamento de etapa)', async () => {
+      process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY = 'test-key';
+      mockRunComments.mockRejectedValue(new Error('FACEBOOK_PENDING_AUDIENCE_QUERY_FAILED: db down'));
+      const response = await POST(request({ clientId, targetId }));
+      const body = await response.json();
+      expect(response.status).toBe(200);
+      expect(body.status).toBe('SUCCESS');
+      expect(body.commentsAudience).toMatchObject({ status: 'FAILED', eligible: 0 });
+    });
+
+    it('timeout total do estágio de comentários não derruba a resposta principal', async () => {
+      vi.useFakeTimers();
+      try {
+        process.env.FACEBOOK_SCRAPER_RAPIDAPI_KEY = 'test-key';
+        mockRunComments.mockReturnValue(new Promise(() => undefined));
+        const responsePromise = POST(request({ clientId, targetId }));
+        await vi.advanceTimersByTimeAsync(45_000);
+        const response = await responsePromise;
+        const body = await response.json();
+        expect(response.status).toBe(200);
+        expect(body.status).toBe('SUCCESS');
+        expect(body.commentsAudience).toMatchObject({ status: 'FAILED', eligible: 0 });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

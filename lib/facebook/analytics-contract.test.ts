@@ -44,6 +44,16 @@ describe('toFacebookAnalyticsContract', () => {
     expect(contract.engagement.comments.count).toBeNull();
     expect(contract.engagement.reactionsBreakdown).toEqual({ like: null, love: null, care: null, haha: null, wow: null, sad: null, angry: null });
   });
+
+  it('ignora media_url legado que aponta para a página do Reel e preserva o thumbnail', () => {
+    const contract = toFacebookAnalyticsContract({
+      ...baseRow,
+      media_url: 'https://www.facebook.com/reel/1877133286597772/',
+      raw_json: { thumbnail_url: 'https://scontent.example/reel-thumb.jpg' },
+    });
+    expect(contract.mediaUrl).toBeNull();
+    expect(contract.thumbnailUrl).toBe('https://scontent.example/reel-thumb.jpg');
+  });
 });
 
 describe('computeFacebookEngagementTotal', () => {
