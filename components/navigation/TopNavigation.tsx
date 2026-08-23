@@ -60,9 +60,9 @@ export default function TopNavigation({ permissions, userName, roleLabel }: Prop
         className="mr-3 flex shrink-0 items-center md:mr-5 lg:mr-7"
       >
         <img
-          src="/brand/PolitixOS.png"
-          alt="PolitixOS"
-          className="h-[22px] w-auto object-contain drop-shadow-[0_0_18px_rgba(59,130,246,0.18)] sm:h-[25px] md:h-[29px]"
+          src="/brand/politix.svg"
+          alt="Politix"
+          className="w-[130px] sm:w-[150px] md:w-[160px] h-auto shrink-0 object-contain drop-shadow-[0_0_18px_rgba(59,130,246,0.18)]"
         />
       </Link>
 

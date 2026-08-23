@@ -19,9 +19,9 @@ export default function LoginPage() {
       <div className="glass w-full max-w-md p-8 rounded-2xl relative z-10 border border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.1)]">
         <div className="text-center mb-10 flex flex-col items-center">
           <img
-            src="/brand/PolitixOS.png"
-            alt="PolitixOS Logo"
-            className="w-auto h-auto max-w-[240px] mb-4 object-contain"
+            src="/brand/politix.svg"
+            alt="Politix"
+            className="w-[220px] h-auto mb-4 object-contain"
           />
           <p className="text-gray-400 text-sm">Painel de Inteligência Política em Tempo Real</p>
         </div>

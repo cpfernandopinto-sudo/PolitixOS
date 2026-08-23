@@ -53,9 +53,9 @@ export default function Header({ permissions, userName, roleLabel, candidates, g
         <div className="hidden md:flex w-60 shrink-0 items-center px-5 border-r border-white/[0.08] select-none">
           <Link href="/dashboard/overview" className="flex items-center">
             <img
-              src="/brand/PolitixOS.png"
-              alt="PolitixOS"
-              className="w-auto max-w-[140px] h-6 object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+              src="/brand/politix.svg"
+              alt="Politix"
+              className="w-[160px] h-auto shrink-0 object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.15)]"
             />
           </Link>
         </div>

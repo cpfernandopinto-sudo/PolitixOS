@@ -89,6 +89,6 @@ export const config = {
      * - /brand/* (public assets)
      * - /api/* (API routes handle their own auth)
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|brand|api).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|icone\\.svg|politix\\.svg|icon\\.svg|brand|api).*)',
   ],
 };

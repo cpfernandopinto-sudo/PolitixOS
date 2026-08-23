@@ -48,9 +48,9 @@ export default function MobileNavigationDrawer({ open, onClose, groups, currentH
       <div className="absolute left-0 top-0 flex h-full w-[85%] max-w-[320px] flex-col border-r border-blue-300/10 bg-[#0D1526] shadow-[16px_0_48px_rgba(0,0,0,0.5)] [animation:navdrawer-in_180ms_ease-out]">
         <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3.5">
           <img
-            src="/brand/PolitixOS.png"
-            alt="PolitixOS"
-            className="h-[22px] w-auto object-contain"
+            src="/brand/politix.svg"
+            alt="Politix"
+            className="w-[140px] h-auto object-contain"
           />
           <button
             type="button"

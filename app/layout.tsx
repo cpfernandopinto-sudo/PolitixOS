@@ -8,8 +8,13 @@ export const metadata: Metadata = {
   },
   description: "Radar de inteligência política com análise de sentimento, risco e monitoramento de mídia em tempo real.",
   icons: {
-    icon: "/favicon.ico"
-  }
+    icon: [
+      { url: '/icone.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: '/icone.svg',
+    apple: '/icone.svg',
+  },
 };
 
 export default function RootLayout({
