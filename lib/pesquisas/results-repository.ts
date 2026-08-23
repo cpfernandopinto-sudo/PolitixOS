@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabaseClient';
 import type { ElectoralPoll, ElectoralPollResult, ElectoralPollResultUpsert } from './types';
+import { arePollsComparable, areScenariosEquivalent } from './comparability';
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -84,7 +85,23 @@ export interface TemporalSeriesEntry {
  * sem ambiguidade). Pesquisas com cenários fragmentados (ex.: MG/abril,
  * que testa Cleitinho contra um adversário por vez) ficam de fora
  * automaticamente — nunca escolhemos um cenário "representativo" entre
- * vários, isso seria inventar comparabilidade. Exige 2+ pesquisas elegíveis.
+ * vários, isso seria inventar comparabilidade.
+ *
+ * PESQUISAS-N8N-01 (correção pós-validação real): entre as pesquisas
+ * elegíveis, só entram na série as que são REALMENTE comparáveis entre si —
+ * mesmo cargo/UF (arePollsComparable) e mesmo conjunto de candidatos no
+ * cenário (areScenariosEquivalent), ancorado na leitura mais recente. É o
+ * mesmo par de funções de comparability.ts já usado por
+ * calculateCockpitMetrics (cockpitAnalytics.ts) para montar `comparablePolls`
+ * — reaproveitado aqui, não uma heurística nova. Achado real que motivou a
+ * correção: Michelle Bolsonaro/Senado/DF tem 3 leituras (Instituto Opinião,
+ * Paraná Pesquisas, Real Time Big Data) cada uma com metodologia de cenário
+ * diferente (a própria `provenance` de cada resultado já avisa isso) — antes
+ * desta correção, a série desenhava 38,8%→36%→25% como se fosse uma
+ * tendência única; `calculateCockpitMetrics`/`deriveElectoralSignals` já
+ * recusavam essa mesma comparação (`hasSufficientSeries=false`), então a
+ * Visão Executiva estava sendo mais permissiva que o resto do módulo.
+ * Continua exigindo 2+ pesquisas comparáveis para produzir série.
  */
 export function buildTemporalSeries(polls: PriorityRacePoll[]): TemporalSeriesEntry[] {
   const eligible = polls.filter((p) => {
@@ -95,7 +112,19 @@ export function buildTemporalSeries(polls: PriorityRacePoll[]): TemporalSeriesEn
   });
   if (eligible.length < 2) return [];
 
-  const sorted = [...eligible].sort((a, b) => (a.campoInicio ?? '').localeCompare(b.campoInicio ?? ''));
+  const eligibleDesc = [...eligible].sort((a, b) => (b.campoInicio ?? '').localeCompare(a.campoInicio ?? ''));
+  const anchor = eligibleDesc[0];
+  const anchorT1 = anchor.results.filter((r) => r.turno === 1 && r.tipoPergunta === 'estimulada');
+
+  const comparable = eligibleDesc.filter((p) => {
+    if (p.id === anchor.id) return true;
+    if (!arePollsComparable(anchor, p)) return false;
+    const pT1 = p.results.filter((r) => r.turno === 1 && r.tipoPergunta === 'estimulada');
+    return areScenariosEquivalent(anchorT1, pT1);
+  });
+  if (comparable.length < 2) return [];
+
+  const sorted = [...comparable].sort((a, b) => (a.campoInicio ?? '').localeCompare(b.campoInicio ?? ''));
   const byCandidate = new Map<string, TemporalPoint[]>();
   for (const poll of sorted) {
     const t1 = poll.results.filter((r) => r.turno === 1 && r.tipoPergunta === 'estimulada');
