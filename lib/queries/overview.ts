@@ -3,7 +3,7 @@ import { fetchMencoes, getGaugeScore as getNoticiasGauge } from './noticias';
 import { fetchInstagramData } from './instagram';
 import { fetchXData } from './x';
 import { fetchFacebookOverviewPosts } from './facebook-overview-adapter';
-import { createClient } from '@/lib/supabaseClient';
+import { createClient, createAdminClient } from '@/lib/supabaseClient';
 import {
   evaluateNoticiaItemAlerts,
   evaluateNoticiaAggregateAlerts,
@@ -906,7 +906,7 @@ export const getExecutiveOverviewData = cache(async (filters?: OverviewFilters) 
  * Filtros de Candidatos para o Overview
  */
 export async function getOverviewFiltersOptions(allowedTargetIds?: string[] | null) {
-  const client = createClient();
+  const client = createAdminClient();
   let q = client.from('targets').select('id, candidate_name').order('candidate_name');
 
   if (allowedTargetIds !== null && allowedTargetIds !== undefined) {
@@ -916,4 +916,41 @@ export async function getOverviewFiltersOptions(allowedTargetIds?: string[] | nu
 
   const { data } = await q;
   return (data || []).map(t => ({ id: t.id, name: t.candidate_name }));
+}
+
+/**
+ * 12. SINAL EXECUTIVO DE PESQUISAS ELEITORAIS
+ *
+ * Integra com lib/pesquisas/monitoring.ts para alimentar o card de Pesquisas na Visão Geral.
+ */
+export async function getOverviewPesquisasSignal(filters?: OverviewFilters) {
+  try {
+    const candidateId = filters?.candidate ?? (filters?.candidateIds && filters.candidateIds.length === 1 ? filters.candidateIds[0] : null);
+    if (!candidateId) return null;
+
+    const adminClient = createAdminClient();
+    const { data: target } = await adminClient
+      .from('targets')
+      .select('candidate_name')
+      .eq('id', candidateId)
+      .maybeSingle();
+
+    if (!target?.candidate_name) return null;
+
+    const { getElectoralSignalsSummaryForCandidate } = await import('@/lib/pesquisas/monitoring');
+    const summaries = await getElectoralSignalsSummaryForCandidate(adminClient, target.candidate_name);
+    if (!summaries || summaries.length === 0) return null;
+
+    const summary = summaries[0];
+    return {
+      movementPp: summary.movementPp,
+      currentPercentage: summary.currentPercentage,
+      comparability: summary.comparability,
+      confidence: summary.confidence,
+      pollCount: summary.pollCount ?? null,
+      leader: summary.leader ?? null,
+    };
+  } catch {
+    return null;
+  }
 }

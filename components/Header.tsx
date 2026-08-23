@@ -75,12 +75,14 @@ export default function Header({ permissions, userName, roleLabel, candidates, g
           </button>
 
           {/* Global Context Bar — módulo, candidato, período, refresh */}
-          <Suspense fallback={<div className="flex-1" />}>
-            <GlobalContextBar candidates={candidates} generatedAt={generatedAt} />
-          </Suspense>
+          <div className="flex-1 min-w-0">
+            <Suspense fallback={<div className="h-10 w-full" />}>
+              <GlobalContextBar candidates={candidates} generatedAt={generatedAt} />
+            </Suspense>
+          </div>
 
-          {/* Ações da direita */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Ações da direita — sempre ancoradas à extrema direita */}
+          <div className="ml-auto flex items-center gap-3 shrink-0">
             <div className="hidden items-center gap-2 rounded-sm border border-emerald-400/15 bg-emerald-400/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300 xl:flex">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
               Operação ativa

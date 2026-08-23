@@ -3,14 +3,9 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { createAdminClient } from '@/lib/supabaseClient';
-
-const X_PIPELINE_MODES = ['posts', 'replies', 'ai', 'reprocess', 'full'] as const;
-export type XPipelineMode = (typeof X_PIPELINE_MODES)[number];
+import { consumeRateLimit, X_PIPELINE_MODES, type XPipelineMode } from '@/lib/x/trigger-rate-limit';
 
 const N8N_TIMEOUT_MS = 15_000;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMITS: Record<XPipelineMode, number> = { posts: 5, replies: 5, ai: 1, reprocess: 1, full: 1 };
-const rateLimitBuckets = new Map<string, number[]>();
 
 function isXPipelineMode(value: unknown): value is XPipelineMode {
   return typeof value === 'string' && (X_PIPELINE_MODES as readonly string[]).includes(value);
@@ -19,14 +14,6 @@ function isXPipelineMode(value: unknown): value is XPipelineMode {
 function isSameOrigin(req: NextRequest): boolean {
   const origin = req.headers.get('origin');
   return !origin || origin === req.nextUrl.origin;
-}
-
-function consumeRateLimit(userId: string, mode: XPipelineMode, now = Date.now()): boolean {
-  const key = `${userId}:${mode}`;
-  const recent = (rateLimitBuckets.get(key) ?? []).filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS);
-  if (recent.length >= RATE_LIMITS[mode]) return false;
-  rateLimitBuckets.set(key, [...recent, now]);
-  return true;
 }
 
 async function getAuthorizedXHandles(targetIds: string[]): Promise<string[]> {
@@ -42,10 +29,6 @@ async function getAuthorizedXHandles(targetIds: string[]): Promise<string[]> {
   return [...new Set((result.data ?? [])
     .map((account) => typeof account.handle === 'string' ? account.handle.trim().replace(/^@/, '') : '')
     .filter(Boolean))];
-}
-
-export function __resetXTriggerRateLimitForTests() {
-  rateLimitBuckets.clear();
 }
 
 export async function POST(req: NextRequest) {

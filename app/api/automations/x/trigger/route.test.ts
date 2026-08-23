@@ -5,7 +5,8 @@ const { mockGetSession, mockCreateAdminClient } = vi.hoisted(() => ({ mockGetSes
 vi.mock('@/lib/auth/session', () => ({ getSession: mockGetSession }));
 vi.mock('@/lib/supabaseClient', () => ({ createAdminClient: mockCreateAdminClient }));
 
-import { __resetXTriggerRateLimitForTests, POST } from './route';
+import { __resetXTriggerRateLimitForTests } from '@/lib/x/trigger-rate-limit';
+import { POST } from './route';
 
 const admin = { userId: 'admin-1', name: 'Admin', email: 'admin@example.com', role: 'admin', permissions: [], allowedTargetIds: [], clientId: null, expiresAt: '2099-01-01' };
 const gestor = { userId: 'user-1', name: 'Gestor', email: 'gestor@example.com', role: 'gestor', permissions: ['x'], allowedTargetIds: ['target-1'], clientId: 'client-1', expiresAt: '2099-01-01' };

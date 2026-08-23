@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import DonutChart from '@/components/charts/DonutChart';
 import LineChart from '@/components/charts/LineChart';
+import Drawer from '@/components/ui/Drawer';
 
 const nf = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 const sentimentColors: Record<string, string> = { positivo: '#22c55e', neutro: '#3b82f6', misto: '#eab308', negativo: '#ef4444' };
@@ -782,14 +783,6 @@ function PriorityTable({ posts, onOpen }: { posts: any[]; onOpen: (p: any) => vo
 }
 
 function PostDrawer({ post, replies, onClose }: { post: any; replies: any[]; onClose: () => void }) {
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onClose]);
-
   const isOwned = post.origin === 'OWNED';
   const actionText = recommendedActionText(post.recommendedAction, post.aiCompleteness);
   const matchTerm = post.matchedTerms && post.matchedTerms.length > 0 ? post.matchedTerms[0] : null;
@@ -797,202 +790,183 @@ function PostDrawer({ post, replies, onClose }: { post: any; replies: any[]; onC
   const crisisVal = post.crisisTemperature !== null && post.crisisTemperature !== undefined && post.crisisTemperature !== '' ? post.crisisTemperature : '—';
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <Drawer
+      open={true}
+      onClose={onClose}
+      badge={
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase font-bold tracking-[.16em] text-cyan-400">Investigação X</span>
+          {originBadge(post.origin)}
+        </div>
+      }
+      title={
+        <div className="flex items-center gap-2 truncate">
+          <span>@{post.author?.username || 'usuário'}</span>
+          <span className="text-xs font-normal text-slate-400">• {post.candidate_name}</span>
+        </div>
+      }
     >
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="x-post-title"
-        className="ml-auto h-full w-full overflow-y-auto border-l border-white/10 bg-[#080d18] shadow-2xl sm:max-w-[768px]"
-      >
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#080d18]/95 p-4 backdrop-blur">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] uppercase font-bold tracking-[.16em] text-cyan-400">Investigação X</span>
-              {originBadge(post.origin)}
+      <div className="space-y-6">
+        {/* COMO ENCONTRAMOS (AUDITORIA EXTERNAL) */}
+        {post.origin === 'EXTERNAL' ? (
+          <section className="p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-1.5">
+            <div className="font-bold uppercase tracking-wider text-[10px] text-amber-400 flex items-center gap-1.5">
+              <Search size={13} /> Como Encontramos (Auditoria)
             </div>
-            <h2 id="x-post-title" className="text-sm font-bold text-white flex items-center gap-2">
-              @{post.author?.username || 'usuário'}
-              <span className="text-xs font-normal text-slate-400">• {post.candidate_name}</span>
-            </h2>
-          </div>
-          <button
-            type="button"
-            aria-label="Fechar análise"
-            onClick={onClose}
-            className="rounded-md border border-white/10 p-2 text-slate-300 hover:text-white transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </header>
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div>Relacionado a: <strong className="text-white">{post.candidate_name}</strong></div>
+              <div>Termo: <strong className="text-white">"{matchTerm || '—'}"</strong></div>
+              <div>Origem: <strong className="text-white">{assoc?.discoverySource || 'Search / Mention'}</strong></div>
+              <div>Match: <strong className="text-white">{assoc?.matchType || 'Keyword'}</strong></div>
+            </div>
+          </section>
+        ) : null}
 
-        <div className="space-y-6 p-4 sm:p-6">
-          {/* COMO ENCONTRAMOS (AUDITORIA EXTERNAL) */}
-          {post.origin === 'EXTERNAL' ? (
-            <section className="p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-1.5">
-              <div className="font-bold uppercase tracking-wider text-[10px] text-amber-400 flex items-center gap-1.5">
-                <Search size={13} /> Como Encontramos (Auditoria)
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div>Relacionado a: <strong className="text-white">{post.candidate_name}</strong></div>
-                <div>Termo: <strong className="text-white">"{matchTerm || '—'}"</strong></div>
-                <div>Origem: <strong className="text-white">{assoc?.discoverySource || 'Search / Mention'}</strong></div>
-                <div>Match: <strong className="text-white">{assoc?.matchType || 'Keyword'}</strong></div>
-              </div>
-            </section>
+        {/* DIAGNÓSTICO SINTÉTICO */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
+            <span className="text-[9px] font-bold text-slate-400 uppercase block">Sentimento</span>
+            <span className="text-xs font-bold text-white block mt-0.5">{label(post.sentiment)}</span>
+          </div>
+          <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
+            <span className="text-[9px] font-bold text-slate-400 uppercase block">Risco</span>
+            <span className={`text-xs font-bold block mt-0.5 ${riskTone(post.risk)}`}>{label(post.risk)}</span>
+          </div>
+          <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
+            <span className="text-[9px] font-bold text-slate-400 uppercase block">Polarização</span>
+            <span className="text-xs font-bold text-white block mt-0.5">{label(post.polarizationLevel || post.polarization_level)}</span>
+          </div>
+          <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
+            <span className="text-[9px] font-bold text-slate-400 uppercase block">Temperatura Crise</span>
+            <span className="text-xs font-bold text-rose-300 block mt-0.5">{crisisVal}</span>
+          </div>
+        </section>
+
+        {/* CONTEÚDO COMPLETO */}
+        <section className="space-y-3">
+          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-200 font-normal bg-white/[0.02] p-4 rounded-lg border border-white/5">
+            {post.text || 'Publicação sem texto.'}
+          </p>
+
+          {post.media && post.media.length > 0 ? (
+            <div className="space-y-2">
+              {post.media.map((m: any, idx: number) => (
+                <div key={idx} className="relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-black">
+                  {m.url ? (
+                    <Image src={m.url} alt="Mídia da publicação" fill unoptimized className="object-contain" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-slate-500 text-xs">Mídia indisponível</div>
+                  )}
+                </div>
+              ))}
+            </div>
           ) : null}
 
-          {/* DIAGNÓSTICO SINTÉTICO */}
-          <section className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Sentimento</span>
-              <span className="text-xs font-bold text-white block mt-0.5">{label(post.sentiment)}</span>
-            </div>
-            <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Risco</span>
-              <span className={`text-xs font-bold block mt-0.5 ${riskTone(post.risk)}`}>{label(post.risk)}</span>
-            </div>
-            <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Polarização</span>
-              <span className="text-xs font-bold text-white block mt-0.5">{label(post.polarizationLevel || post.polarization_level)}</span>
-            </div>
-            <div className="p-2.5 rounded bg-white/[0.03] border border-white/5 text-center">
-              <span className="text-[9px] font-bold text-slate-400 uppercase block">Temperatura Crise</span>
-              <span className="text-xs font-bold text-rose-300 block mt-0.5">{crisisVal}</span>
-            </div>
-          </section>
+          {post.url ? (
+            <a
+              href={post.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:underline"
+            >
+              <ExternalLink size={13} /> Abrir Publicação Original no X
+            </a>
+          ) : null}
+        </section>
 
-          {/* CONTEÚDO COMPLETO */}
-          <section className="space-y-3">
-            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-200 font-normal bg-white/[0.02] p-4 rounded-lg border border-white/5">
-              {post.text || 'Publicação sem texto.'}
-            </p>
+        {/* MÉTRICAS (EXIBIDAS SE AVAILABLE === TRUE) */}
+        <section className="grid grid-cols-3 sm:grid-cols-6 gap-2 border-y border-white/5 py-3 text-center">
+          <div>
+            <span className="text-[9px] font-bold text-slate-500 uppercase block">Likes</span>
+            <span className="text-xs font-bold text-white">{metric(post.metrics?.likes?.value, post.metrics?.likes?.available)}</span>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-slate-500 uppercase block">Replies</span>
+            <span className="text-xs font-bold text-white">{metric(post.metrics?.replies?.value, post.metrics?.replies?.available)}</span>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-slate-500 uppercase block">Reposts</span>
+            <span className="text-xs font-bold text-white">{metric(post.metrics?.reposts?.value, post.metrics?.reposts?.available)}</span>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-slate-500 uppercase block">Quotes</span>
+            <span className="text-xs font-bold text-white">{metric(post.metrics?.quotes?.value, post.metrics?.quotes?.available)}</span>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-slate-500 uppercase block">Views</span>
+            <span className="text-xs font-bold text-white">{metric(post.metrics?.views?.value, post.metrics?.views?.available)}</span>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-slate-500 uppercase block">Bookmarks</span>
+            <span className="text-xs font-bold text-white">{metric(post.metrics?.bookmarks?.value, post.metrics?.bookmarks?.available)}</span>
+          </div>
+        </section>
 
-            {post.media && post.media.length > 0 ? (
-              <div className="space-y-2">
-                {post.media.map((m: any, idx: number) => (
-                  <div key={idx} className="relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-black">
-                    {m.url ? (
-                      <Image src={m.url} alt="Mídia da publicação" fill unoptimized className="object-contain" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-slate-500 text-xs">Mídia indisponível</div>
-                    )}
+        {/* DIAGNÓSTICO ESTRATÉGICO DE IA */}
+        <AnalysisBlock title="Resumo de IA" text={post.summary} />
+        <AnalysisBlock title="Motivo do Risco" text={post.riskReason} />
+
+        <section className="grid sm:grid-cols-2 gap-3">
+          <div className="p-3 rounded-lg bg-white/[0.025] border border-white/5">
+            <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tom do Autor</span>
+            <span className="text-xs font-bold text-cyan-300">{label(post.authorTone)}</span>
+          </div>
+          <div className="p-3 rounded-lg bg-white/[0.025] border border-white/5">
+            <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Reação do Público</span>
+            <span className="text-xs font-bold text-amber-300">{label(post.publicReaction)}</span>
+          </div>
+        </section>
+
+        <AnalysisBlock title="Leitura Estratégica" text={post.strategicReading} />
+
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-2">
+            <Zap size={14} /> Protocolo & Ação Recomendada
+          </h3>
+          <div className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200 leading-relaxed">
+            {actionText}
+          </div>
+        </section>
+
+        {/* TEMAS DETECTADOS */}
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Temas Detectados</h3>
+          {post.ai_topics && post.ai_topics.length ? (
+            <div className="flex flex-wrap gap-2">
+              {post.ai_topics.map((theme: string) => (
+                <span key={theme} className="rounded bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-slate-300 font-medium">
+                  {theme}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500 italic">Nenhum tema especificado.</p>
+          )}
+        </section>
+
+        {/* CONVERSAÇÃO / SAMPLE DE REPLIES (PARA OWNED) */}
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+            <span>Conversação & Respostas ({replies.length})</span>
+          </h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {replies.length ? (
+              replies.map((reply) => (
+                <article key={reply.id} className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
+                  <div className="flex justify-between text-[11px] text-slate-400 font-semibold mb-1">
+                    <span className="text-cyan-400">@{reply.user || reply.author?.username || 'usuário'}</span>
+                    <span>{reply.created_at ? new Date(reply.created_at).toLocaleDateString('pt-BR') : '—'}</span>
                   </div>
-                ))}
-              </div>
-            ) : null}
-
-            {post.url ? (
-              <a
-                href={post.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:underline"
-              >
-                <ExternalLink size={13} /> Abrir Publicação Original no X
-              </a>
-            ) : null}
-          </section>
-
-          {/* MÉTRICAS (EXIBIDAS SE AVAILABLE === TRUE) */}
-          <section className="grid grid-cols-3 sm:grid-cols-6 gap-2 border-y border-white/5 py-3 text-center">
-            <div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Likes</span>
-              <span className="text-xs font-bold text-white">{metric(post.metrics?.likes?.value, post.metrics?.likes?.available)}</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Replies</span>
-              <span className="text-xs font-bold text-white">{metric(post.metrics?.replies?.value, post.metrics?.replies?.available)}</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Reposts</span>
-              <span className="text-xs font-bold text-white">{metric(post.metrics?.reposts?.value, post.metrics?.reposts?.available)}</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Quotes</span>
-              <span className="text-xs font-bold text-white">{metric(post.metrics?.quotes?.value, post.metrics?.quotes?.available)}</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Views</span>
-              <span className="text-xs font-bold text-white">{metric(post.metrics?.views?.value, post.metrics?.views?.available)}</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Bookmarks</span>
-              <span className="text-xs font-bold text-white">{metric(post.metrics?.bookmarks?.value, post.metrics?.bookmarks?.available)}</span>
-            </div>
-          </section>
-
-          {/* DIAGNÓSTICO ESTRATÉGICO DE IA */}
-          <AnalysisBlock title="Resumo de IA" text={post.summary} />
-          <AnalysisBlock title="Motivo do Risco" text={post.riskReason} />
-
-          <section className="grid sm:grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg bg-white/[0.025] border border-white/5">
-              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tom do Autor</span>
-              <span className="text-xs font-bold text-cyan-300">{label(post.authorTone)}</span>
-            </div>
-            <div className="p-3 rounded-lg bg-white/[0.025] border border-white/5">
-              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Reação do Público</span>
-              <span className="text-xs font-bold text-amber-300">{label(post.publicReaction)}</span>
-            </div>
-          </section>
-
-          <AnalysisBlock title="Leitura Estratégica" text={post.strategicReading} />
-
-          <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-2">
-              <Zap size={14} /> Protocolo & Ação Recomendada
-            </h3>
-            <div className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200 leading-relaxed">
-              {actionText}
-            </div>
-          </section>
-
-          {/* TEMAS DETECTADOS */}
-          <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Temas Detectados</h3>
-            {post.ai_topics && post.ai_topics.length ? (
-              <div className="flex flex-wrap gap-2">
-                {post.ai_topics.map((theme: string) => (
-                  <span key={theme} className="rounded bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-slate-300 font-medium">
-                    {theme}
-                  </span>
-                ))}
-              </div>
+                  <p className="text-xs text-slate-200 leading-5">{reply.text}</p>
+                </article>
+              ))
             ) : (
-              <p className="text-xs text-slate-500 italic">Nenhum tema especificado.</p>
+              <p className="text-xs text-slate-500 italic py-4 text-center">Nenhuma resposta/reply coletada neste recorte.</p>
             )}
-          </section>
-
-          {/* CONVERSAÇÃO / SAMPLE DE REPLIES (PARA OWNED) */}
-          <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-              <span>Conversação & Respostas ({replies.length})</span>
-            </h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {replies.length ? (
-                replies.map((reply) => (
-                  <article key={reply.id} className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
-                    <div className="flex justify-between text-[11px] text-slate-400 font-semibold mb-1">
-                      <span className="text-cyan-400">@{reply.user || reply.author?.username || 'usuário'}</span>
-                      <span>{reply.created_at ? new Date(reply.created_at).toLocaleDateString('pt-BR') : '—'}</span>
-                    </div>
-                    <p className="text-xs text-slate-200 leading-5">{reply.text}</p>
-                  </article>
-                ))
-              ) : (
-                <p className="text-xs text-slate-500 italic py-4 text-center">Nenhuma resposta/reply coletada neste recorte.</p>
-              )}
-            </div>
-          </section>
-        </div>
-      </aside>
-    </div>
+          </div>
+        </section>
+      </div>
+    </Drawer>
   );
 }
 

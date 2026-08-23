@@ -37,8 +37,26 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
     );
   }
 
-  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
+  const colors = ['#06b6d4', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#3B82F6'];
   const candidates = temporalSeries.map((s) => s.candidateName);
+
+  // Extrai datas únicas ordenadas para o eixo X
+  const allDates = Array.from(
+    new Set(
+      temporalSeries.flatMap((s) => s.points.map((p) => p.date ?? '2026-01-01'))
+    )
+  ).sort();
+
+  // Formata data ISO (YYYY-MM-DD) para exibição amigável (DD/MM)
+  const formatAxisDate = (iso: string) => {
+    try {
+      const parts = iso.split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+      return iso;
+    } catch {
+      return iso;
+    }
+  };
 
   // Build line series for ECharts
   const seriesList = temporalSeries.map((s, idx) => {
@@ -63,24 +81,37 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#12192A',
+      backgroundColor: '#0E1526',
       borderColor: 'rgba(255,255,255,0.1)',
       textStyle: { color: '#FFFFFF' },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       formatter: function (params: any) {
         if (!params || params.length === 0) return '';
         const dateStr = params[0].axisValue;
-        let html = `
-          <div style="font-family: sans-serif; padding: 4px; max-width: 240px;">
-            <div style="font-size: 11px; color: #9CA3AF; font-weight: bold; margin-bottom: 4px;">
-              Data: ${dateStr}
-            </div>
-        `;
+
+        // Agrupa por candidato — elimina qualquer duplicata residual
+        // (ECharts pode disparar múltiplos params para o mesmo candidato
+        // se o dataset tiver pontos sobrepostos)
+        const byCandidate = new Map<string, { color: string; val: number | null }>();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         params.forEach((item: any) => {
+          if (byCandidate.has(item.seriesName)) return;
+          const val = Array.isArray(item.value) ? item.value[1] : item.value;
+          byCandidate.set(item.seriesName, { color: item.color, val: val ?? null });
+        });
+
+        let html = `
+          <div style="font-family: sans-serif; padding: 4px; max-width: 260px;">
+            <div style="font-size: 11px; color: #94A3B8; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 3px;">
+              ${dateStr}
+            </div>
+        `;
+        byCandidate.forEach(({ color, val }, candidateName) => {
+          const valStr = val !== null && val !== undefined ? `${val}%` : '—';
           html += `
-            <div style="font-size: 12px; color: ${item.color}; font-weight: font-extrabold; margin-bottom: 2px;">
-              ${item.seriesName}: ${item.value[1]}%
+            <div style="font-size: 12px; color: ${color}; font-weight: bold; margin-bottom: 3px; display: flex; justify-content: space-between; gap: 12px;">
+              <span>${candidateName}:</span>
+              <span style="font-family: monospace; color: #FFFFFF;">${valStr}</span>
             </div>
           `;
         });
@@ -90,7 +121,7 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
     },
     legend: {
       data: candidates,
-      textStyle: { color: '#9CA3AF', fontSize: 11 },
+      textStyle: { color: '#94A3B8', fontSize: 11 },
       top: 0,
     },
     grid: {
@@ -102,13 +133,14 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
     },
     xAxis: {
       type: 'category',
-      axisLabel: { color: '#9CA3AF', fontSize: 10 },
+      data: allDates.map(formatAxisDate),
+      axisLabel: { color: '#94A3B8', fontSize: 10 },
       axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
       splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#9CA3AF', formatter: '{value}%' },
+      axisLabel: { color: '#94A3B8', formatter: '{value}%' },
       axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
       splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
     },
@@ -116,18 +148,18 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
   };
 
   return (
-    <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+    <section className="surface-primary p-5 space-y-4">
+      <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
         <div>
           <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-            <TrendingUp size={15} className="text-blue-500" /> Evolução Temporal de Intenções de Voto
+            <TrendingUp size={15} className="text-cyan-400" /> Evolução Temporal de Intenções de Voto
           </h3>
-          <p className="text-gray-400 text-xs mt-0.5">
+          <p className="text-slate-400 text-xs mt-0.5">
             Série temporal comparativa plota a trajetória de intenção de voto dos candidatos ao longo dos levantamentos.
           </p>
         </div>
         <span
-          className={`text-[10px] px-2.5 py-0.5 rounded font-bold ${
+          className={`text-[10px] px-2.5 py-0.5 rounded-sm font-bold tracking-wider uppercase ${
             hasSufficientSeries
               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
               : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
@@ -137,15 +169,15 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
         </span>
       </div>
 
-      <p className="text-gray-500 text-[11px] flex items-center gap-1.5">
-        <Info size={12} className="text-blue-400 shrink-0" />
+      <p className="text-slate-400 text-[11px] flex items-center gap-1.5">
+        <Info size={12} className="text-cyan-400 shrink-0" />
         Pontos conectados indicam pesquisas comparáveis (mesmo cargo, UF, turno, tipo de pergunta e conjunto de candidatos).
       </p>
 
       <ReactECharts option={option} notMerge lazyUpdate style={{ height: 280, width: '100%' }} />
 
       {/* Resumo textual dos deltas */}
-      <div className="pt-2 border-t border-white/5 space-y-2">
+      <div className="pt-2 border-t border-white/[0.08] space-y-2">
         {temporalSeries
           .sort((a, b) => (b.points.at(-1)?.percentage ?? 0) - (a.points.at(-1)?.percentage ?? 0))
           .map((s) => {
@@ -156,16 +188,16 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
             return (
               <div
                 key={s.candidateName}
-                className="flex items-center justify-between text-xs bg-white/5 border border-white/5 rounded-xl px-4 py-2.5"
+                className="flex items-center justify-between text-xs bg-white/[0.02] border border-white/[0.06] rounded-lg px-4 py-2.5"
               >
-                <span className="text-gray-200 font-semibold">{s.candidateName}</span>
+                <span className="text-slate-200 font-semibold">{s.candidateName}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-400 font-mono text-xs">
+                  <span className="text-slate-400 font-mono text-xs">
                     {s.points.map((p) => `${p.percentage}%`).join(' → ')}
                   </span>
                   {delta !== 0 ? (
                     <span
-                      className={`text-xs font-extrabold font-mono px-2 py-0.5 rounded ${
+                      className={`text-xs font-extrabold font-mono px-2 py-0.5 rounded-sm ${
                         delta > 0
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                           : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
@@ -174,7 +206,7 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
                       {delta > 0 ? `+${delta}` : delta} p.p.
                     </span>
                   ) : (
-                    <span className="text-xs font-medium text-gray-500 font-mono">0,0 p.p.</span>
+                    <span className="text-xs font-medium text-slate-500 font-mono">0,0 p.p.</span>
                   )}
                 </div>
               </div>

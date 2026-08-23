@@ -168,9 +168,10 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   };
 
   return (
-    <div className="h-10 bg-[#0E1526]/90 border-b border-white/[0.08] px-4 md:px-6 flex items-center justify-between gap-4 text-xs font-mono select-none backdrop-blur-md sticky top-0 z-30">
-      {/* Esquerda: Identificador do Módulo / Território */}
-      <div className="flex items-center gap-3 overflow-hidden">
+    <div className="h-10 bg-[#0E1526]/90 border-b border-white/[0.08] px-4 md:px-6 flex items-center gap-4 text-xs font-mono select-none backdrop-blur-md sticky top-0 z-30">
+      {/* Grupo ESQUERDO: Módulo + Território + Filtros de Candidato/Período */}
+      <div className="flex items-center gap-3 overflow-hidden min-w-0 flex-1">
+        {/* Identificador do módulo */}
         <div className="flex items-center gap-2 shrink-0">
           {isTerritory ? (
             <Compass size={14} className="text-cyan-400" />
@@ -192,13 +193,15 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Direita: Controles / Badges de Disponibilidade */}
-      <div className="flex items-center gap-3 shrink-0">
+        {/* Separador visual entre módulo e filtros */}
+        {(supportsCandidate || supportsPeriod) && (candidates && candidates.length > 0 || supportsPeriod) && (
+          <span className="shrink-0 h-4 w-px bg-white/[0.12]" />
+        )}
+
         {/* Candidatos Selector — multi-select com checkbox */}
         {supportsCandidate && candidates && candidates.length > 0 && (
-          <div className="relative flex items-center" ref={candidateMenuRef}>
+          <div className="relative flex items-center shrink-0" ref={candidateMenuRef}>
             <button
               type="button"
               onClick={() => setCandidateMenuOpen((v) => !v)}
@@ -216,7 +219,7 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
               <div
                 role="listbox"
                 aria-multiselectable="true"
-                className="absolute right-0 top-full mt-1.5 w-64 max-h-80 overflow-y-auto bg-[#0E1526] border border-white/10 rounded-lg shadow-2xl z-40 py-1"
+                className="absolute left-0 top-full mt-1.5 w-64 max-h-80 overflow-y-auto bg-[#0E1526] border border-white/10 rounded-lg shadow-2xl z-40 py-1"
               >
                 <button
                   type="button"
@@ -259,7 +262,7 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
 
         {/* Período Selector */}
         {supportsPeriod && (
-          <div className="relative flex items-center">
+          <div className="relative flex items-center shrink-0">
             <Calendar size={12} className="absolute left-2.5 text-slate-400 pointer-events-none z-10" />
             <select
               value={filters.period}
@@ -276,33 +279,33 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
             <ChevronDown size={12} className="absolute right-2 text-slate-400 pointer-events-none z-10" />
           </div>
         )}
-
-        {/* Coverage Badges */}
-        {dossierHeader && (
-          <div className="flex items-center gap-2">
-            {dossierHeader.isDemo && (
-              <span className="px-1.5 py-0.5 rounded-sm bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
-                <Sparkles size={9} /> DEMO
-              </span>
-            )}
-            <div className="hidden md:flex items-center gap-1 border-l border-white/10 pl-2">
-              <CoverageBadge label="IBGE" status={dossierHeader.coverage.ibge} />
-              <CoverageBadge label="Seg." status={dossierHeader.coverage.security} />
-              <CoverageBadge label="Saúde" status={dossierHeader.coverage.health} />
-              <CoverageBadge label="TSE" status={dossierHeader.coverage.electoral} />
-              <CoverageBadge label="Econ." status={dossierHeader.coverage.economy} />
-            </div>
-            <button
-              onClick={handleRefresh}
-              disabled={isPending}
-              className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm text-[10px] font-semibold text-slate-300 transition-colors uppercase tracking-widest ml-1 disabled:opacity-40"
-            >
-              <RefreshCw size={10} className={`${isPending ? 'animate-spin text-cyan-400' : 'text-slate-400'}`} />
-              <span className={isPending ? 'text-cyan-400' : ''}>{isPending ? 'Atualizando...' : 'Atualizar'}</span>
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Grupo DIREITO: Coverage Badges (Territórios) — badges informativos de cobertura */}
+      {dossierHeader && (
+        <div className="flex items-center gap-2 shrink-0">
+          {dossierHeader.isDemo && (
+            <span className="px-1.5 py-0.5 rounded-sm bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
+              <Sparkles size={9} /> DEMO
+            </span>
+          )}
+          <div className="hidden md:flex items-center gap-1 border-l border-white/10 pl-2">
+            <CoverageBadge label="IBGE" status={dossierHeader.coverage.ibge} />
+            <CoverageBadge label="Seg." status={dossierHeader.coverage.security} />
+            <CoverageBadge label="Saúde" status={dossierHeader.coverage.health} />
+            <CoverageBadge label="TSE" status={dossierHeader.coverage.electoral} />
+            <CoverageBadge label="Econ." status={dossierHeader.coverage.economy} />
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isPending}
+            className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm text-[10px] font-semibold text-slate-300 transition-colors uppercase tracking-widest ml-1 disabled:opacity-40"
+          >
+            <RefreshCw size={10} className={`${isPending ? 'animate-spin text-cyan-400' : 'text-slate-400'}`} />
+            <span className={isPending ? 'text-cyan-400' : ''}>{isPending ? 'Atualizando...' : 'Atualizar'}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

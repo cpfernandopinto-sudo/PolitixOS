@@ -199,26 +199,20 @@ export function PesquisasCockpitView({
 
   return (
     <div className="space-y-4 pb-16">
-      {/* Cabeçalho Executivo */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl md:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-            <LineChart size={24} className="text-blue-500" />
-            Cockpit de Inteligência Eleitoral
-          </h1>
-          <p className="text-gray-400 text-xs mt-0.5">
-            Inteligência Política — Pesquisas e Tendências ({activeRaceLabel})
-            {referenceCandidate ? ` · Candidato Analisado: ${referenceCandidate}` : ''}.
-          </p>
-          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-500">
-            <span>
-              Fonte oficial: <a href={source.portalUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">TSE / PesqEle <ExternalLink size={10} /></a>
-            </span>
-            <span className="text-gray-700">•</span>
-            <span>Última verificação: {formatDate(kpis.lastSyncAt)}</span>
-          </div>
+      {/* Cabeçalho Ultra-Compacto */}
+      <div className="flex items-center gap-3 border-b border-white/[0.08] pb-3">
+        <LineChart size={14} className="text-cyan-400 shrink-0" />
+        <span className="text-[9px] font-bold uppercase tracking-[.2em] text-cyan-400 shrink-0 font-mono">Inteligência Eleitoral</span>
+        <span className="h-3 w-px bg-white/[0.12] shrink-0" />
+        <h1 className="text-[15px] font-bold text-white tracking-tight leading-none">Cockpit de Pesquisas</h1>
+        <span className="text-[10px] text-slate-500 leading-none hidden sm:inline">{activeRaceLabel}{referenceCandidate ? ` · ${referenceCandidate}` : ''}</span>
+        <div className="ml-auto flex items-center gap-3 shrink-0">
+          <span className="text-[10px] text-slate-500 font-mono hidden md:inline">
+            Fonte: <a href={source.portalUrl} target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline inline-flex items-center gap-0.5">TSE <ExternalLink size={9} /></a>
+            {' · '}{formatDate(kpis.lastSyncAt)}
+          </span>
+          {isAdmin && <CollectButton />}
         </div>
-        {isAdmin && <CollectButton />}
       </div>
 
       {/* Aviso de Fonte Indisponível (quando aplicável) */}
