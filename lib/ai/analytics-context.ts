@@ -9,6 +9,7 @@ import type {
   EntityRankItem,
   ThemeRankItem,
 } from '@/lib/analytics/executive-summary';
+import type { ElectoralSignalSummary } from '@/lib/pesquisas/monitoring';
 
 /** Versão da metodologia determinística (Sprint 3) refletida no contexto. */
 export const METHODOLOGY_VERSION = 'centro-executivo-sprint3-v1';
@@ -35,6 +36,8 @@ interface BuildContextInput {
   entities: EntityRankItem[];
   themes: ThemeRankItem[];
   synthesis: ExecutiveSynthesis;
+  /** Resumo de pesquisas eleitorais do candidato filtrado, quando monitorado (PESQUISAS-N8N-01). Omitido/[] = nenhum dado eleitoral disponível. */
+  electoralSignals?: ElectoralSignalSummary[];
 }
 
 /**
@@ -142,6 +145,24 @@ export function buildAnalyticsContext(input: BuildContextInput): AnalyticsContex
       alertas: e.alertas,
     })),
     temas: input.themes.slice(0, MAX_LIST_ITEMS).map((t) => ({ tema: t.tema, frequencia: t.frequencia })),
+    pesquisasEleitorais: (input.electoralSignals ?? []).slice(0, 5).map((e) => ({
+      candidato: truncate(e.candidate, 80),
+      cargo: truncate(e.office, 60),
+      percentualAtual: e.currentPercentage,
+      percentualAnterior: e.previousPercentage,
+      variacaoPp: e.movementPp,
+      lider: e.leader ? truncate(e.leader, 80) : null,
+      gap: e.gap,
+      tendencia: truncate(e.trend, 40),
+      totalPesquisas: e.pollCount,
+      comparabilidade: e.comparability,
+      confianca: e.confidence,
+      sinais: e.signals.slice(0, 9).map((s) => ({
+        tipo: s.type,
+        descricao: truncate(s.description, 200),
+        intensidade: s.movementTier,
+      })),
+    })),
     evidenciasDisponiveis: evidencias,
     limitacoesConhecidas: KNOWN_METHODOLOGY_LIMITATIONS,
   };

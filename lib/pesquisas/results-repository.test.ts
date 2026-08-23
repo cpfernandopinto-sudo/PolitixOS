@@ -17,6 +17,7 @@ function chain(result: { data: unknown; error: unknown }) {
   c.update = vi.fn(self);
   c.eq = vi.fn(self);
   c.in = vi.fn(self);
+  c.is = vi.fn(self);
   c.order = vi.fn(self);
   c.ilike = vi.fn(self);
   c.single = vi.fn(() => Promise.resolve(result));
@@ -85,6 +86,26 @@ describe('upsertPollResult — idempotência por chave natural (PARTE 4: nunca d
     expect(c.eq).toHaveBeenCalledWith('turno', 1);
     expect(c.eq).toHaveBeenCalledWith('tipo_pergunta', 'estimulada');
     expect(c.eq).toHaveBeenCalledWith('candidate_name', 'Lula');
+  });
+
+  it('TESTE I (PESQUISAS-N8N-01 Fase 10) — office entra na chave natural: Governador e Senador do mesmo poll/cenario/turno/candidato não colidem', async () => {
+    const c = chain({ data: null, error: null });
+    c.single = vi.fn(() => Promise.resolve({ data: { id: 'new-id' }, error: null }));
+    mockFrom.mockReturnValue(c);
+
+    await upsertPollResult({ from: mockFrom } as never, { ...sampleResult, office: 'Senador' });
+
+    expect(c.eq).toHaveBeenCalledWith('office', 'Senador');
+  });
+
+  it('office=null usa is(office, null) em vez de eq — nunca casa com uma linha que TEM office preenchido', async () => {
+    const c = chain({ data: null, error: null });
+    c.single = vi.fn(() => Promise.resolve({ data: { id: 'new-id' }, error: null }));
+    mockFrom.mockReturnValue(c);
+
+    await upsertPollResult({ from: mockFrom } as never, { ...sampleResult, office: null });
+
+    expect(c.is).toHaveBeenCalledWith('office', null);
   });
 
   it('grava verified/provenance/source_* junto com o percentual — nunca um resultado sem proveniência (PARTE 8)', async () => {

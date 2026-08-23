@@ -73,6 +73,8 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
     state: target?.state ?? '',
     keywords: target?.keywords ?? '',
     is_active: target?.is_active ?? true,
+    poll_monitoring_enabled: target?.poll_monitoring_enabled ?? false,
+    poll_monitoring_office: target?.poll_monitoring_office ?? '',
   });
 
   const [accounts, setAccounts] = useState<NewSocialAccount[]>(
@@ -100,6 +102,10 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
 
     if (!form.candidate_name.trim()) {
       errs.candidate_name = 'Nome do candidato é obrigatório.';
+    }
+
+    if (form.poll_monitoring_enabled && !form.poll_monitoring_office.trim()) {
+      errs.poll_monitoring_office = 'Informe o cargo monitorado para ligar a captura de pesquisas.';
     }
 
     // Check duplicate handle+platform within the form
@@ -341,6 +347,56 @@ export default function CandidatoForm({ target, onSuccess, onCancel }: Props) {
           <span className={`text-sm font-medium ${form.is_active ? 'text-green-400' : 'text-gray-500'}`}>
             {form.is_active ? 'Candidato ativo' : 'Candidato inativo'}
           </span>
+        </div>
+
+        {/* Captura de pesquisas eleitorais (PESQUISAS-N8N-01) */}
+        <div className="pt-2 border-t border-white/5 space-y-3">
+          <div className="flex items-center gap-3">
+            <button
+              id="toggle_poll_monitoring_enabled"
+              type="button"
+              onClick={() =>
+                setForm({
+                  ...form,
+                  poll_monitoring_enabled: !form.poll_monitoring_enabled,
+                  poll_monitoring_office: !form.poll_monitoring_enabled ? form.poll_monitoring_office : '',
+                })
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 ${form.poll_monitoring_enabled ? 'bg-[#2563EB]' : 'bg-white/10'
+                }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${form.poll_monitoring_enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${form.poll_monitoring_enabled ? 'text-blue-400' : 'text-gray-500'}`}>
+              Capturar pesquisas eleitorais
+            </span>
+          </div>
+
+          {form.poll_monitoring_enabled && (
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                Cargo monitorado <span className="text-red-400">*</span>
+              </label>
+              <input
+                id="poll_monitoring_office"
+                type="text"
+                value={form.poll_monitoring_office}
+                onChange={(e) => setForm({ ...form, poll_monitoring_office: e.target.value })}
+                placeholder="Ex: Governador, Senador, Deputado Federal"
+                className={`w-full bg-[#0D0D0D] border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 transition-all ${errors.poll_monitoring_office ? 'border-red-500/50' : 'border-white/5 focus:border-[#2563EB]/50'
+                  }`}
+              />
+              {errors.poll_monitoring_office && (
+                <p className="text-red-400 text-xs mt-1">{errors.poll_monitoring_office}</p>
+              )}
+              <p className="text-gray-600 text-xs mt-1">
+                Cargo exato da corrida (casa com o texto do TSE, ex.: &quot;Governador&quot;) — usa o Estado acima como UF. Só pesquisas com este cargo+UF entram na coleta automática.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

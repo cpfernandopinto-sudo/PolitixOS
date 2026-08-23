@@ -70,6 +70,8 @@ export async function createCandidateAction(
       state: target.state || null,
       keywords: target.keywords || null,
       is_active: target.is_active,
+      poll_monitoring_enabled: target.poll_monitoring_enabled,
+      poll_monitoring_office: target.poll_monitoring_enabled ? target.poll_monitoring_office || null : null,
       client_id: clientId,
     })
     .select()
@@ -141,6 +143,8 @@ export async function updateCandidateAction(
       state: target.state || null,
       keywords: target.keywords || null,
       is_active: target.is_active,
+      poll_monitoring_enabled: target.poll_monitoring_enabled,
+      poll_monitoring_office: target.poll_monitoring_enabled ? target.poll_monitoring_office || null : null,
     })
     .eq('id', id);
 
@@ -295,6 +299,8 @@ export async function fetchTargetsAction(): Promise<TargetWithAccounts[]> {
       state,
       keywords,
       is_active,
+      poll_monitoring_enabled,
+      poll_monitoring_office,
       social_accounts (
         id,
         target_id,
