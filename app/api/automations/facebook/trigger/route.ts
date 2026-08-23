@@ -86,7 +86,11 @@ export async function POST(request: NextRequest) {
       expectedClientId: serviceAuthenticated || session!.role === 'admin' ? null : session!.clientId,
       allowedTargetIds: serviceAuthenticated || session!.role === 'admin' ? null : session!.allowedTargetIds,
     });
-    return NextResponse.json({ ok: true, result });
+    return NextResponse.json({
+      ok: true,
+      status: result.collectionComplete ? 'SUCCESS_COMPLETE' : 'SUCCESS_PARTIAL',
+      result,
+    });
   } catch (error) {
     const safe = safeOperationalError(error);
     return NextResponse.json({ ok: false, code: safe.code }, { status: safe.status });

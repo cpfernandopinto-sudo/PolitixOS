@@ -72,6 +72,24 @@ describe('POST /api/automations/facebook/trigger', () => {
     expect((await POST(request(payload))).status).toBe(429);
   });
 
+  it('expõe status estruturado de completude sem quebrar o resultado existente', async () => {
+    const complete = await POST(request(payload));
+    expect(await complete.json()).toMatchObject({
+      ok: true,
+      status: 'SUCCESS_COMPLETE',
+      result: { collectionComplete: true, termination: 'CURSOR_NULL' },
+    });
+
+    __resetFacebookTriggerRateLimitForTests();
+    mockRun.mockResolvedValue({ runId: 'run-2', collectionComplete: false, termination: 'MAX_PAGES', postsPersisted: 3 });
+    const partial = await POST(request(payload));
+    expect(await partial.json()).toMatchObject({
+      ok: true,
+      status: 'SUCCESS_PARTIAL',
+      result: { collectionComplete: false, termination: 'MAX_PAGES', postsPersisted: 3 },
+    });
+  });
+
   it('não expõe mensagem interna desconhecida', async () => {
     mockRun.mockRejectedValue(new Error('database stack with secret'));
     const response = await POST(request(payload));
