@@ -27,7 +27,7 @@ export interface AlertRuleDefinition {
   janela: string;
   severidade: AlertSeverity;
   justificativa: string;
-  fonte: 'noticias' | 'instagram' | 'x';
+  fonte: 'noticias' | 'instagram' | 'x' | 'facebook';
 }
 
 export const ALERT_RULES: Record<string, AlertRuleDefinition> = {
@@ -129,6 +129,28 @@ export const ALERT_RULES: Record<string, AlertRuleDefinition> = {
     severidade: 'critico',
     justificativa: 'crisisScore já é calculado por post em fetchXData; > 75 é o mesmo corte usado no badge "Crise" da tela X.',
     fonte: 'x',
+  },
+  facebook_risco_alto: {
+    id: 'facebook_risco_alto',
+    nome: 'Post do Facebook de alto risco',
+    descricao: 'Post com classificação de risco "alto" pela análise de IA.',
+    metrica: 'ai_analysis.risk_level',
+    threshold: '= "alto"',
+    janela: 'Item individual',
+    severidade: 'alto',
+    justificativa: 'Mesmo corte usado em instagram_risco_alto — mesma escala de risk_level (baixo/medio/alto/critico) em todo o projeto.',
+    fonte: 'facebook',
+  },
+  facebook_sentimento_negativo: {
+    id: 'facebook_sentimento_negativo',
+    nome: 'Concentração de posts negativos (Facebook)',
+    descricao: 'Mais de 40% dos posts no período têm sentimento negativo.',
+    metrica: '% de posts com sentiment = "negativo" sobre total de posts',
+    threshold: '> 40%',
+    janela: 'Período selecionado no filtro',
+    severidade: 'alto',
+    justificativa: 'Mesmo corte usado em instagram_sentimento_negativo.',
+    fonte: 'facebook',
   },
 };
 

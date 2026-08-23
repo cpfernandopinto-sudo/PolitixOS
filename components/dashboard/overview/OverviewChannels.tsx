@@ -5,7 +5,8 @@ import { Newspaper } from 'lucide-react';
 interface ChannelData {
   noticias: { sentimento_medio: number; risco_medio: number; volume: number };
   instagram: { sentimento_medio: number; risco_medio: number; engajamento: number; volume: number };
-  x: { sentimento_medio: number; risco_medio: number; polarização: number; volume: number; posts: any[] };
+  x: { sentimento_medio: number; risco_medio: number; polarização: number; volume: number; posts: unknown[] };
+  facebook: { sentimento_medio: number; risco_medio: number; engajamento: number; volume: number };
 }
 
 interface Props {
@@ -20,6 +21,18 @@ function XChannelIcon({ size = 16, className = '' }: { size?: number; className?
       aria-hidden="true"
     >
       X
+    </span>
+  );
+}
+
+function FacebookChannelIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-current font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.7), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      f
     </span>
   );
 }
@@ -113,6 +126,15 @@ export default function OverviewChannels({ data }: Props) {
       volume: data.x.volume,
       sentimento: data.x.sentimento_medio,
       risco: data.x.risco_medio,
+    },
+    {
+      key: 'facebook',
+      label: 'Facebook',
+      icon: <FacebookChannelIcon size={15} />,
+      color: '#1877F2',
+      volume: data.facebook.volume,
+      sentimento: data.facebook.sentimento_medio,
+      risco: data.facebook.risco_medio,
     },
   ].sort((a, b) => b.volume - a.volume);
 

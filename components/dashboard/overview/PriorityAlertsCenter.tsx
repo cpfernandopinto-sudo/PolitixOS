@@ -20,6 +20,7 @@ const ORIGIN_ROUTE: Record<RiskCard['origem'], string> = {
   noticias: '/dashboard/noticias',
   instagram: '/dashboard/instagram',
   x: '/dashboard/x',
+  facebook: '/dashboard/facebook',
 };
 
 const RISK_SEVERITY_STYLES: Record<AlertSeverity, string> = {
@@ -70,16 +71,30 @@ function InstagramChannelIcon({ size = 16, className = '' }: { size?: number; cl
   );
 }
 
+function FacebookChannelIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-current font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.7), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      f
+    </span>
+  );
+}
+
 const CHANNEL_ICON: Record<RiskCard['origem'], React.ReactNode> = {
   noticias: <Newspaper size={14} className="text-blue-400" />,
   instagram: <InstagramChannelIcon size={14} className="text-pink-400" />,
   x: <XChannelIcon size={14} className="text-cyan-400" />,
+  facebook: <FacebookChannelIcon size={14} className="text-blue-500" />,
 };
 
 const CHANNEL_LABEL: Record<RiskCard['origem'], string> = {
   noticias: 'Notícias',
   instagram: 'Instagram',
   x: 'X (Twitter)',
+  facebook: 'Facebook',
 };
 
 /**

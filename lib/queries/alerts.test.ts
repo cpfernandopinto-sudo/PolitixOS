@@ -4,6 +4,7 @@ import {
   evaluateNoticiaAggregateAlerts,
   evaluateInstagramItemAlerts,
   evaluateXItemAlerts,
+  evaluateFacebookItemAlerts,
   sortAlerts,
   shouldReturnEmptyForAccess,
   type UnifiedAlert,
@@ -142,6 +143,35 @@ describe('evaluateInstagramItemAlerts', () => {
     ];
     const alerts = evaluateInstagramItemAlerts(posts);
     expect(alerts.some((a) => a.ruleId === 'instagram_sentimento_negativo')).toBe(true);
+  });
+});
+
+describe('evaluateFacebookItemAlerts', () => {
+  it('gera alerta para post com risco alto', () => {
+    const alerts = evaluateFacebookItemAlerts([
+      { id: 'p1', candidate_name: 'Cand', text: 'Post', risk: 'alto', sentiment: 'neutro', created_at: new Date().toISOString(), url: 'https://facebook.com/p1' },
+    ]);
+    expect(alerts.some((a) => a.ruleId === 'facebook_risco_alto')).toBe(true);
+    expect(alerts[0].origem).toBe('facebook');
+  });
+
+  it('não gera alerta de risco para post de risco baixo', () => {
+    const alerts = evaluateFacebookItemAlerts([{ id: 'p1', risk: 'baixo', sentiment: 'neutro' }]);
+    expect(alerts.some((a) => a.ruleId === 'facebook_risco_alto')).toBe(false);
+  });
+
+  it('gera alerta de concentração negativa quando >40% dos posts são negativos', () => {
+    const posts = [
+      { id: 'p1', risk: 'baixo', sentiment: 'negativo' },
+      { id: 'p2', risk: 'baixo', sentiment: 'negativo' },
+      { id: 'p3', risk: 'baixo', sentiment: 'positivo' },
+    ];
+    const alerts = evaluateFacebookItemAlerts(posts);
+    expect(alerts.some((a) => a.ruleId === 'facebook_sentimento_negativo')).toBe(true);
+  });
+
+  it('lista vazia não gera nenhum alerta', () => {
+    expect(evaluateFacebookItemAlerts([])).toEqual([]);
   });
 });
 

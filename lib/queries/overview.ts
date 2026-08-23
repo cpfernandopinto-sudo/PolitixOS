@@ -2,12 +2,14 @@ import { cache } from 'react';
 import { fetchMencoes, getGaugeScore as getNoticiasGauge } from './noticias';
 import { fetchInstagramData } from './instagram';
 import { fetchXData } from './x';
+import { fetchFacebookOverviewPosts } from './facebook-overview-adapter';
 import { createClient } from '@/lib/supabaseClient';
 import {
   evaluateNoticiaItemAlerts,
   evaluateNoticiaAggregateAlerts,
   evaluateInstagramItemAlerts,
   evaluateXItemAlerts,
+  evaluateFacebookItemAlerts,
   sortAlerts,
 } from './alerts';
 import {
@@ -24,6 +26,7 @@ import {
 import { classifyPoliticalStatus } from '@/lib/analytics/political-status';
 import { withTiming } from '@/lib/perf/timing';
 import { toLegacyNoticiasBucket, type GlobalPeriod } from '@/lib/filters/global';
+import { buildChannelWeightedEntries } from '@/lib/config/channel-weights';
 
 export interface OverviewFilters {
   /** @deprecated use `candidateIds` — mantido para compatibilidade com chamadores internos que ainda passam um único id. */
@@ -95,7 +98,8 @@ function calculateTrend(
   const timestamps = [
     ...data.noticias.map(getItemTimestamp),
     ...data.instagram.posts.map(getItemTimestamp),
-    ...data.x.posts.map(getItemTimestamp)
+    ...data.x.posts.map(getItemTimestamp),
+    ...data.facebook.map(getItemTimestamp)
   ].filter((timestamp): timestamp is number => timestamp !== null);
 
   if (timestamps.length < 2) return { direção: 'stable', variação: 0 };
@@ -147,7 +151,7 @@ export const fetchOverviewData = cache(async (filters?: OverviewFilters) => {
   const candidateIds = filters?.candidateIds ?? (filters?.candidate ? [filters.candidate] : undefined);
   const perfKey = `period=${period} candidates=${candidateIds?.join(',') ?? '—'}`;
 
-  const [noticias, instagram, x] = await withTiming(
+  const [noticias, instagram, x, facebook] = await withTiming(
     `fetchOverviewData TOTAL (${perfKey})`,
     () => Promise.all([
       withTiming(`  noticias (${perfKey})`, () => fetchMencoes({
@@ -169,50 +173,60 @@ export const fetchOverviewData = cache(async (filters?: OverviewFilters) => {
         period: isAllPeriod ? undefined : period,
         allowedTargetIds: filters?.allowedTargetIds
       }), (r) => r.posts.length),
+      withTiming(`  facebook (${perfKey})`, () => fetchFacebookOverviewPosts({
+        candidateIds,
+        period: isAllPeriod ? undefined : period,
+        allowedTargetIds: filters?.allowedTargetIds
+      }), (r) => r.length),
     ]),
-    ([n, i, x]) => `noticias=${n.length} instagram=${i.posts.length} x=${x.posts.length}`
+    ([n, i, x, f]) => `noticias=${n.length} instagram=${i.posts.length} x=${x.posts.length} facebook=${f.length}`
   );
 
   const newsData = noticias.map(n => ({ ...n, source: "noticias" }));
   const instagramData = instagram.posts.map(p => ({ ...p, source: "instagram" }));
   const xData = x.posts.map(p => ({ ...p, source: "x" }));
+  const facebookData = facebook.map(p => ({ ...p, source: "facebook" }));
 
   const baseData = [
     ...newsData,
     ...instagramData,
-    ...xData
+    ...xData,
+    ...facebookData
   ];
 
-  return { noticias, instagram, x, baseData };
+  return { noticias, instagram, x, facebook, baseData };
 });
 
 /**
  * 2. KPIs EXECUTIVOS
  */
 export async function getOverviewKPIs(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
   // Volume Total
-  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length;
+  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length + facebook.length;
 
   // Alertas Ativos (Risco Alto/Crítico)
   const alertasNoticias = noticias.filter(n => n.local_relevance && n.local_relevance > 80).length;
   const alertasInstagram = instagram.posts.filter(p => isHighRisk(p.risk)).length;
   const alertasX = x.posts.filter(p => isHighRisk(p.risk)).length;
-  const alertasAtivos = alertasNoticias + alertasInstagram + alertasX;
+  const alertasFacebook = facebook.filter(p => isHighRisk(p.risk)).length;
+  const alertasAtivos = alertasNoticias + alertasInstagram + alertasX + alertasFacebook;
 
   const noticiasGauge = getNoticiasGauge(noticias);
   const xCrisisScore = averageRiskScore(x.posts);
   const instaCrisisScore = averageRiskScore(instagram.posts);
-  const weightedRisk = weightedAverage([
-    { value: noticiasGauge.score, weight: 0.5, count: noticias.length },
-    { value: xCrisisScore, weight: 0.3, count: x.posts.length },
-    { value: instaCrisisScore, weight: 0.2, count: instagram.posts.length }
-  ]);
+  const fbCrisisScore = averageRiskScore(facebook);
+  const weightedRisk = weightedAverage(buildChannelWeightedEntries({
+    noticias: { value: noticiasGauge.score, count: noticias.length },
+    x: { value: xCrisisScore, count: x.posts.length },
+    instagram: { value: instaCrisisScore, count: instagram.posts.length },
+    facebook: { value: fbCrisisScore, count: facebook.length },
+  }));
   const score_geral = volumeTotal > 0 ? Math.round(100 - weightedRisk) : 0;
 
   let temperatura_geral = volumeTotal > 0 ? 'fria' : 'Sem dados';
-  const maxCrisis = Math.max(noticiasGauge.score, xCrisisScore, instaCrisisScore);
+  const maxCrisis = Math.max(noticiasGauge.score, xCrisisScore, instaCrisisScore, fbCrisisScore);
   if (volumeTotal > 0 && maxCrisis > 70) temperatura_geral = 'crítica';
   else if (volumeTotal > 0 && maxCrisis > 40) temperatura_geral = 'quente';
   else if (volumeTotal > 0 && maxCrisis > 20) temperatura_geral = 'morna';
@@ -233,17 +247,19 @@ export async function getOverviewKPIs(filters?: OverviewFilters) {
  * 3. TERMÔMETRO DE CRISE (MASTER)
  */
 export async function getCrisisOverview(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
   const nGauge = getNoticiasGauge(noticias);
   const xCrisisScore = averageRiskScore(x.posts);
   const instaScore = averageRiskScore(instagram.posts);
-  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length;
-  const score = Math.round(weightedAverage([
-    { value: nGauge.score, weight: 0.5, count: noticias.length },
-    { value: xCrisisScore, weight: 0.3, count: x.posts.length },
-    { value: instaScore, weight: 0.2, count: instagram.posts.length }
-  ]));
+  const fbScore = averageRiskScore(facebook);
+  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length + facebook.length;
+  const score = Math.round(weightedAverage(buildChannelWeightedEntries({
+    noticias: { value: nGauge.score, count: noticias.length },
+    x: { value: xCrisisScore, count: x.posts.length },
+    instagram: { value: instaScore, count: instagram.posts.length },
+    facebook: { value: fbScore, count: facebook.length },
+  })));
 
   let status = volumeTotal > 0 ? 'frio' : 'Sem dados';
   if (score > 75) status = 'crítico';
@@ -256,7 +272,8 @@ export async function getCrisisOverview(filters?: OverviewFilters) {
     breakdown: {
       noticias: nGauge.score,
       x: Math.round(xCrisisScore),
-      instagram: Math.round(instaScore)
+      instagram: Math.round(instaScore),
+      facebook: Math.round(fbScore)
     }
   };
 }
@@ -265,7 +282,7 @@ export async function getCrisisOverview(filters?: OverviewFilters) {
  * 4. DISTRIBUIÇÃO POR CANAL
  */
 export async function getChannelDistribution(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
   // Notícias
   const nSent = noticias.reduce((acc, n) => acc + (n.ai_sentiment || 0), 0) / (noticias.length || 1);
@@ -281,6 +298,13 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
   const xSent = x.posts.reduce((acc, p) => acc + (iSentMap[p.sentiment?.toLowerCase()] || 0), 0) / (x.posts.length || 1);
   const xRisk = x.posts.filter(p => isHighRisk(p.risk)).length / (x.posts.length || 1);
   const xPol = x.posts.filter(p => p.polarizationLevel?.toLowerCase() === 'alto').length / (x.posts.length || 1);
+
+  // Facebook — engajamento usa engagement_total (reactionsTotal + comentários +
+  // compartilhamentos), nunca like_count (sempre null nesse canal, ver
+  // lib/facebook/analytics-contract.ts).
+  const fSent = facebook.reduce((acc, p) => acc + (iSentMap[p.sentiment?.toLowerCase()] || 0), 0) / (facebook.length || 1);
+  const fRisk = facebook.filter(p => isHighRisk(p.risk)).length / (facebook.length || 1);
+  const fEng = facebook.reduce((acc, p) => acc + p.engagement_total, 0);
 
   const channelDistribution = {
     noticias: {
@@ -300,6 +324,12 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
       polarização: xPol,
       volume: x.posts.length,
       posts: x.posts
+    },
+    facebook: {
+      sentimento_medio: fSent,
+      risco_medio: fRisk,
+      engajamento: fEng,
+      volume: facebook.length
     }
   };
 
@@ -308,7 +338,7 @@ export async function getChannelDistribution(filters?: OverviewFilters) {
 
 export interface TimelineEvent {
   id: string;
-  canal: 'Notícias' | 'Instagram' | 'X';
+  canal: 'Notícias' | 'Instagram' | 'X' | 'Facebook';
   titulo: string;
   data: string;
   severidade: 'alta' | 'media';
@@ -386,6 +416,7 @@ export function buildTimelineEvents(source: {
   noticias: TimelineSourceNoticia[];
   instagramPosts: TimelineSourcePost[];
   xPosts: TimelineSourcePost[];
+  facebookPosts?: TimelineSourcePost[];
 }): TimelineEvent[] {
   const seen = new Set<string>();
   const events: TimelineEvent[] = [];
@@ -445,6 +476,22 @@ export function buildTimelineEvents(source: {
     }
   });
 
+  (source.facebookPosts ?? []).forEach((p) => {
+    if (isHighRisk(p.risk) && p.created_at) {
+      pushEvent({
+        id: p.id,
+        canal: 'Facebook',
+        titulo: (p.text || 'Post sem legenda').substring(0, 140),
+        data: p.created_at,
+        severidade: isCriticalRisk(p.risk) ? 'alta' : 'media',
+        url: p.url ?? null,
+        tema: p.topic && p.topic !== 'Sem análise' ? p.topic : null,
+        entidade: p.candidate_name ?? null,
+        sentimento: normalizeSentimentLabel(p.sentiment, null),
+      });
+    }
+  });
+
   return events
     .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
     .slice(0, TIMELINE_LIMIT);
@@ -456,15 +503,15 @@ export function buildTimelineEvents(source: {
  * consulta nova.
  */
 export async function getTimelineEvents(filters?: OverviewFilters): Promise<TimelineEvent[]> {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
-  return buildTimelineEvents({ noticias, instagramPosts: instagram.posts, xPosts: x.posts });
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
+  return buildTimelineEvents({ noticias, instagramPosts: instagram.posts, xPosts: x.posts, facebookPosts: facebook });
 }
 
 /**
  * 6. TEMAS DOMINANTES
  */
 export async function getDominantTopics(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
   const topics: Record<string, { count: number, sentiment: number }> = {};
 
@@ -478,12 +525,13 @@ export async function getDominantTopics(filters?: OverviewFilters) {
   const iSentMap: Record<string, number> = { 'positivo': 1, 'neutro': 0, 'misto': 0, 'negativo': -1 };
 
   noticias.forEach(n => {
-    const tArray = Array.isArray(n.ai_topics) ? n.ai_topics : [];
-    tArray.forEach((t: any) => process(t, n.ai_sentiment || 0));
+    const tArray: unknown[] = Array.isArray(n.ai_topics) ? n.ai_topics : [];
+    tArray.forEach((t) => process(t as string, n.ai_sentiment || 0));
   });
 
   instagram.posts.forEach(p => process(p.topic, iSentMap[p.sentiment?.toLowerCase()] || 0));
   x.posts.forEach(p => process(p.topic, iSentMap[p.sentiment?.toLowerCase()] || 0));
+  facebook.forEach(p => process(p.topic, iSentMap[p.sentiment?.toLowerCase()] || 0));
 
   return Object.entries(topics)
     .map(([tema, data]) => ({
@@ -499,7 +547,7 @@ export async function getDominantTopics(filters?: OverviewFilters) {
  * 7. SENTIMENTO CONSOLIDADO
  */
 export async function getSentimentOverview(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
   const stats = { positivo: 0, negativo: 0, neutro: 0, misto: 0 };
 
@@ -520,6 +568,7 @@ export async function getSentimentOverview(filters?: OverviewFilters) {
   noticias.forEach(n => add(n.ai_sentiment));
   instagram.posts.forEach(p => add(p.sentiment));
   x.posts.forEach(p => add(p.sentiment));
+  facebook.forEach(p => add(p.sentiment));
 
   return stats;
 }
@@ -528,7 +577,7 @@ export async function getSentimentOverview(filters?: OverviewFilters) {
  * 8. RISCO CONSOLIDADO
  */
 export async function getRiskOverview(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
   const stats = { critico: 0, alto: 0, medio: 0, baixo: 0 };
 
@@ -549,6 +598,14 @@ export async function getRiskOverview(filters?: OverviewFilters) {
   });
 
   x.posts.forEach(p => {
+    const r = normalizeLabel(p.risk);
+    if (r === 'critico') stats.critico++;
+    else if (r === 'alto') stats.alto++;
+    else if (r === 'medio') stats.medio++;
+    else stats.baixo++;
+  });
+
+  facebook.forEach(p => {
     const r = normalizeLabel(p.risk);
     if (r === 'critico') stats.critico++;
     else if (r === 'alto') stats.alto++;
@@ -615,21 +672,35 @@ export const getTrendOverview = cache(async (filters?: OverviewFilters) => {
 /**
  * 10. MAPA DE AÇÃO (IA)
  */
-export async function getStrategicActions(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+interface StrategicAction {
+  'ação': string;
+  justificativa: string;
+  canal: string;
+}
 
-  const actions: any[] = [];
+interface StrategicActionCandidate {
+  recommendedAction?: string | null;
+  type: string;
+  riskVal: number;
+  canal: string;
+}
+
+export async function getStrategicActions(filters?: OverviewFilters) {
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
+
+  const actions: StrategicAction[] = [];
 
   // Coleta as recomendações de IA dos itens mais críticos
   const allItems = [
     ...noticias.map(n => ({ ...n, canal: 'Notícias', type: 'news', riskVal: n.local_relevance || 0 })),
     ...instagram.posts.map(p => ({ ...p, canal: 'Instagram', type: 'insta', riskVal: riskScore(p.risk) })),
-    ...x.posts.map(p => ({ ...p, canal: 'X', type: 'x', riskVal: riskScore(p.risk) }))
+    ...x.posts.map(p => ({ ...p, canal: 'X', type: 'x', riskVal: riskScore(p.risk) })),
+    ...facebook.map(p => ({ ...p, canal: 'Facebook', type: 'facebook', riskVal: riskScore(p.risk) }))
   ].sort((a, b) => b.riskVal - a.riskVal);
 
-  const topItems = allItems.slice(0, 3);
+  const topItems: StrategicActionCandidate[] = allItems.slice(0, 3);
 
-  topItems.forEach((item: any) => {
+  topItems.forEach((item) => {
     actions.push({
       ação: item.recommendedAction || 'Monitorar evolução da narrativa',
       justificativa: `Baseado em ${item.type === 'news' ? 'menção na imprensa' : 'post de rede social'} com risco ${item.riskVal}%`,
@@ -648,13 +719,23 @@ export async function getStrategicActions(filters?: OverviewFilters) {
   return actions;
 }
 
+interface ExecutiveTableRow {
+  candidato: string;
+  canal: string;
+  sentimento: string | null;
+  risco: string | null;
+  impacto: string;
+  'ação': string;
+  url?: string;
+}
+
 /**
  * 11. TABELA EXECUTIVA
  */
 export async function getExecutiveTable(filters?: OverviewFilters) {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
-  const rows: any[] = [];
+  const rows: ExecutiveTableRow[] = [];
 
   noticias.slice(0, 10).forEach(n => {
     rows.push({
@@ -664,7 +745,7 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
       risco: n.local_relevance && n.local_relevance > 70 ? 'Alto' : 'Baixo',
       impacto: 'Médio',
       ação: 'Ver Clipping',
-      url: n.url
+      url: n.url ?? undefined
     });
   });
 
@@ -692,8 +773,21 @@ export async function getExecutiveTable(filters?: OverviewFilters) {
     });
   });
 
+  facebook.slice(0, 10).forEach(p => {
+    rows.push({
+      candidato: p.candidate_name,
+      canal: 'Facebook',
+      sentimento: p.sentiment,
+      risco: p.risk,
+      // like_count é sempre null no Facebook — engagement_total (reactions+comentários+compartilhamentos) é o proxy correto de impacto.
+      impacto: p.engagement_total > 500 ? 'Alto' : 'Médio',
+      ação: 'Ver Post',
+      url: p.url
+    });
+  });
+
   return rows.sort((a, b) => {
-    const riskVal = (r: string) => r?.toLowerCase() === 'alto' || r?.toLowerCase() === 'crítico' ? 2 : 1;
+    const riskVal = (r: string | null) => r?.toLowerCase() === 'alto' || r?.toLowerCase() === 'crítico' ? 2 : 1;
     return riskVal(b.risco) - riskVal(a.risco);
   }).slice(0, 20);
 }
@@ -735,13 +829,14 @@ function pickMax<K extends string>(counts: Record<K, number>): K | null {
  * por bloco.
  */
 export const getExecutiveOverviewData = cache(async (filters?: OverviewFilters) => {
-  const { noticias, instagram, x } = await fetchOverviewData(filters);
+  const { noticias, instagram, x, facebook } = await fetchOverviewData(filters);
 
   const alerts = sortAlerts([
     ...evaluateNoticiaItemAlerts(noticias),
     ...evaluateNoticiaAggregateAlerts(noticias),
     ...evaluateInstagramItemAlerts(instagram.posts),
     ...evaluateXItemAlerts(x.posts),
+    ...evaluateFacebookItemAlerts(facebook),
   ]);
   const criticalAlertCount = alerts.filter((a) => a.severidade === 'critico').length;
   const highAlertCount = alerts.filter((a) => a.severidade === 'alto').length;
@@ -754,7 +849,7 @@ export const getExecutiveOverviewData = cache(async (filters?: OverviewFilters) 
     getDominantTopics(filters),
   ]);
 
-  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length;
+  const volumeTotal = noticias.length + instagram.posts.length + x.posts.length + facebook.length;
 
   const politicalStatus = classifyPoliticalStatus({
     crisisScore: crisis.score,
@@ -777,14 +872,15 @@ export const getExecutiveOverviewData = cache(async (filters?: OverviewFilters) 
   const noticiasSplit = splitByPeriod(allPeriodData.noticias, getNoticiaTimestamp, period);
   const instaSplit = splitByPeriod(allPeriodData.instagram.posts, getPostTimestamp, period);
   const xSplit = splitByPeriod(allPeriodData.x.posts, getPostTimestamp, period);
+  const facebookSplit = splitByPeriod(allPeriodData.facebook, getPostTimestamp, period);
 
-  const currentShares = computeSentimentShares(noticiasSplit.current, instaSplit.current, xSplit.current);
-  const hasPreviousWindow = noticiasSplit.previous.length + instaSplit.previous.length + xSplit.previous.length > 0;
+  const currentShares = computeSentimentShares(noticiasSplit.current, instaSplit.current, xSplit.current, facebookSplit.current);
+  const hasPreviousWindow = noticiasSplit.previous.length + instaSplit.previous.length + xSplit.previous.length + facebookSplit.previous.length > 0;
   const previousShares = hasPreviousWindow
-    ? computeSentimentShares(noticiasSplit.previous, instaSplit.previous, xSplit.previous)
+    ? computeSentimentShares(noticiasSplit.previous, instaSplit.previous, xSplit.previous, facebookSplit.previous)
     : null;
 
-  const entities = rankEntities(noticias, instagram.posts, x.posts, alerts);
+  const entities = rankEntities(noticias, instagram.posts, x.posts, alerts, 5, facebook);
   const themes = rankThemes(topics);
   const risks = deriveRisksFromAlerts(alerts, 10);
   const opportunities = evaluateOpportunities(currentShares, previousShares, entities, 10);

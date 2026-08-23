@@ -102,4 +102,30 @@ describe('buildTimelineEvents', () => {
     expect(events.find((e) => e.id === 'n1')?.severidade).toBe('alta');
     expect(events.find((e) => e.id === 'n2')?.severidade).toBe('media');
   });
+
+  it('inclui posts do Facebook de alto risco (facebookPosts é opcional, retrocompatível)', () => {
+    const events = buildTimelineEvents({
+      noticias: [],
+      instagramPosts: [],
+      xPosts: [],
+      facebookPosts: [{ id: 'f1', text: 'Post de risco', created_at: hoursAgo(1), risk: 'alto' }],
+    });
+    expect(events).toHaveLength(1);
+    expect(events[0].canal).toBe('Facebook');
+  });
+
+  it('omitir facebookPosts continua funcionando (chamadas existentes não quebram)', () => {
+    const events = buildTimelineEvents({ noticias: [], instagramPosts: [], xPosts: [] });
+    expect(events).toEqual([]);
+  });
+
+  it('Facebook de baixo risco não entra na timeline', () => {
+    const events = buildTimelineEvents({
+      noticias: [],
+      instagramPosts: [],
+      xPosts: [],
+      facebookPosts: [{ id: 'f1', text: 'ok', created_at: hoursAgo(1), risk: 'baixo' }],
+    });
+    expect(events).toHaveLength(0);
+  });
 });

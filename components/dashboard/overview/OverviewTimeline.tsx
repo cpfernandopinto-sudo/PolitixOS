@@ -43,10 +43,23 @@ function InstagramChannelIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+function FacebookChannelIcon({ size = 14 }: { size?: number }) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center justify-center rounded-full border-2 border-current font-black leading-none"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.7), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      f
+    </span>
+  );
+}
+
 const CHANNEL_ICON: Record<TimelineEvent['canal'], React.ReactNode> = {
   Notícias: <Newspaper size={14} className="text-blue-400" />,
   Instagram: <InstagramChannelIcon size={14} />,
   X: <XChannelIcon size={14} />,
+  Facebook: <FacebookChannelIcon size={14} />,
 };
 
 const SEVERITY_LABEL: Record<TimelineEvent['severidade'], string> = { alta: 'Alta', media: 'Média' };
@@ -109,7 +122,7 @@ export default function OverviewTimeline({ events }: Props) {
 
   const groups = useMemo(() => groupTimelineEvents(filtered), [filtered]);
 
-  const channels: Array<'todos' | TimelineEvent['canal']> = ['todos', 'Notícias', 'Instagram', 'X'];
+  const channels: Array<'todos' | TimelineEvent['canal']> = ['todos', 'Notícias', 'Instagram', 'X', 'Facebook'];
 
   const toggleGroup = (key: string) => {
     setExpandedGroups((prev) => {

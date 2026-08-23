@@ -102,7 +102,8 @@ interface PostSentimentSource {
 export function computeSentimentShares(
   noticias: NoticiaSentimentSource[],
   instagramPosts: PostSentimentSource[],
-  xPosts: PostSentimentSource[]
+  xPosts: PostSentimentSource[],
+  facebookPosts: PostSentimentSource[] = []
 ): SentimentWindowStats {
   let total = 0;
   let positivo = 0;
@@ -124,6 +125,7 @@ export function computeSentimentShares(
   };
   instagramPosts.forEach(bumpPost);
   xPosts.forEach(bumpPost);
+  facebookPosts.forEach(bumpPost);
 
   return {
     total,
@@ -149,7 +151,7 @@ export interface RiskCard {
   /** Evidência principal (título original do item de origem + link), separada da descrição executiva. */
   evidencia: EvidenceRef | null;
   /** Canal de origem do alerta — usado por blocos que precisam mostrar o ícone do canal (ex. Alertas Prioritários). */
-  origem: 'noticias' | 'instagram' | 'x';
+  origem: 'noticias' | 'instagram' | 'x' | 'facebook';
 }
 
 /**
@@ -450,7 +452,8 @@ export function rankEntities(
   instagramPosts: PostEntitySource[],
   xPosts: PostEntitySource[],
   alerts: UnifiedAlert[],
-  limit = 5
+  limit = 5,
+  facebookPosts: PostEntitySource[] = []
 ): EntityRankItem[] {
   const byEntity = new Map<
     string,
@@ -479,6 +482,7 @@ export function rankEntities(
     bump(p.candidate_name, p.sentiment?.toLowerCase() || null, p.risk?.toLowerCase() || null, p.topic || null, p.target_id);
   instagramPosts.forEach(bumpPost);
   xPosts.forEach(bumpPost);
+  facebookPosts.forEach(bumpPost);
 
   const alertCounts = new Map<string, number>();
   alerts.forEach((a) => {

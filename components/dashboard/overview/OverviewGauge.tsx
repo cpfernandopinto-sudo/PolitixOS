@@ -1,6 +1,7 @@
 'use client';
 
 import ReactECharts from 'echarts-for-react';
+import { channelWeightLabel } from '@/lib/config/channel-weights';
 
 interface GaugeProps {
   score: number;
@@ -9,6 +10,7 @@ interface GaugeProps {
     noticias: number;
     x: number;
     instagram: number;
+    facebook: number;
   };
 }
 
@@ -122,18 +124,22 @@ export default function OverviewGauge({ score, status, breakdown }: GaugeProps) 
           Risco Consolidado
         </div>
 
-        <div className="w-full grid grid-cols-3 gap-2">
+        <div className="w-full grid grid-cols-4 gap-2">
           <div className="bg-white/[0.02] rounded px-1 py-1.5 border border-white/[0.08] text-center">
-            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">Notícias (50%)</div>
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">{channelWeightLabel('noticias')}</div>
             <div className="text-sm font-bold text-white">{breakdown.noticias}</div>
           </div>
           <div className="bg-white/[0.02] rounded px-1 py-1.5 border border-white/[0.08] text-center">
-            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">X/Twitter (30%)</div>
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">{channelWeightLabel('x')}</div>
             <div className="text-sm font-bold text-white">{breakdown.x}</div>
           </div>
           <div className="bg-white/[0.02] rounded px-1 py-1.5 border border-white/[0.08] text-center">
-            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">Instagram (20%)</div>
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">{channelWeightLabel('instagram')}</div>
             <div className="text-sm font-bold text-white">{breakdown.instagram}</div>
+          </div>
+          <div className="bg-white/[0.02] rounded px-1 py-1.5 border border-white/[0.08] text-center">
+            <div className="text-[8px] text-slate-500 uppercase font-bold mb-0.5 leading-tight truncate">{channelWeightLabel('facebook')}</div>
+            <div className="text-sm font-bold text-white">{breakdown.facebook}</div>
           </div>
         </div>
       </div>

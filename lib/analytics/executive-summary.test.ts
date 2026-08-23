@@ -88,6 +88,18 @@ describe('computeSentimentShares', () => {
     expect(stats.positivoShare).toBe(0.5);
     expect(stats.negativoShare).toBe(0.5);
   });
+
+  it('inclui posts do Facebook quando informados (4º parâmetro, retrocompatível)', () => {
+    const stats = computeSentimentShares([], [], [], [{ sentiment: 'positivo' }, { sentiment: 'negativo' }]);
+    expect(stats.total).toBe(2);
+    expect(stats.positivoCount).toBe(1);
+    expect(stats.negativoCount).toBe(1);
+  });
+
+  it('omitir o parâmetro do Facebook continua funcionando (chamadas existentes não quebram)', () => {
+    const stats = computeSentimentShares([{ ai_sentiment: 0.5 }], [], []);
+    expect(stats.total).toBe(1);
+  });
 });
 
 describe('deriveRisksFromAlerts / selectPrimaryRisk', () => {
@@ -281,6 +293,28 @@ describe('rankEntities', () => {
 
   it('cenário sem dados: retorna lista vazia sem lançar erro', () => {
     expect(rankEntities([], [], [], [])).toEqual([]);
+  });
+
+  it('agrega volume incluindo posts do Facebook (6º parâmetro, retrocompatível)', () => {
+    const entities = rankEntities(
+      [],
+      [],
+      [],
+      [],
+      5,
+      [{ candidate_name: 'Candidato A', sentiment: 'positivo', risk: 'baixo', topic: 'Saúde' }]
+    );
+    expect(entities.find((e) => e.nome === 'Candidato A')?.volume).toBe(1);
+  });
+
+  it('omitir o parâmetro do Facebook continua funcionando (chamadas existentes com 4 args não quebram)', () => {
+    const entities = rankEntities(
+      [{ candidate_name: 'Candidato A', ai_sentiment: 0.5, local_relevance: 50, ai_topics: [] }],
+      [],
+      [],
+      []
+    );
+    expect(entities[0].nome).toBe('Candidato A');
   });
 });
 

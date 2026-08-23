@@ -16,7 +16,7 @@ export interface UnifiedAlert {
   id: string;
   ruleId: string;
   nome: string;
-  origem: 'noticias' | 'instagram' | 'x';
+  origem: 'noticias' | 'instagram' | 'x' | 'facebook';
   severidade: AlertSeverity;
   entidade: string;
   titulo: string;
@@ -228,6 +228,61 @@ export function evaluateInstagramItemAlerts(posts: InstagramPostLike[]): Unified
       descricao: ALERT_RULES.instagram_sentimento_negativo.descricao,
       metricaAtual: `${pct.toFixed(0)}% de posts negativos no período`,
       referencia: ALERT_RULES.instagram_sentimento_negativo.threshold,
+      data: new Date().toISOString(),
+      url: null,
+    });
+  }
+
+  return alerts;
+}
+
+interface FacebookPostLike {
+  id: string;
+  candidate_name?: string | null;
+  text?: string | null;
+  risk?: string | null;
+  sentiment?: string | null;
+  created_at?: string | null;
+  url?: string | null;
+}
+
+/** Mesma regra/threshold de evaluateInstagramItemAlerts — Facebook usa a mesma escala de risk_level/sentiment do resto do projeto. */
+export function evaluateFacebookItemAlerts(posts: FacebookPostLike[]): UnifiedAlert[] {
+  const alerts: UnifiedAlert[] = [];
+
+  for (const p of posts) {
+    if (p.risk?.toLowerCase() === 'alto') {
+      alerts.push({
+        id: `facebook_risco_alto:${p.id}`,
+        ruleId: ALERT_RULES.facebook_risco_alto.id,
+        nome: ALERT_RULES.facebook_risco_alto.nome,
+        origem: 'facebook',
+        severidade: 'alto',
+        entidade: p.candidate_name || 'Geral',
+        titulo: (p.text || 'Post sem legenda').slice(0, 120),
+        descricao: ALERT_RULES.facebook_risco_alto.descricao,
+        metricaAtual: `risk_level = ${p.risk}`,
+        referencia: ALERT_RULES.facebook_risco_alto.threshold,
+        data: p.created_at ?? null,
+        url: p.url ?? null,
+      });
+    }
+  }
+
+  const negativos = posts.filter((p) => p.sentiment?.toLowerCase() === 'negativo').length;
+  const pct = posts.length > 0 ? (negativos / posts.length) * 100 : 0;
+  if (posts.length > 0 && pct > 40) {
+    alerts.push({
+      id: 'facebook_sentimento_negativo:periodo',
+      ruleId: ALERT_RULES.facebook_sentimento_negativo.id,
+      nome: ALERT_RULES.facebook_sentimento_negativo.nome,
+      origem: 'facebook',
+      severidade: 'alto',
+      entidade: 'Geral',
+      titulo: ALERT_RULES.facebook_sentimento_negativo.nome,
+      descricao: ALERT_RULES.facebook_sentimento_negativo.descricao,
+      metricaAtual: `${pct.toFixed(0)}% de posts negativos no período`,
+      referencia: ALERT_RULES.facebook_sentimento_negativo.threshold,
       data: new Date().toISOString(),
       url: null,
     });

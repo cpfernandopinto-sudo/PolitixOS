@@ -6,8 +6,8 @@ import { Newspaper, Search } from 'lucide-react';
 interface Row {
   candidato: string;
   canal: string;
-  sentimento: string;
-  risco: string;
+  sentimento: string | null;
+  risco: string | null;
   impacto: string;
   ação: string;
   url?: string;
@@ -32,6 +32,18 @@ function XChannelIcon({ size = 14, className = '' }: { size?: number; className?
       aria-hidden="true"
     >
       X
+    </span>
+  );
+}
+
+function FacebookChannelIcon({ size = 14, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-current font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.7), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      f
     </span>
   );
 }
@@ -101,6 +113,7 @@ function getItemUrl(row: Row) {
 function getActionLabel(row: Row) {
   const canal = row.canal?.toLowerCase() || '';
   if (canal.includes('notícia') || canal.includes('noticia')) return 'VER CLIPPING';
+  if (canal.includes('facebook')) return 'VER POST';
   if (canal.includes('instagram')) return 'VER POST';
   if (canal.includes('x') || canal.includes('twitter')) return 'VER ANÁLISE';
   return row['ação'] || 'VER ITEM';
@@ -109,6 +122,10 @@ function getActionLabel(row: Row) {
 function getChannelIcon(canal: string) {
   if (canal === 'Notícias') return <Newspaper size={14} className="text-blue-400" />;
   if (canal === 'Instagram') return <InstagramChannelIcon size={14} className="text-pink-400" />;
+  if (canal === 'Facebook') return <FacebookChannelIcon size={14} className="text-blue-500" />;
+  if (canal === 'X (Twitter)') return <XChannelIcon size={14} className="text-cyan-400" />;
+  // Fallback anterior assumia silenciosamente X para qualquer canal desconhecido — mantido só como
+  // último recurso genérico, nunca mais o caminho padrão para um canal real não mapeado explicitamente.
   return <XChannelIcon size={14} className="text-cyan-400" />;
 }
 

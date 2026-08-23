@@ -11,7 +11,7 @@
 
 export interface TimelineEventWithMeta {
   id: string;
-  canal: 'Notícias' | 'Instagram' | 'X';
+  canal: 'Notícias' | 'Instagram' | 'X' | 'Facebook';
   titulo: string;
   data: string;
   severidade: 'alta' | 'media';

@@ -8,6 +8,8 @@
  * de negócio não é reinventada aqui.
  */
 
+import { channelWeightsProse } from '@/lib/config/channel-weights';
+
 export type PoliticalStatus = 'estavel' | 'atencao' | 'tensao_elevada' | 'critico';
 export type PoliticalSeverity = 'baixo' | 'medio' | 'alto' | 'critico';
 
@@ -89,7 +91,7 @@ export function classifyPoliticalStatus(input: PoliticalStatusInput): PoliticalS
   if (input.predominantRisk) fatores.push(`Risco predominante: ${input.predominantRisk}`);
   if (fatores.length === 0) fatores.push('Nenhum fator de destaque adicional identificado no período.');
 
-  const justificativa = `Score de crise consolidado em ${Math.round(input.crisisScore)}/100, combinando notícias (peso 50%), X (peso 30%) e Instagram (peso 20%).`;
+  const justificativa = `Score de crise consolidado em ${Math.round(input.crisisScore)}/100, combinando ${channelWeightsProse()}.`;
 
   const variacao = input.volumeTrend
     ? { direcao: input.volumeTrend.direcao, variacaoPercentual: input.volumeTrend.variacaoPercentual, metrica: 'volume de menções' }
