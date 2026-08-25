@@ -161,6 +161,20 @@ export default async function OverviewPage({ searchParams }: Props) {
     allowedTargetIds,
   };
 
+  // Sprint 12 — diagnóstico temporário (RELATORIO_SPRINT12_DIAGNOSTICO_CARD_PESQUISAS_PRODUCAO.md).
+  // Nenhum dado sensível: role e ids de candidato (não são segredo, já trafegam na URL pública).
+  console.log('[Overview/Pesquisas][Session]', {
+    role: session.role,
+    allowedTargetIdsCount: allowedTargetIds === null ? 'null (admin, sem restrição)' : allowedTargetIds.length,
+  });
+  console.log('[Overview/Pesquisas][GlobalFilter]', {
+    requestedCandidateIds: globalFilters.candidateMode === 'SELECTED' ? globalFilters.candidateIds : [],
+    effectiveCandidateIds: candidateIds,
+  });
+  console.log('[Overview/Pesquisas][Filter]', {
+    candidateId: filters.candidate,
+  });
+
   return (
     <div className="space-y-6 pb-12">
       <SectionBoundary label="Indicadores executivos" fallback={<KpiRowSkeleton />} minHeight={112}>

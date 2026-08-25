@@ -1,5 +1,18 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createHash } from 'node:crypto'
+
+// Sprint 12 — diagnóstico temporário (RELATORIO_SPRINT12_DIAGNOSTICO_CARD_PESQUISAS_PRODUCAO.md):
+// fingerprint irreversível (SHA-256 truncado) da URL do projeto Supabase, só para comparar
+// LOCAL × PRODUÇÃO sem nunca expor a URL/chave reais. Loga uma única vez por processo.
+let supabaseFingerprintLogged = false;
+function logSupabaseFingerprintOnce() {
+  if (supabaseFingerprintLogged) return;
+  supabaseFingerprintLogged = true;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const fingerprint = url ? createHash('sha256').update(url).digest('hex').slice(0, 12) : 'AUSENTE';
+  console.log('[Overview/Pesquisas][SupabaseFingerprint]', { fingerprint });
+}
 
 export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -32,6 +45,8 @@ export function createAdminClient() {
   if (!key) {
     console.error('[PolitixOS] SUPABASE_SERVICE_ROLE_KEY não configurada');
   }
+
+  logSupabaseFingerprintOnce();
 
   // Usa createSupabaseClient direto do supabase-js para bypass de RLS mais robusto no server
   return createSupabaseClient(
