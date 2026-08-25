@@ -60,7 +60,7 @@ describe('OverviewKPI — cards executivos (Camada 1, reintegração Sprint 6)',
     expect(screen.getByText(/série compar\./)).toBeInTheDocument();
   });
 
-  it('exibe percentual recente e aviso de sem tendência quando comparabilidade é insuficiente', () => {
+  it('exibe percentual recente e nunca "Sem dados" quando há resultado mas a comparabilidade é insuficiente (Fase 1/7 da auditoria MG/Governador)', () => {
     render(
       <OverviewKPI
         {...props}
@@ -70,12 +70,16 @@ describe('OverviewKPI — cards executivos (Camada 1, reintegração Sprint 6)',
           comparability: 'insufficient',
           confidence: 'baixa',
           pollCount: 4,
+          registeredPollsCount: 28,
+          pollsWithResultsCount: 2,
         }}
       />
     );
     expect(screen.getByText('32%')).toBeInTheDocument();
-    expect(screen.getByText(/4 levant\./)).toBeInTheDocument();
-    expect(screen.getByText(/sem tendência/)).toBeInTheDocument();
+    expect(screen.queryByText('Sem dados')).not.toBeInTheDocument();
+    expect(screen.getByText(/28 registradas/)).toBeInTheDocument();
+    expect(screen.getByText(/2 c\/ resultado/)).toBeInTheDocument();
+    expect(screen.getByText(/sem série comparável/)).toBeInTheDocument();
   });
 
   it('cada card explica seu papel de forma distinta (sem repetir o mesmo texto do Estado Político)', () => {

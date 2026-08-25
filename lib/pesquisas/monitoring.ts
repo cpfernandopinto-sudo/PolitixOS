@@ -2,7 +2,14 @@ import { createAdminClient } from '@/lib/supabaseClient';
 import type { ElectoralPollUpsert, ElectoralPollResult, ElectoralPollResultWithPoll } from './types';
 import { isRealCandidate } from './types';
 import { getPollMonitoringTargets, matchPollToTargets, matchCandidateNameToTarget } from './targetMatcher';
-import { upsertPollResult, getPriorityRacePolls, buildTemporalSeries, type PriorityRacePoll } from './results-repository';
+import {
+  upsertPollResult,
+  getPriorityRacePolls,
+  buildTemporalSeries,
+  resolveCandidateRaceContext,
+  countRegisteredPolls,
+  type PriorityRacePoll,
+} from './results-repository';
 import { calculateCockpitMetrics, getCandidateRanking, getInstituteComparisonPoints } from './cockpitAnalytics';
 import { extractMarginOfError } from './parser';
 import { deriveElectoralSignals, type ElectoralSignal } from './signals';
@@ -175,6 +182,10 @@ export interface ElectoralSignalSummary {
   pollCount: number;
   comparability: 'sufficient' | 'insufficient';
   confidence: 'baixa' | 'media' | 'alta';
+  /** Pesquisas TSE registradas para esta uf+cargo (não só as que têm resultado) — Fase 3/8. */
+  registeredPollsCount: number;
+  /** Pesquisas desta uf+cargo que já têm resultado integrado. */
+  pollsWithResultsCount: number;
   signals: ElectoralSignal[];
 }
 
@@ -189,24 +200,43 @@ function toResultsWithPoll(polls: PriorityRacePoll[]): ElectoralPollResultWithPo
 
 /**
  * PESQUISAS-N8N-01 Fase 24 — resumo compacto e determinístico para
- * lib/ai/analytics-context.ts. Só retorna dado quando `candidateName` casa
- * com um target com `poll_monitoring_enabled=true` e há pesquisa com
- * resultado real na corrida dele — nunca inventa quando o candidato não é
- * monitorado ou não há dado ([] nesses casos, não um objeto vazio).
+ * lib/ai/analytics-context.ts e para o card de Pesquisas da Visão Geral.
+ *
+ * Fase 1 da auditoria MG/Governador (2026-08-24): a resolução da corrida
+ * (uf/cargo) agora tenta primeiro `resolveCandidateRaceContext(candidateId)`
+ * — direto de `electoral_poll_results.candidate_id`, a mesma verdade de
+ * dados que o Cockpit usa. Só cai para o matcher por nome/monitoramento
+ * (`matchCandidateNameToTarget` + `targets.poll_monitoring_*`) quando o
+ * candidato ainda não tem nenhum resultado com `candidate_id` vinculado —
+ * nesse caso `poll_monitoring_*` funciona como estava (regra de
+ * elegibilidade), não como uma segunda fonte de verdade concorrente.
+ * `candidateId` é opcional para não quebrar o único outro chamador
+ * (`lib/actions/analytics-insight.ts`), que hoje só tem o nome.
  */
 export async function getElectoralSignalsSummaryForCandidate(
   client: AdminClient,
-  candidateName: string
+  candidateName: string,
+  candidateId?: string | null
 ): Promise<ElectoralSignalSummary[]> {
-  const targets = await getPollMonitoringTargets(client);
-  const target = matchCandidateNameToTarget(candidateName, targets);
-  if (!target || !target.office) return [];
+  let raceContext = candidateId ? await resolveCandidateRaceContext(candidateId) : null;
+  let resolvedCandidateName = candidateName;
 
-  const polls = await getPriorityRacePolls(target.state ?? 'BR', target.office);
+  if (!raceContext) {
+    const targets = await getPollMonitoringTargets(client);
+    const target = matchCandidateNameToTarget(candidateName, targets);
+    if (!target || !target.office) return [];
+    raceContext = { uf: target.state ?? 'BR', cargo: target.office };
+    resolvedCandidateName = target.candidateName;
+  }
+
+  const [polls, registeredPollsCount] = await Promise.all([
+    getPriorityRacePolls(raceContext.uf, raceContext.cargo),
+    countRegisteredPolls(raceContext.uf, raceContext.cargo),
+  ]);
   if (polls.length === 0) return [];
 
   const resultsWithPoll = toResultsWithPoll(polls);
-  const metrics = calculateCockpitMetrics(polls, resultsWithPoll, target.candidateName);
+  const metrics = calculateCockpitMetrics(polls, resultsWithPoll, resolvedCandidateName);
   if (!metrics.intencaoMaisRecente) return [];
 
   const ranking = getCandidateRanking(resultsWithPoll, polls[0].id);
@@ -230,21 +260,34 @@ export async function getElectoralSignalsSummaryForCandidate(
     marginOfErrorPct: marginOfError,
   });
 
+  // Resolve o percentual do PRÓPRIO candidato por candidate_id quando disponível — exato, não
+  // depende de bater string de nome (ex.: "Cleitinho" no resultado vs. "Cleitinho Azevedo" no
+  // target, que fazia `analyzedCandidateResult` ficar null mesmo com dado real disponível). Cai
+  // para o fluxo anterior por nome quando não há candidate_id ou o candidato não está entre os
+  // resultados da pesquisa mais recente.
+  let currentPercentage: number | null = null;
+  if (candidateId) {
+    const ownResult = polls[0].results.find((r) => r.candidateId === candidateId);
+    if (ownResult) currentPercentage = ownResult.percentage;
+  }
   const targetResult = metrics.analyzedCandidateResult ?? metrics.intencaoMaisRecente;
-  const currentPercentage = targetResult?.percentage ?? null;
+  if (currentPercentage === null) {
+    currentPercentage = targetResult?.percentage ?? null;
+  }
+
   const previousPercentage =
-    metrics.variacaoAnterior && metrics.variacaoAnterior.candidateName.toLowerCase() === target.candidateName.toLowerCase()
+    metrics.variacaoAnterior && metrics.variacaoAnterior.candidateName.toLowerCase() === resolvedCandidateName.toLowerCase()
       ? Number((currentPercentage! - metrics.variacaoAnterior.diff).toFixed(2))
       : null;
 
   return [
     {
-      candidate: target.candidateName,
-      office: target.office,
+      candidate: resolvedCandidateName,
+      office: raceContext.cargo,
       currentPercentage,
       previousPercentage,
       movementPp:
-        metrics.variacaoAnterior && metrics.variacaoAnterior.candidateName.toLowerCase() === target.candidateName.toLowerCase()
+        metrics.variacaoAnterior && metrics.variacaoAnterior.candidateName.toLowerCase() === resolvedCandidateName.toLowerCase()
           ? metrics.variacaoAnterior.diff
           : null,
       leader: metrics.intencaoMaisRecente?.candidateName ?? null,
@@ -253,6 +296,8 @@ export async function getElectoralSignalsSummaryForCandidate(
       pollCount: comparablePolls || metrics.pollsWithResultsCount,
       comparability: metrics.hasSufficientSeries ? 'sufficient' : 'insufficient',
       confidence: metrics.hasSufficientSeries ? (metrics.instituteConsistency === 'CONVERGENTE' ? 'alta' : 'media') : 'baixa',
+      registeredPollsCount,
+      pollsWithResultsCount: metrics.pollsWithResultsCount,
       signals,
     },
   ];

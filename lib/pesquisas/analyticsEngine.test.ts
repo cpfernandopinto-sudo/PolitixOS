@@ -33,6 +33,7 @@ function mockMetrics(overrides: Partial<ExecutiveCockpitMetrics> = {}): Executiv
     totalPollsInSlice: 3,
     pollsWithResultsCount: 3,
     pesquisasComparaveisCount: 3,
+    comparableOtherPollsCount: 2,
     trendPollsCount: 3,
     lastUpdateDate: '2026-03-20',
     hasSufficientSeries: true,

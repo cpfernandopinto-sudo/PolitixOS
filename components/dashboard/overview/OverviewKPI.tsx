@@ -13,6 +13,10 @@ export interface ElectoralPollSignalKPI {
   confidence?: 'baixa' | 'media' | 'alta';
   pollCount?: number | null;
   leader?: string | null;
+  /** Pesquisas TSE registradas para a corrida do candidato (não só as que têm resultado). */
+  registeredPollsCount?: number | null;
+  /** Pesquisas dessa corrida que já têm resultado integrado. */
+  pollsWithResultsCount?: number | null;
 }
 
 interface KPIProps {
@@ -218,12 +222,24 @@ export default function OverviewKPI({
               ) : (
                 <div className="text-sm font-bold text-slate-400 leading-none">Coletando...</div>
               )}
-              <div className="text-[10px] text-slate-400 font-medium truncate mt-1">
-                {pesquisasSignal.pollCount ? `${pesquisasSignal.pollCount} levant.` : ''}
-                {pesquisasSignal.pollCount && pesquisasSignal.comparability === 'sufficient' ? ' · série compar.' : ''}
-                {pesquisasSignal.pollCount && pesquisasSignal.comparability !== 'sufficient' ? ' · sem tendência' : ''}
-                {!pesquisasSignal.pollCount && pesquisasSignal.currentPercentage !== null ? 'Último levantamento' : ''}
-                {!pesquisasSignal.pollCount && pesquisasSignal.currentPercentage === null ? 'Aguardando dados' : ''}
+              <div className="text-[10px] text-slate-400 font-medium truncate mt-1" title={
+                pesquisasSignal.registeredPollsCount != null && pesquisasSignal.pollsWithResultsCount != null
+                  ? `${pesquisasSignal.registeredPollsCount} registradas · ${pesquisasSignal.pollsWithResultsCount} com resultado`
+                  : undefined
+              }>
+                {pesquisasSignal.comparability === 'sufficient' && pesquisasSignal.movementPp !== null ? (
+                  // Série comparável: mantém o rótulo curto, já mostrado como p.p. acima.
+                  <>{pesquisasSignal.pollCount ? `${pesquisasSignal.pollCount} levant. · série compar.` : 'Série comparável'}</>
+                ) : (
+                  // Sem série comparável: nunca "sem dados" — mostra o universo de dados real
+                  // (registradas · com resultado) em vez de esconder o que existe (Fase 7/9).
+                  <>
+                    {pesquisasSignal.registeredPollsCount != null && pesquisasSignal.pollsWithResultsCount != null
+                      ? `${pesquisasSignal.registeredPollsCount} registradas · ${pesquisasSignal.pollsWithResultsCount} c/ resultado · `
+                      : ''}
+                    {pesquisasSignal.currentPercentage !== null ? 'sem série comparável' : 'aguardando dados'}
+                  </>
+                )}
               </div>
             </div>
           ) : (

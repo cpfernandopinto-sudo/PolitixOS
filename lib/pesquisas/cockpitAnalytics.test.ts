@@ -95,6 +95,9 @@ describe('cockpitAnalytics.ts — PESQUISAS-03A Consistência de Dados e Testes 
     const metrics = calculateCockpitMetrics([p1, p2, p3], results);
 
     expect(metrics.pesquisasComparaveisCount).toBe(3);
+    // Fase 4 da auditoria: "comparáveis" para a UX nunca deve contar a pesquisa mais recente como
+    // comparável consigo mesma — são as OUTRAS 2 que batem com ela.
+    expect(metrics.comparableOtherPollsCount).toBe(2);
     expect(metrics.hasSufficientSeries).toBe(true);
     expect(metrics.intencaoMaisRecente?.percentage).toBe(34.0);
     expect(metrics.gapConcorrente?.gap).toBe(12.0); // 34 - 22
@@ -116,6 +119,7 @@ describe('cockpitAnalytics.ts — PESQUISAS-03A Consistência de Dados e Testes 
     const metrics = calculateCockpitMetrics([p1, p2], results);
 
     expect(metrics.pesquisasComparaveisCount).toBe(2);
+    expect(metrics.comparableOtherPollsCount).toBe(1);
     expect(metrics.hasSufficientSeries).toBe(true);
   });
 
@@ -136,6 +140,9 @@ describe('cockpitAnalytics.ts — PESQUISAS-03A Consistência de Dados e Testes 
 
     expect(metrics.hasSufficientSeries).toBe(false);
     expect(metrics.variacaoAnterior).toBeNull();
+    // Fase 4/5: MG tem só 1 pesquisa realmente comparável a si própria (mg2 fica de fora, cenários
+    // fragmentados) — "Comparáveis" na UX deve mostrar 0, não 1.
+    expect(metrics.comparableOtherPollsCount).toBe(0);
   });
 
   it('exclui categorias não-candidato do ranking principal de liderança e do filtro de candidatos', () => {
