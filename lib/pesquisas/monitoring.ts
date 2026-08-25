@@ -220,23 +220,50 @@ export async function getElectoralSignalsSummaryForCandidate(
 ): Promise<ElectoralSignalSummary[]> {
   let raceContext = candidateId ? await resolveCandidateRaceContext(candidateId) : null;
   let resolvedCandidateName = candidateName;
+  const raceContextSource = raceContext ? 'candidate_id (electoral_poll_results)' : null;
 
   if (!raceContext) {
     const targets = await getPollMonitoringTargets(client);
     const target = matchCandidateNameToTarget(candidateName, targets);
-    if (!target || !target.office) return [];
+    if (!target || !target.office) {
+      console.log('[Overview/Pesquisas][RaceContext]', { candidateId, raceContextResolved: false, reason: 'sem candidate_id vinculado e sem match por nome/office em targets' });
+      return [];
+    }
     raceContext = { uf: target.state ?? 'BR', cargo: target.office };
     resolvedCandidateName = target.candidateName;
   }
+
+  // Sprint 12 — diagnóstico temporário (RELATORIO_SPRINT12_DIAGNOSTICO_CARD_PESQUISAS_PRODUCAO.md).
+  console.log('[Overview/Pesquisas][RaceContext]', {
+    candidateId,
+    raceContextResolved: true,
+    source: raceContextSource ?? 'poll_monitoring_office (fallback por nome)',
+    uf: raceContext.uf,
+    cargo: raceContext.cargo,
+  });
 
   const [polls, registeredPollsCount] = await Promise.all([
     getPriorityRacePolls(raceContext.uf, raceContext.cargo),
     countRegisteredPolls(raceContext.uf, raceContext.cargo),
   ]);
+
+  console.log('[Overview/Pesquisas][Polls]', {
+    candidateId,
+    registeredPollsCount,
+    pollsWithResultsCount: polls.length,
+  });
+
   if (polls.length === 0) return [];
 
   const resultsWithPoll = toResultsWithPoll(polls);
   const metrics = calculateCockpitMetrics(polls, resultsWithPoll, resolvedCandidateName);
+
+  console.log('[Overview/Pesquisas][Metrics]', {
+    candidateId,
+    intencaoMaisRecenteFound: Boolean(metrics.intencaoMaisRecente),
+    percentage: metrics.intencaoMaisRecente?.percentage ?? null,
+  });
+
   if (!metrics.intencaoMaisRecente) return [];
 
   const ranking = getCandidateRanking(resultsWithPoll, polls[0].id);

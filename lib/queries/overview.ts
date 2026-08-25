@@ -926,7 +926,10 @@ export async function getOverviewFiltersOptions(allowedTargetIds?: string[] | nu
 export async function getOverviewPesquisasSignal(filters?: OverviewFilters) {
   try {
     const candidateId = filters?.candidate ?? (filters?.candidateIds && filters.candidateIds.length === 1 ? filters.candidateIds[0] : null);
-    if (!candidateId) return null;
+    if (!candidateId) {
+      console.log('[Overview/Pesquisas][Signal]', { candidateId: null, reason: 'sem candidato efetivo (candidateId ausente)' });
+      return null;
+    }
 
     const adminClient = createAdminClient();
     const { data: target } = await adminClient
@@ -935,6 +938,13 @@ export async function getOverviewPesquisasSignal(filters?: OverviewFilters) {
       .eq('id', candidateId)
       .maybeSingle();
 
+    // Sprint 12 — diagnóstico temporário (RELATORIO_SPRINT12_DIAGNOSTICO_CARD_PESQUISAS_PRODUCAO.md).
+    console.log('[Overview/Pesquisas][Target]', {
+      candidateId,
+      targetFound: Boolean(target?.candidate_name),
+      candidateName: target?.candidate_name ?? null,
+    });
+
     if (!target?.candidate_name) return null;
 
     const { getElectoralSignalsSummaryForCandidate } = await import('@/lib/pesquisas/monitoring');
@@ -942,6 +952,13 @@ export async function getOverviewPesquisasSignal(filters?: OverviewFilters) {
     // priorize electoral_poll_results.candidate_id (mesma verdade de dados do Cockpit) em vez de
     // depender só do matcher por nome/poll_monitoring_*.
     const summaries = await getElectoralSignalsSummaryForCandidate(adminClient, target.candidate_name, candidateId);
+
+    console.log('[Overview/Pesquisas][Signal]', {
+      candidateId,
+      summariesCount: summaries?.length ?? 0,
+      signalReturned: Boolean(summaries && summaries.length > 0),
+    });
+
     if (!summaries || summaries.length === 0) return null;
 
     const summary = summaries[0];
@@ -955,7 +972,13 @@ export async function getOverviewPesquisasSignal(filters?: OverviewFilters) {
       registeredPollsCount: summary.registeredPollsCount,
       pollsWithResultsCount: summary.pollsWithResultsCount,
     };
-  } catch {
+  } catch (error) {
+    // Sprint 12 — diagnóstico temporário: o catch deixou de ser silencioso (não altera o retorno
+    // para a UI, que continua null/"Sem dados" — só passa a registrar a causa real no servidor).
+    console.error('[Overview/Pesquisas][ERROR]', {
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
