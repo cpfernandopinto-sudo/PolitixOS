@@ -41,7 +41,7 @@ export function EvolucaoGapChart({ temporalSeries }: Props) {
   const gapDelta = Math.round((lastGap - firstGap) * 10) / 10;
 
   return (
-    <section className="bg-[#12192A] border border-white/5 rounded-2xl p-4.5 space-y-3 shadow-xl h-full flex flex-col justify-between">
+    <section className="surface-primary p-4.5 space-y-3 flex-1 flex flex-col justify-between">
       <div className="space-y-2">
         <div className="flex items-center justify-between pb-2 border-b border-white/5">
           <h3 className="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 truncate">

@@ -190,7 +190,7 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
       </div>
 
       {/* Barra de Busca e Filtros */}
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl p-4 space-y-3 shadow-xl">
+      <div className="surface-primary p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
           {/* Busca Textual */}
           <div className="relative">
@@ -242,13 +242,14 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
             <option value="ESTÁVEL">ESTÁVEL</option>
             <option value="ATENÇÃO">ATENÇÃO</option>
             <option value="CRÍTICO">CRÍTICO</option>
+            <option value="INCONCLUSIVO">INCONCLUSIVO</option>
             <option value="SEM CLASSIFICAÇÃO">SEM CLASSIFICAÇÃO</option>
           </select>
         </div>
       </div>
 
       {/* Tabela de Pesquisas */}
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+      <div className="surface-primary overflow-hidden">
         {filteredPolls.length === 0 ? (
           <div className="p-8 text-center text-gray-500 text-xs italic">
             Nenhuma pesquisa encontrada com os filtros selecionados.
@@ -276,6 +277,8 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       : statusResult.status === 'CRÍTICO'
                       ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                      : statusResult.status === 'INCONCLUSIVO'
+                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                       : 'bg-gray-500/10 text-gray-400 border-gray-500/20';
 
                   return (

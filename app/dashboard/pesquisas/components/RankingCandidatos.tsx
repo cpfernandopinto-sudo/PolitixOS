@@ -23,7 +23,7 @@ export function RankingCandidatos({
 }: Props) {
   if (realCandidates.length === 0) {
     return (
-      <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-3 shadow-xl">
+      <section className="surface-primary p-5 space-y-3">
         <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
           <Crown size={15} className="text-blue-500" /> Ranking Atual — Pesquisa mais recente
         </h3>
@@ -125,6 +125,11 @@ export function RankingCandidatos({
           </div>
         </div>
       )}
+
+      {/* Bloco 8 do briefing Sprint 2B — nunca deixar o ranking ser confundido com uma média. */}
+      <p className="text-[10px] text-slate-500 pt-2 border-t border-white/5">
+        Resultados da pesquisa de referência. Não representa média de pesquisas.
+      </p>
     </section>
   );
 }

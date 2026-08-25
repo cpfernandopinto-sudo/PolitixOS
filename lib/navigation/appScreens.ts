@@ -148,12 +148,14 @@ export const APP_SCREENS: AppScreen[] = [
     group: 'Inteligência',
     description: 'Monitor oficial de pesquisas registradas no TSE/PesqEle',
     implemented: true,
-    // Sem candidato/período globais nesta rodada — registro de pesquisa não
-    // tem hoje um vínculo verificado com `targets` (candidatos monitorados),
-    // e não há resultado real ainda para filtrar por período. Reavaliar
-    // quando PESQUISAS-01B confirmar o mapeamento de schema (ver
-    // docs/relatorios/CLAUDE_PESQUISAS_01A_CORE_TSE.md).
-    supportsGlobalCandidate: false,
+    // Sprint 2B, P0.1: reavaliado como o comentário original previa —
+    // PESQUISAS-01B confirmou o vínculo real electoral_poll_results.candidate_id
+    // → targets.id (auditoria MG/Governador), então o candidato global agora
+    // tem o que filtrar. Período global segue false: os filtros locais de
+    // Pesquisas (Período/Turno/Tipo) já cobrem esse eixo com semântica
+    // própria (ver lib/pesquisas/periodFilter.ts) — não é o mesmo período
+    // (dias corridos) que Visão Geral/Notícias/Instagram/X consomem.
+    supportsGlobalCandidate: true,
     supportsGlobalPeriod: false,
     showInNav: true,
   },

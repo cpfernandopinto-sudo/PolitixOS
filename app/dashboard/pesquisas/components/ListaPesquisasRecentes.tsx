@@ -15,7 +15,7 @@ export function ListaPesquisasRecentes({ polls }: Props) {
   const visiblePolls = showAll ? polls : polls.slice(0, 5);
 
   return (
-    <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+    <section className="surface-primary p-5 space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-white/5">
         <div className="flex items-center gap-2">
           <FileText size={16} className="text-blue-400" />

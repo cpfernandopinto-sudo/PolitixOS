@@ -9,7 +9,7 @@ interface Props {
 
 export function SegundoTurnoToggle({ turno, onChange }: Props) {
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-2xl p-3 flex items-center justify-between gap-4 flex-wrap shadow-xl">
+    <div className="surface-primary p-3 flex items-center justify-between gap-4 flex-wrap">
       <div className="flex items-center gap-2 text-xs text-gray-300 font-semibold px-2">
         <Layers size={15} className="text-blue-400" />
         <span>Cenário Eleitoral:</span>

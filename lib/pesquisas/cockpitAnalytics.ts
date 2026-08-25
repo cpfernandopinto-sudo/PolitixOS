@@ -7,6 +7,7 @@ import type {
 } from './types';
 import { isRealCandidate } from './types';
 import { arePollsComparable, areResultsComparable, areScenariosEquivalent } from './comparability';
+import { selectPrimaryCenario } from './scenarioSelection';
 
 export function getLatestResultPoll(results: ElectoralPollResultWithPoll[]): ElectoralPoll | null {
   if (results.length === 0) return null;
@@ -113,7 +114,9 @@ export function calculateCockpitMetrics(
 
   const latestPoll = pollsWithResults[0];
   const latestPollAllResults = resultsByPoll.get(latestPoll.id) ?? [];
-  const primaryCenario = latestPollAllResults[0]?.cenario ?? null;
+  // Sprint 2A / P0.6 da auditoria: escolha determinística do cenário de referência —
+  // nunca mais o primeiro item na ordem em que o banco devolveu as linhas.
+  const primaryCenario = selectPrimaryCenario(latestPollAllResults, referenceCandidateName);
   const latestResults = latestPollAllResults
     .filter((r) => r.cenario === primaryCenario)
     .sort((a, b) => b.percentage - a.percentage);
@@ -128,6 +131,8 @@ export function calculateCockpitMetrics(
         percentage: topCandidateResult.percentage,
         pollDate: latestPoll.dataRegistro,
         instituto: latestPoll.instituto ?? 'Instituto não informado',
+        cenario: primaryCenario,
+        tseRegistrationNumber: latestPoll.tseRegistrationNumber,
       }
     : null;
 
@@ -313,7 +318,8 @@ export function getCandidateRanking(
   let targetResults = results;
   if (activePollId) {
     targetResults = results.filter((r) => r.pollId === activePollId);
-    const primaryCenario = targetResults[0]?.cenario ?? null;
+    // Sprint 2A / P0.6: mesma escolha determinística de cenário usada em calculateCockpitMetrics.
+    const primaryCenario = selectPrimaryCenario(targetResults);
     targetResults = targetResults.filter((r) => r.cenario === primaryCenario);
   }
 

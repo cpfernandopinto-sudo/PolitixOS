@@ -22,10 +22,10 @@ function formatDateShort(iso: string): string {
 export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
   if (results.length === 0) {
     return (
-      <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+      <section className="surface-primary p-5 space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-white/5">
           <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-            <ScatterChart size={15} className="text-blue-500" /> Cenário Eleitoral no Período
+            <ScatterChart size={15} className="text-blue-500" /> Histórico Observado — Cenários Publicados
           </h3>
         </div>
         <div className="py-8 px-4 text-center rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
@@ -64,21 +64,21 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
 
     return {
       name: cand,
-      type: 'line',
-      smooth: false,
-      connectNulls: false,
-      symbolSize: isReference ? 12 : 8,
+      // Sprint 2B, P1: cada ponto aqui é uma leitura de um cenário (muitas vezes NÃO
+      // metodologicamente comparável a outro cenário do mesmo candidato — ex.: "com Cleitinho" vs
+      // "sem Cleitinho", ou confrontos de 2º turno). Usar type:'line' ligava esses pontos com uma
+      // linha contínua, sugerindo visualmente uma tendência que os dados não sustentam. Como pontos
+      // (scatter), nunca insinua trajetória — a linha comparável de verdade só existe no gráfico
+      // "Evolução de [Candidato]" (Modo B), que usa buildTemporalSeries de fato.
+      type: 'scatter',
+      symbolSize: isReference ? 14 : 9,
       data: dataPoints,
       itemStyle: {
         color: colors[idx % colors.length],
       },
-      lineStyle: {
-        width: isReference ? 4 : 2,
-        type: 'solid',
-      },
       emphasis: {
         focus: 'series',
-        lineStyle: { width: 4 },
+        scale: 1.3,
       },
     };
   });
@@ -179,10 +179,10 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
       <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] flex-wrap gap-2">
         <div>
           <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-            <ScatterChart size={15} className="text-cyan-400" /> Cenário Eleitoral no Período (Todos os Candidatos)
+            <ScatterChart size={15} className="text-cyan-400" /> Histórico Observado — Cenários Publicados
           </h3>
           <p className="text-slate-400 text-xs mt-0.5">
-            Cada ponto do eixo é uma pesquisa + um cenário — pesquisas com vários cenários na mesma data aparecem como pontos distintos.
+            Cada ponto é uma pesquisa + um cenário publicado — nunca uma tendência. Pontos não são conectados por linha: cenários diferentes não são necessariamente comparáveis entre si.
           </p>
         </div>
 

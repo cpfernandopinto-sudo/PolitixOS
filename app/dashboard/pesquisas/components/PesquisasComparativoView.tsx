@@ -54,7 +54,7 @@ export function PesquisasComparativoView({ results, referenceCandidate }: Props)
   // Handle empty or 1-poll states (Seção 12)
   if (availablePollCount === 0) {
     return (
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl p-8 text-center space-y-3 shadow-xl">
+      <div className="surface-primary p-8 text-center space-y-3">
         <AlertTriangle size={32} className="text-amber-400 mx-auto" />
         <h3 className="text-white font-bold text-base">Nenhuma pesquisa com resultados integrada neste recorte.</h3>
         <p className="text-gray-400 text-xs max-w-md mx-auto">
@@ -66,7 +66,7 @@ export function PesquisasComparativoView({ results, referenceCandidate }: Props)
 
   if (availablePollCount === 1) {
     return (
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl p-8 text-center space-y-3 shadow-xl">
+      <div className="surface-primary p-8 text-center space-y-3">
         <FileCheck size={32} className="text-blue-400 mx-auto" />
         <h3 className="text-white font-bold text-base">Existe apenas 1 pesquisa com resultados integrada neste recorte.</h3>
         <p className="text-gray-400 text-xs max-w-md mx-auto">
@@ -90,7 +90,7 @@ export function PesquisasComparativoView({ results, referenceCandidate }: Props)
   return (
     <div className="space-y-6">
       {/* Seleção Lado a Lado de Levantamentos */}
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+      <div className="surface-primary p-5 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-white/5 flex-wrap gap-2">
           <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
             <Columns3 size={15} className="text-blue-500" /> Ferramenta Comparativa entre Institutos ({availablePollCount} disponíveis)
@@ -143,7 +143,7 @@ export function PesquisasComparativoView({ results, referenceCandidate }: Props)
       {groupA && groupB && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Card Ficha A */}
-          <div className="bg-[#12192A] border border-blue-500/20 rounded-2xl p-5 space-y-3 shadow-xl">
+          <div className="bg-[var(--surface-2)] border border-blue-500/30 rounded-md p-5 space-y-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <span className="text-xs font-extrabold text-blue-400 flex items-center gap-1.5">
                 <Building2 size={14} /> {groupA.poll.instituto ?? 'Instituto A'}
@@ -159,7 +159,7 @@ export function PesquisasComparativoView({ results, referenceCandidate }: Props)
           </div>
 
           {/* Card Ficha B */}
-          <div className="bg-[#12192A] border border-purple-500/20 rounded-2xl p-5 space-y-3 shadow-xl">
+          <div className="bg-[var(--surface-2)] border border-purple-500/30 rounded-md p-5 space-y-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <span className="text-xs font-extrabold text-purple-400 flex items-center gap-1.5">
                 <Building2 size={14} /> {groupB.poll.instituto ?? 'Instituto B'}
@@ -178,7 +178,7 @@ export function PesquisasComparativoView({ results, referenceCandidate }: Props)
 
       {/* Tabela Comparativa de Todos os Candidatos da Corrida */}
       {groupA && groupB && (
-        <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+        <div className="surface-primary p-5 space-y-4">
           <h4 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2">
             <ArrowRightLeft size={15} className="text-blue-500" /> Intenção de Voto Comparada (Todos os Candidatos)
           </h4>

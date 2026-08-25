@@ -4,7 +4,7 @@ import type { ExecutiveCockpitMetrics, CandidateRankingItem } from './types';
 
 function baseMetrics(overrides: Partial<ExecutiveCockpitMetrics> = {}): ExecutiveCockpitMetrics {
   return {
-    intencaoMaisRecente: { candidateName: 'Cleitinho Azevedo', percentage: 34, pollDate: '2026-08-01', instituto: 'X' },
+    intencaoMaisRecente: { candidateName: 'Cleitinho Azevedo', percentage: 34, pollDate: '2026-08-01', instituto: 'X', cenario: 'Cenário 1', tseRegistrationNumber: 'MG000012026' },
     runnerUpResult: { candidateName: 'Kalil', percentage: 30 },
     referenceCandidate: null,
     analyzedCandidateResult: null,
