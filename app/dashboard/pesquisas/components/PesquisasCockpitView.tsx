@@ -280,6 +280,7 @@ export function PesquisasCockpitView({
               <EvolucaoTemporalChart
                 temporalSeries={temporalSeries}
                 comparablePollsCount={metrics.pesquisasComparaveisCount}
+                pollsWithResultsCount={metrics.pollsWithResultsCount}
               />
             </div>
             <div className="lg:col-span-1">

@@ -5,6 +5,7 @@ import type { ElectoralPoll, ElectoralPollResultWithPoll, PesquisasKpis } from '
 import { isRealCandidate } from '@/lib/pesquisas/types';
 import { calculateAnalyticalStatus, type AnalyticalStatusResult } from '@/lib/pesquisas/analyticsEngine';
 import { calculateCockpitMetrics, getCandidateRanking } from '@/lib/pesquisas/cockpitAnalytics';
+import { classifyPollIntegrationStatus } from '@/lib/pesquisas/integrationStatus';
 import { Search, Filter, Building2, MapPin, Calendar, ExternalLink, ChevronRight, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import KpiCard from '@/components/ui/KpiCard';
@@ -87,9 +88,18 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
       const pollResults = allPollResults.filter((r) => matchesCargo(r, effectiveCargo));
       const hasResults = pollResults.length > 0;
 
+      // Fase 6 da auditoria: separa "ainda não divulgada" de "já deveria estar divulgada mas o
+      // PolitixOS não integrou" — antes as duas caíam no mesmo "Aguardando integração de
+      // resultados" genérico.
+      const dtDivulgacao = (poll.rawSourceRow as Record<string, string> | null)?.DT_DIVULGACAO ?? null;
+      const integrationStatus = classifyPollIntegrationStatus(hasResults, dtDivulgacao);
+
       let statusResult: AnalyticalStatusResult = {
         status: 'SEM CLASSIFICAÇÃO',
-        reason: 'Aguardando integração de resultados.',
+        reason:
+          integrationStatus.status === 'AGUARDANDO_DIVULGACAO'
+            ? 'Data legal de divulgação (TSE) ainda não chegou.'
+            : 'Data de divulgação já passou, mas o PolitixOS ainda não integrou o resultado desta pesquisa.',
         candidateName: null,
         gap: null,
         previousGap: null,
@@ -110,6 +120,7 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
       return {
         poll,
         hasResults,
+        integrationStatus,
         statusResult,
         leaderName,
         leaderPct,
@@ -143,7 +154,14 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
   }, [enrichedPolls, selectedUf, selectedCargo, selectedStatus, searchTerm, resultsByPoll]);
 
   const countWithResults = useMemo(() => enrichedPolls.filter((p) => p.hasResults).length, [enrichedPolls]);
-  const countPending = useMemo(() => enrichedPolls.filter((p) => !p.hasResults).length, [enrichedPolls]);
+  const countAguardandoDivulgacao = useMemo(
+    () => enrichedPolls.filter((p) => p.integrationStatus.status === 'AGUARDANDO_DIVULGACAO').length,
+    [enrichedPolls]
+  );
+  const countNaoIntegradas = useMemo(
+    () => enrichedPolls.filter((p) => p.integrationStatus.status === 'RESULTADO_NAO_INTEGRADO').length,
+    [enrichedPolls]
+  );
 
   return (
     <div className="space-y-6">
@@ -159,11 +177,14 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
         </div>
       </div>
 
-      {/* Faixa de KPIs da Base */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {/* Faixa de KPIs da Base — Fase 6: "Aguardando Resultados" separado em "Aguardando
+          Divulgação" (data legal do TSE ainda não chegou, esperado) e "Não Integradas" (já
+          deveria estar divulgada, mas o PolitixOS não capturou o resultado ainda). */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <KpiCard title="Total de Pesquisas" value={polls.length} compact />
         <KpiCard title="Com Resultados" value={countWithResults} status="success" compact />
-        <KpiCard title="Aguardando Resultados" value={countPending} compact />
+        <KpiCard title="Aguardando Divulgação" value={countAguardandoDivulgacao} compact />
+        <KpiCard title="Resultado Não Integrado" value={countNaoIntegradas} status={countNaoIntegradas > 0 ? 'warning' : 'neutral'} compact />
         <KpiCard title="Institutos Mapeados" value={kpis.institutesCount} compact />
         <KpiCard title="Última Atualização" value={kpis.lastRegistrationDate ?? 'Não informada'} compact />
       </div>
@@ -247,7 +268,7 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredPolls.map(({ poll, hasResults, statusResult, leaderName, leaderPct }) => {
+                {filteredPolls.map(({ poll, hasResults, integrationStatus, statusResult, leaderName, leaderPct }) => {
                   const statusBadgeColor =
                     statusResult.status === 'ESTÁVEL'
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -274,14 +295,21 @@ export function PesquisasListView({ polls, allResults, kpis, activeCargo }: Prop
                         {leaderName ? (
                           <span className="text-blue-400 font-semibold">{leaderName}</span>
                         ) : (
-                          <span className="text-gray-500 italic text-[11px]">Aguardando integração</span>
+                          <span
+                            className={`italic text-[11px] ${integrationStatus.status === 'RESULTADO_NAO_INTEGRADO' ? 'text-amber-400/80' : 'text-gray-500'}`}
+                            title={statusResult.reason}
+                          >
+                            {integrationStatus.label}
+                          </span>
                         )}
                       </td>
                       <td className="py-3 px-4 font-mono font-bold">
                         {leaderPct !== null ? (
                           <span className="text-white text-sm">{leaderPct}%</span>
                         ) : (
-                          <span className="text-gray-500 italic text-[11px]">Aguardando</span>
+                          <span className="text-gray-500 italic text-[11px]">
+                            {integrationStatus.status === 'AGUARDANDO_DIVULGACAO' ? 'Não divulgado' : 'Não integrado'}
+                          </span>
                         )}
                       </td>
                       <td className="py-3 px-4">

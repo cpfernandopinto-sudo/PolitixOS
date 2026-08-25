@@ -938,7 +938,10 @@ export async function getOverviewPesquisasSignal(filters?: OverviewFilters) {
     if (!target?.candidate_name) return null;
 
     const { getElectoralSignalsSummaryForCandidate } = await import('@/lib/pesquisas/monitoring');
-    const summaries = await getElectoralSignalsSummaryForCandidate(adminClient, target.candidate_name);
+    // Fase 1 da auditoria MG/Governador: passa candidateId para que a resolução da corrida
+    // priorize electoral_poll_results.candidate_id (mesma verdade de dados do Cockpit) em vez de
+    // depender só do matcher por nome/poll_monitoring_*.
+    const summaries = await getElectoralSignalsSummaryForCandidate(adminClient, target.candidate_name, candidateId);
     if (!summaries || summaries.length === 0) return null;
 
     const summary = summaries[0];
@@ -949,6 +952,8 @@ export async function getOverviewPesquisasSignal(filters?: OverviewFilters) {
       confidence: summary.confidence,
       pollCount: summary.pollCount ?? null,
       leader: summary.leader ?? null,
+      registeredPollsCount: summary.registeredPollsCount,
+      pollsWithResultsCount: summary.pollsWithResultsCount,
     };
   } catch {
     return null;

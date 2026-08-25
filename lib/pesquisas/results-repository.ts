@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabaseClient';
+import { createAdminClient } from '@/lib/supabaseClient';
 import type { ElectoralPoll, ElectoralPollResult, ElectoralPollResultUpsert } from './types';
 import { arePollsComparable, areScenariosEquivalent } from './comparability';
 
@@ -196,7 +196,14 @@ function mapPollRow(row: Record<string, unknown>): ElectoralPoll {
  * CLAUDE_PESQUISAS_01A_CORE_TSE.md §3.
  */
 export async function getPriorityRacePolls(uf: string, cargoLike: string): Promise<PriorityRacePoll[]> {
-  const client = createClient();
+  // Fase 1 da auditoria MG/Governador (2026-08-24): esta função só é chamada de código de
+  // servidor (app/dashboard/pesquisas/executivo/page.tsx e lib/pesquisas/monitoring.ts, nunca de
+  // um Client Component). Usava `createClient()` (createBrowserClient, pensado para o navegador)
+  // dentro de um contexto server-only — inconsistente com o resto do módulo, que sempre lê
+  // electoral_polls/electoral_poll_results com o client admin no servidor. Trocado por
+  // createAdminClient() para eliminar essa divergência (RLS das duas tabelas já é "allow all",
+  // então o resultado dos dados não muda — só a robustez/consistência de qual client é usado).
+  const client = createAdminClient();
 
   // Filtra electoral_poll_results (tabela pequena, ~centenas de linhas) via
   // join embutido em vez de primeiro listar TODAS as pesquisas registradas
@@ -236,4 +243,69 @@ export async function getPriorityRacePolls(uf: string, cargoLike: string): Promi
     .map((poll) => ({ ...poll, results: resultsByPoll.get(poll.id) ?? [] }))
     .filter((poll) => poll.results.length > 0)
     .sort((a, b) => (b.dataRegistro ?? '').localeCompare(a.dataRegistro ?? ''));
+}
+
+export interface CandidateRaceContext {
+  uf: string;
+  cargo: string;
+}
+
+/**
+ * Total de pesquisas REGISTRADAS (TSE, ficha técnica) para uf+cargo — não
+ * confundir com `getPriorityRacePolls`, que só retorna pesquisas que já TÊM
+ * resultado. Usado para a Visão Geral/Cockpit mostrarem "28 registradas · 2
+ * com resultado" em vez de tratar as duas contagens como a mesma coisa
+ * (Fase 3/8 da auditoria MG/Governador).
+ */
+export async function countRegisteredPolls(uf: string, cargoLike: string): Promise<number> {
+  const client = createAdminClient();
+  const { count, error } = await client
+    .from('electoral_polls')
+    .select('id', { count: 'exact', head: true })
+    .eq('uf', uf)
+    .ilike('cargo', `%${cargoLike}%`);
+
+  if (error) return 0;
+  return count ?? 0;
+}
+
+/**
+ * Fase 1 da auditoria MG/Governador — resolve a corrida (uf/cargo) real de um
+ * candidato diretamente a partir de `electoral_poll_results.candidate_id`,
+ * que é a fonte de verdade primária de "este candidato tem resultado nesta
+ * pesquisa" (preenchida em `ingestRaceResults`/`upsertPollResult`). Não
+ * depende de `targets.poll_monitoring_office` nem de casar nome de
+ * candidato — evita a Visão Geral ficar refém de um matcher de nome
+ * (ex.: "Cleitinho" no resultado vs. "Cleitinho Azevedo" no target) quando o
+ * vínculo por id já existe. Retorna `null` quando o candidato ainda não tem
+ * nenhum resultado vinculado — nesse caso o chamador cai para o fallback por
+ * nome/monitoramento (`targetMatcher.ts`), que continua funcionando como
+ * antes.
+ */
+export async function resolveCandidateRaceContext(candidateId: string): Promise<CandidateRaceContext | null> {
+  const client = createAdminClient();
+  const { data, error } = await client
+    .from('electoral_poll_results')
+    .select('office, poll:electoral_polls!inner(uf, cargo, campo_inicio, data_registro)')
+    .eq('candidate_id', candidateId);
+
+  if (error || !data || data.length === 0) return null;
+
+  type Row = { office: string | null; poll: { uf: string | null; cargo: string | null; campo_inicio: string | null; data_registro: string | null } | null };
+  const rows = data as unknown as Row[];
+
+  const withRace = rows.filter((r) => r.poll?.uf && (r.office || r.poll?.cargo));
+  if (withRace.length === 0) return null;
+
+  const sorted = [...withRace].sort((a, b) => {
+    const da = a.poll?.campo_inicio ?? a.poll?.data_registro ?? '';
+    const db = b.poll?.campo_inicio ?? b.poll?.data_registro ?? '';
+    return db.localeCompare(da);
+  });
+
+  const mostRecent = sorted[0];
+  const uf = mostRecent.poll!.uf!;
+  const cargo = mostRecent.office ?? mostRecent.poll!.cargo!;
+
+  return { uf, cargo };
 }

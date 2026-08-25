@@ -15,6 +15,7 @@ function baseMetrics(overrides: Partial<ExecutiveCockpitMetrics> = {}): Executiv
     totalPollsInSlice: 3,
     pollsWithResultsCount: 3,
     pesquisasComparaveisCount: 2,
+    comparableOtherPollsCount: 1,
     trendPollsCount: 2,
     lastUpdateDate: '2026-08-01',
     hasSufficientSeries: true,

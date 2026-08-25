@@ -18,7 +18,8 @@ export function ExecutiveSnapshotCards({ metrics, statusResult }: Props) {
     gapConcorrente,
     variacaoAnterior,
     totalPollsInSlice,
-    pesquisasComparaveisCount,
+    pollsWithResultsCount,
+    comparableOtherPollsCount,
     lastUpdateDate,
     hasSufficientSeries,
   } = metrics;
@@ -121,10 +122,22 @@ export function ExecutiveSnapshotCards({ metrics, statusResult }: Props) {
       </div>
 
       {/* LINHA 2: INDICADORES DE SUPORTE E CONFIABILIDADE (Peso secundário) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Fase 3/4 da auditoria: "No período"/"Comparáveis" misturavam registro com resultado e
+          contavam a pesquisa mais recente como comparável consigo mesma. Agora: Registradas (TSE) /
+          Com Resultado / Comparáveis (só OUTRAS pesquisas que batem com a mais recente, nunca
+          incluindo ela própria) / Série (indicador direto de hasSufficientSeries) são 4 números
+          distintos e explícitos. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard title="Variação Período" value={tendenciaStr} compact />
-        <KpiCard title="No Período" value={totalPollsInSlice} compact />
-        <KpiCard title="Comparáveis" value={pesquisasComparaveisCount} compact />
+        <KpiCard title="Registradas" value={totalPollsInSlice} compact />
+        <KpiCard title="Com Resultado" value={pollsWithResultsCount} compact />
+        <KpiCard title="Comparáveis" value={comparableOtherPollsCount} compact />
+        <KpiCard
+          title="Série Temporal"
+          value={hasSufficientSeries ? 'Disponível' : 'Insuficiente'}
+          status={hasSufficientSeries ? 'success' : 'neutral'}
+          compact
+        />
         <KpiCard
           title="Última Pesquisa"
           value={intencaoMaisRecente?.instituto ?? 'Não disponível'}

@@ -65,8 +65,8 @@ export function EvolucaoGapChart({ temporalSeries }: Props) {
 
         {!hasData ? (
           <div className="py-6 text-center space-y-1">
-            <p className="text-gray-400 text-xs font-medium">Histórico de GAP indisponível</p>
-            <p className="text-gray-500 text-[10px]">Requer ao menos 2 pesquisas comparáveis no recorte.</p>
+            <p className="text-gray-400 text-xs font-medium">Evolução indisponível — não há 2 levantamentos metodologicamente comparáveis</p>
+            <p className="text-gray-500 text-[10px]">O GAP atual (líder × 2º colocado) já é exibido acima nos indicadores principais — esta evolução mede como o GAP mudou entre leituras comparáveis, não substitui o GAP atual.</p>
           </div>
         ) : (
           <div className="space-y-2 pt-1">

@@ -49,6 +49,7 @@ export function calculateCockpitMetrics(
       totalPollsInSlice,
       pollsWithResultsCount: 0,
       pesquisasComparaveisCount: 0,
+      comparableOtherPollsCount: 0,
       trendPollsCount: 0,
       lastUpdateDate: fallbackLastUpdate,
       hasSufficientSeries: false,
@@ -98,6 +99,7 @@ export function calculateCockpitMetrics(
       totalPollsInSlice,
       pollsWithResultsCount: 0,
       pesquisasComparaveisCount: 0,
+      comparableOtherPollsCount: 0,
       trendPollsCount: 0,
       lastUpdateDate: fallbackLastUpdate,
       hasSufficientSeries: false,
@@ -184,6 +186,10 @@ export function calculateCockpitMetrics(
 
   const hasSufficientSeries = comparablePolls.length >= 2;
   const trendPollsCount = comparablePolls.length;
+  // `comparablePolls` sempre inclui a própria `latestPoll` (auto-comparação trivial contra si
+  // mesma). Para a UX, "pesquisas comparáveis" deve significar "outras pesquisas que batem com a
+  // mais recente" — nunca a pesquisa contando como comparável a si própria (Fase 4 da auditoria).
+  const comparableOtherPollsCount = Math.max(comparablePolls.length - 1, 0);
 
   let variacaoAnterior: ExecutiveCockpitMetrics['variacaoAnterior'] = null;
   let maximoPeriodo: ExecutiveCockpitMetrics['maximoPeriodo'] = null;
@@ -286,6 +292,7 @@ export function calculateCockpitMetrics(
     totalPollsInSlice,
     pollsWithResultsCount,
     pesquisasComparaveisCount: comparablePolls.length,
+    comparableOtherPollsCount,
     trendPollsCount,
     lastUpdateDate: latestPoll.dataRegistro ?? fallbackLastUpdate,
     hasSufficientSeries,

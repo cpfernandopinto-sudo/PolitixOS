@@ -8,12 +8,19 @@ import { TrendingUp, Info } from 'lucide-react';
 interface Props {
   temporalSeries: TemporalSeriesEntry[];
   comparablePollsCount: number;
+  /** Fase 7: quantas pesquisas desta corrida já têm resultado (independente de serem comparáveis entre si) — permite explicar melhor por que a série está vazia. */
+  pollsWithResultsCount?: number;
 }
 
-export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: Props) {
+export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount, pollsWithResultsCount }: Props) {
   const hasSufficientSeries = temporalSeries.length > 0 && comparablePollsCount >= 2;
 
   if (temporalSeries.length === 0) {
+    // Fase 7 da auditoria: quando já existem 2+ pesquisas com resultado mas a série continua
+    // vazia, o motivo real é divergência de cenário/metodologia (não "falta de pesquisa") — o
+    // texto deixa isso explícito em vez de repetir o requisito genérico.
+    const hasMultiplePollsButIncomparable = (pollsWithResultsCount ?? 0) >= 2;
+
     return (
       <section className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
         <div className="flex items-center justify-between pb-2 border-b border-white/5">
@@ -21,17 +28,30 @@ export function EvolucaoTemporalChart({ temporalSeries, comparablePollsCount }: 
             <TrendingUp size={15} className="text-blue-500" /> Evolução Temporal de Intenções de Voto
           </h3>
           <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">
-            Sem Histórico Comparável
+            Sem Série Temporal Comparável
           </span>
         </div>
 
         <div className="py-8 px-4 text-center rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-          <p className="text-gray-300 text-xs font-semibold">
-            Não há pesquisas comparáveis suficientes para determinar tendência nesta corrida.
-          </p>
-          <p className="text-gray-500 text-[11px] max-w-lg mx-auto leading-relaxed">
-            Requer 2 ou mais pesquisas com resultado verificado no mesmo cargo, UF e cenário de candidatos.
-          </p>
+          {hasMultiplePollsButIncomparable ? (
+            <>
+              <p className="text-gray-300 text-xs font-semibold">
+                Existem {pollsWithResultsCount} pesquisas com resultado nesta corrida, porém os cenários não têm o mesmo conjunto de candidatos entre si.
+              </p>
+              <p className="text-gray-500 text-[11px] max-w-lg mx-auto leading-relaxed">
+                Misturar cenários metodologicamente diferentes geraria uma tendência falsa — por isso a série fica vazia até haver 2 leituras com o mesmo cenário/candidatos.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-300 text-xs font-semibold">
+                Não há pesquisas comparáveis suficientes para determinar tendência nesta corrida.
+              </p>
+              <p className="text-gray-500 text-[11px] max-w-lg mx-auto leading-relaxed">
+                Requer 2 ou mais pesquisas com resultado verificado no mesmo cargo, UF e cenário de candidatos.
+              </p>
+            </>
+          )}
         </div>
       </section>
     );

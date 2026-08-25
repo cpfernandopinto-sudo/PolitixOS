@@ -3,7 +3,7 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { ElectoralPollResultWithPoll } from '@/lib/pesquisas/types';
-import { isRealCandidate } from '@/lib/pesquisas/types';
+import { buildCenarioPollGroups } from '@/lib/pesquisas/chartGrouping';
 import { ScatterChart, Info } from 'lucide-react';
 
 interface Props {
@@ -11,13 +11,12 @@ interface Props {
   referenceCandidate?: string | null;
 }
 
-interface PollGroup {
-  pollId: string;
-  instituto: string;
-  dataRegistro: string;
-  tseReg: string;
-  amostra: number | null;
-  results: { candidateName: string; percentage: number }[];
+function formatDateShort(iso: string): string {
+  if (!iso || iso === 'N/A') return iso;
+  const parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  const [, m, d] = parts;
+  return `${d}/${m}`;
 }
 
 export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
@@ -36,29 +35,11 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
     );
   }
 
-  // Group results by pollId + cenario
-  const pollGroupsMap = new Map<string, PollGroup>();
+  // Um ponto no eixo = 1 pesquisa + 1 cenário (nunca "1 pesquisa" só por data) — é isso que evita
+  // candidatos de cenários diferentes (ex.: "com Cleitinho" vs "sem Cleitinho") se misturarem sob
+  // o mesmo rótulo quando compartilham a mesma data de registro.
+  const pollGroups = buildCenarioPollGroups(results);
 
-  for (const r of results) {
-    if (!r.poll || !isRealCandidate(r.candidateName)) continue;
-    const key = `${r.pollId}::${r.cenario}`;
-    const existing = pollGroupsMap.get(key) ?? {
-      pollId: r.pollId,
-      instituto: r.poll.instituto ?? 'TSE/PesqEle',
-      dataRegistro: r.poll.dataRegistro ?? 'N/A',
-      tseReg: r.poll.tseRegistrationNumber,
-      amostra: r.poll.amostra,
-      results: [],
-    };
-    existing.results.push({ candidateName: r.candidateName, percentage: r.percentage });
-    pollGroupsMap.set(key, existing);
-  }
-
-  const pollGroups = Array.from(pollGroupsMap.values()).sort((a, b) =>
-    a.dataRegistro.localeCompare(b.dataRegistro)
-  );
-
-  // Extract all distinct real candidates across all poll groups
   const allCandidatesSet = new Set<string>();
   for (const group of pollGroups) {
     for (const res of group.results) {
@@ -69,28 +50,23 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
   const candidateList = Array.from(allCandidatesSet).sort();
   const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 
-  // Map dates for X axis
-  const dateList = Array.from(new Set(pollGroups.map((g) => g.dataRegistro))).sort();
+  // Categorias do eixo X são indexadas 1:1 com pollGroups (data + cenário), nunca só por data —
+  // garante que cada ponto do gráfico e cada linha do tooltip correspondam a exatamente 1 cenário.
+  const categoryList = pollGroups.map((g) => `${formatDateShort(g.dataRegistro)} · ${g.cenario}`);
 
-  // Create series for each candidate
   const seriesList = candidateList.map((cand, idx) => {
     const isReference = referenceCandidate && cand.toLowerCase() === referenceCandidate.toLowerCase();
 
     const dataPoints = pollGroups.map((group) => {
       const match = group.results.find((r) => r.candidateName === cand);
-      return [
-        group.dataRegistro,
-        match ? match.percentage : null,
-        group.instituto,
-        group.tseReg,
-        group.amostra,
-      ];
+      return match ? match.percentage : null;
     });
 
     return {
       name: cand,
       type: 'line',
-      smooth: true,
+      smooth: false,
+      connectNulls: false,
       symbolSize: isReference ? 12 : 8,
       data: dataPoints,
       itemStyle: {
@@ -115,32 +91,41 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
       borderColor: 'rgba(255,255,255,0.15)',
       padding: 12,
       textStyle: { color: '#FFFFFF', fontSize: 12 },
-      // Vertical rich tooltip with all candidates (Seção 17)
+      // Tooltip vertical com todos os candidatos DESSE cenário (nunca de outro cenário da mesma
+      // data) — resolvido por índice de categoria, não por busca em dataRegistro (Fase 2/3 da
+      // auditoria: candidato duplicado no tooltip).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       formatter: function (params: any) {
         if (!params || params.length === 0) return '';
-        const first = params[0];
-        const dateStr = first.axisValue;
-        const groupObj = pollGroups.find((g) => g.dataRegistro === dateStr);
+        const dataIndex = params[0].dataIndex;
+        const groupObj = pollGroups[dataIndex];
+        if (!groupObj) return '';
 
         let html = `
-          <div style="font-family: sans-serif; min-width: 220px;">
+          <div style="font-family: sans-serif; min-width: 240px;">
             <div style="font-size: 13px; font-weight: bold; color: #FFFFFF; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; margin-bottom: 6px;">
-              ${groupObj ? groupObj.instituto : 'Pesquisa'}
+              ${groupObj.instituto}
               <div style="font-size: 10px; font-weight: normal; color: #9CA3AF; margin-top: 2px;">
-                Data: ${dateStr} ${groupObj ? `· TSE: ${groupObj.tseReg}` : ''}
+                ${formatDateShort(groupObj.dataRegistro)} · TSE: ${groupObj.tseReg}
+              </div>
+              <div style="font-size: 10px; font-weight: normal; color: #67E8F9; margin-top: 2px;">
+                ${groupObj.cenario} · ${groupObj.turno}º turno · ${groupObj.tipoPergunta}${groupObj.office ? ` · ${groupObj.office}` : ''}
               </div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px;">
         `;
 
-        // Sort items in tooltip by percentage descending
+        // Só entram candidatos com valor real NESTE cenário — o trigger "axis" do ECharts inclui
+        // todas as séries no índice, mesmo com valor nulo; filtrar é o que impede misturar
+        // candidatos de outros cenários/pesquisas no mesmo tooltip.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const items = [...params].sort((a: any, b: any) => (b.value[1] ?? 0) - (a.value[1] ?? 0));
+        const items = params
+          .filter((p: any) => p.value !== null && p.value !== undefined)
+          .sort((a: any, b: any) => (b.value ?? 0) - (a.value ?? 0));
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         items.forEach((item: any) => {
-          const val = item.value[1];
+          const val = item.value;
           const valStr = val !== null && val !== undefined ? `${val}%` : 'N/A';
           const isRef = referenceCandidate && item.seriesName.toLowerCase() === referenceCandidate.toLowerCase();
           const highlightBg = isRef ? 'background: rgba(59, 130, 246, 0.15); padding: 2px 4px; border-radius: 4px;' : '';
@@ -170,13 +155,13 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
       left: '3%',
       right: '4%',
       top: 40,
-      bottom: 25,
+      bottom: 60,
       containLabel: true,
     },
     xAxis: {
       type: 'category',
-      data: dateList,
-      axisLabel: { color: '#9CA3AF', fontSize: 11 },
+      data: categoryList,
+      axisLabel: { color: '#9CA3AF', fontSize: 10, rotate: 30, interval: 0 },
       axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
       splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
     },
@@ -197,21 +182,21 @@ export function CenarioEleitoralChart({ results, referenceCandidate }: Props) {
             <ScatterChart size={15} className="text-cyan-400" /> Cenário Eleitoral no Período (Todos os Candidatos)
           </h3>
           <p className="text-slate-400 text-xs mt-0.5">
-            Evolução multissérie de intenções de voto no tempo com levantamentos reais.
+            Cada ponto do eixo é uma pesquisa + um cenário — pesquisas com vários cenários na mesma data aparecem como pontos distintos.
           </p>
         </div>
 
         <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-1 rounded-sm font-bold tracking-wider uppercase">
-          {pollGroups.length} Levantamentos · {candidateList.length} Candidatos
+          {pollGroups.length} Cenários · {candidateList.length} Candidatos
         </span>
       </div>
 
       <p className="text-slate-400 text-[11px] flex items-center gap-1.5">
         <Info size={12} className="text-cyan-400 shrink-0" />
-        Passe o mouse sobre os pontos para visualizar a lista completa de todos os concorrentes na data selecionada.
+        Passe o mouse sobre um ponto para ver instituto, registro TSE, cenário e a lista de candidatos daquele cenário específico.
       </p>
 
-      <ReactECharts option={option} notMerge lazyUpdate style={{ height: 280, width: '100%' }} />
+      <ReactECharts option={option} notMerge lazyUpdate style={{ height: 300, width: '100%' }} />
     </section>
   );
 }

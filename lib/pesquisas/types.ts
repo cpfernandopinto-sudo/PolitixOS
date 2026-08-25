@@ -163,7 +163,10 @@ export interface ExecutiveCockpitMetrics {
   minimoPeriodo: { percentage: number; candidateName: string; pollDate: string | null } | null;
   totalPollsInSlice: number;
   pollsWithResultsCount: number;
+  /** Inclui a própria pesquisa mais recente (auto-match) — preservado para não quebrar `signals.ts`/testes existentes. Para UX, usar `comparableOtherPollsCount`. */
   pesquisasComparaveisCount: number;
+  /** Pesquisas OUTRAS que a mais recente e que são metodologicamente comparáveis a ela (`pesquisasComparaveisCount` menos a auto-comparação). É o número que a UX deve chamar de "Comparáveis" — 0 quando só a própria pesquisa mais recente "bate" consigo mesma. */
+  comparableOtherPollsCount: number;
   trendPollsCount: number;
   lastUpdateDate: string | null;
   hasSufficientSeries: boolean;
