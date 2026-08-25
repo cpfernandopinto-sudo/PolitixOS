@@ -1,13 +1,59 @@
 import type {
   ElectoralPollResultWithPoll,
-  ElectoralPoll,
   ExecutiveCockpitMetrics,
   CandidateRankingItem,
 } from './types';
 import { isRealCandidate } from './types';
 import type { TemporalSeriesEntry } from './results-repository';
+import type { ObservedHistoryResult } from './observedHistory';
 
-export type AnalyticalStatusType = 'ESTÁVEL' | 'ATENÇÃO' | 'CRÍTICO' | 'SEM CLASSIFICAÇÃO';
+export type AnalyticalStatusType = 'ESTÁVEL' | 'ATENÇÃO' | 'CRÍTICO' | 'INCONCLUSIVO' | 'SEM CLASSIFICAÇÃO';
+
+/**
+ * Sprint 2A, item 4 da rodada de correção (P0.4 da auditoria) — direção de
+ * movimento isolada da "Situação Analítica" (que também pesa o tamanho do
+ * gap). Só existe CRESCIMENTO/QUEDA/ESTABILIDADE quando
+ * `hasSufficientSeries=true`; caso contrário é sempre INCONCLUSIVA, nunca
+ * inferida por ausência de dado.
+ */
+export type TrendStatus = 'CRESCIMENTO' | 'QUEDA' | 'ESTABILIDADE' | 'INCONCLUSIVA';
+
+export interface TrendStatusResult {
+  status: TrendStatus;
+  reason: string;
+}
+
+/**
+ * Deriva o status de tendência a partir de métricas JÁ calculadas
+ * (`calculateCockpitMetrics`) — nunca recalcula percentuais ou refaz a
+ * checagem de comparabilidade. Mesmo threshold (±0.5 p.p.) já usado por
+ * `leaderMovement`/`gapBehavior` dentro de `calculateCockpitMetrics` — não
+ * inventa um novo corte.
+ */
+export function deriveTrendStatus(metrics: ExecutiveCockpitMetrics): TrendStatusResult {
+  if (!metrics.hasSufficientSeries || !metrics.variacaoAnterior) {
+    return {
+      status: 'INCONCLUSIVA',
+      reason:
+        metrics.pollsWithResultsCount > 0
+          ? 'Existem resultados históricos, porém não há levantamentos metodologicamente comparáveis suficientes para determinar tendência.'
+          : 'Ainda não há resultados integrados para esta corrida.',
+    };
+  }
+
+  const { diff, candidateName } = metrics.variacaoAnterior;
+
+  if (diff > 0.5) {
+    return { status: 'CRESCIMENTO', reason: `${candidateName} avançou +${diff} p.p. na leitura comparável mais recente.` };
+  }
+  if (diff < -0.5) {
+    return { status: 'QUEDA', reason: `${candidateName} recuou ${diff} p.p. na leitura comparável mais recente.` };
+  }
+  return {
+    status: 'ESTABILIDADE',
+    reason: `${candidateName} manteve-se estável (${diff >= 0 ? '+' : ''}${diff} p.p.) na leitura comparável mais recente.`,
+  };
+}
 
 export interface AnalyticalStatusResult {
   status: AnalyticalStatusType;
@@ -24,21 +70,6 @@ export interface ScenarioSignal {
   title: string;
   description: string;
   severity: 'info' | 'warning' | 'alert' | 'success';
-}
-
-export interface PolitixAiInsight {
-  narrative: string;
-  fact: string;
-  trend: string;
-  interpretation: string;
-  timestamp: string;
-  supportingPollsCount: number;
-
-  // SPRINT FINAL: 4 Dimensões Estratégicas para Leitura Executiva Eleitoral
-  cenarioAtual: string;
-  principalMovimento: string;
-  riscoOportunidade: string;
-  orientacaoEstrategica: string;
 }
 
 export function calculateAnalyticalStatus(
@@ -106,6 +137,24 @@ export function calculateAnalyticalStatus(
     return {
       status: 'ATENÇÃO',
       reason: `Oscilação negativa de ${Math.abs(diff)} p.p. frente à pesquisa anterior.`,
+      candidateName: candidateItem.candidateName,
+      gap: currentGap,
+      previousGap: null,
+      diff,
+    };
+  }
+
+  // Fase 1/P0.4 da auditoria: sem série comparável (diff === null sempre que
+  // hasSufficientSeries === false — ver metrics.comparablePolls), "ausência
+  // de evidência de queda" NÃO é o mesmo que "estabilidade confirmada".
+  // ESTÁVEL só pode ser afirmado quando há uma leitura comparável anterior
+  // que sustente essa leitura.
+  if (!metrics.hasSufficientSeries) {
+    return {
+      status: 'INCONCLUSIVO',
+      reason: isLeader
+        ? `Lidera com ${candidateItem.percentage}%, mas não há levantamentos metodologicamente comparáveis suficientes para confirmar estabilidade.`
+        : `Ocupa a posição atual com ${candidateItem.percentage}%, mas não há levantamentos metodologicamente comparáveis suficientes para confirmar tendência.`,
       candidateName: candidateItem.candidateName,
       gap: currentGap,
       previousGap: null,
@@ -204,97 +253,74 @@ export function calculateScenarioSignals(
   return signals;
 }
 
-export function generatePolitixInsight(
-  raceLabel: string,
-  metrics: ExecutiveCockpitMetrics,
-  latestPoll: ElectoralPoll | null,
-  temporalSeries: TemporalSeriesEntry[],
-  ranking: { realCandidates: CandidateRankingItem[] }
-): PolitixAiInsight {
-  const leader = ranking.realCandidates[0] ?? null;
-  const runnerUp = ranking.realCandidates[1] ?? null;
-  const thirdPlace = ranking.realCandidates[2] ?? null;
-  const nowIso = new Date().toISOString();
+export interface DiagnosticoPolitixResult {
+  fatos: string[];
+  interpretacao: string[];
+  trend: TrendStatusResult;
+}
 
-  if (!leader || !latestPoll) {
+/**
+ * Sprint 2B, Bloco 4 — "DIAGNÓSTICO POLITIX", camada FATO/INTERPRETAÇÃO.
+ * Cada string de `fatos` é derivada diretamente de um campo já calculado
+ * (metrics/observedHistory) — nunca inventa número, nunca chama um LLM.
+ * `interpretacao` é texto qualitativo determinístico (sempre a mesma frase
+ * para a mesma combinação de status), não uma síntese gerada por IA.
+ */
+export function generateDiagnosticoPolitix(
+  metrics: ExecutiveCockpitMetrics,
+  observedHistory: ObservedHistoryResult
+): DiagnosticoPolitixResult {
+  const trend = deriveTrendStatus(metrics);
+
+  if (!metrics.intencaoMaisRecente) {
     return {
-      narrative: `A corrida de ${raceLabel} possui registros no TSE, mas ainda aguarda a homologação de resultados de intenção de voto integrados.`,
-      fact: `Sem resultados verificados no momento para ${raceLabel}.`,
-      trend: 'Não há pesquisas comparáveis suficientes para determinar tendência.',
-      interpretation: 'Acompanhar o calendário de divulgação no TSE.',
-      timestamp: nowIso,
-      supportingPollsCount: 0,
-      cenarioAtual: `Sem resultados verificados integrados no momento para ${raceLabel}.`,
-      principalMovimento: 'Não há pesquisas comparáveis suficientes no período para determinar tendência.',
-      riscoOportunidade: 'Aguardando publicação oficial de levantamentos com resultados no TSE.',
-      orientacaoEstrategica: 'Acompanhar o calendário de divulgação das pesquisas registradas.',
+      fatos: ['Ainda não há resultados de intenção de voto integrados para esta corrida.'],
+      interpretacao: ['Acompanhar o calendário de divulgação das pesquisas registradas no TSE.'],
+      trend,
     };
   }
 
-  const leaderName = leader.candidateName;
-  const leaderPct = leader.percentage;
-  const runnerName = runnerUp ? runnerUp.candidateName : 'demais concorrentes';
-  const runnerPct = runnerUp ? `${runnerUp.percentage}%` : 'N/A';
-  const gapStr = metrics.gapConcorrente ? `${metrics.gapConcorrente.gap} p.p.` : 'N/A';
-  const institutoName = latestPoll.instituto ?? 'TSE/PesqEle';
-
+  const leaderName = metrics.intencaoMaisRecente.candidateName;
+  const leaderPct = metrics.intencaoMaisRecente.percentage;
   const isAnalyzedNonLeader = metrics.analyzedCandidateResult !== null;
-  const analyzedCandName = metrics.referenceCandidate ?? leaderName;
+  const subjectName = isAnalyzedNonLeader ? metrics.referenceCandidate! : leaderName;
 
-  // 1. CENÁRIO ATUAL
-  let cenarioAtualText = '';
+  const fatos: string[] = [];
+
   if (isAnalyzedNonLeader && metrics.analyzedCandidateResult) {
-    cenarioAtualText = `${analyzedCandName} ocupa a ${metrics.analyzedCandidateResult.rank}ª posição com ${metrics.analyzedCandidateResult.percentage}%, a ${metrics.analyzedCandidateResult.gapToLeader} p.p. da líder ${leaderName} (${leaderPct}%), no levantamento mais recente de ${institutoName}.`;
+    fatos.push(
+      `${subjectName} ocupa a ${metrics.analyzedCandidateResult.rank}ª posição com ${metrics.analyzedCandidateResult.percentage}% na pesquisa de referência.`
+    );
+    fatos.push(`${leaderName} lidera com ${leaderPct}%, a ${metrics.analyzedCandidateResult.gapToLeader} p.p. de distância.`);
   } else {
-    cenarioAtualText = `${leaderName} lidera o cenário com ${leaderPct}%, seguida por ${runnerName} com ${runnerPct}${thirdPlace ? ` e ${thirdPlace.candidateName} com ${thirdPlace.percentage}%` : ''}, estabelecendo vantagem de ${gapStr} no levantamento mais recente (${institutoName}).`;
+    fatos.push(`${leaderName} lidera a pesquisa de referência com ${leaderPct}%.`);
+    if (metrics.runnerUpResult) {
+      fatos.push(`${metrics.runnerUpResult.candidateName} aparece em segundo com ${metrics.runnerUpResult.percentage}%.`);
+    }
+    if (metrics.gapConcorrente) {
+      fatos.push(`A vantagem atual é de ${metrics.gapConcorrente.gap} p.p.`);
+    }
   }
 
-  // 2. PRINCIPAL MOVIMENTO
-  let principalMovimentoText = '';
-  if (metrics.hasSufficientSeries && metrics.variacaoAnterior) {
-    const diff = metrics.variacaoAnterior.diff;
-    const candVarName = metrics.variacaoAnterior.candidateName;
-    const varSign = diff > 0 ? `+${diff}` : `${diff}`;
-    const gapBehaviorText = metrics.gapBehavior === 'EXPANDING' ? 'ampliando' : metrics.gapBehavior === 'NARROWING' ? 'reduzindo' : 'estável';
-
-    principalMovimentoText = `Nas leituras comparáveis do período, ${candVarName} apresentou variação de ${varSign} p.p., enquanto a diferença entre os primeiros colocados manteve-se com tendência de gap ${gapBehaviorText}.`;
-  } else {
-    principalMovimentoText = 'Não existem levantamentos metodologicamente comparáveis suficientes no período para caracterizar tendência consolidada.';
+  if (observedHistory.minPercentage !== null && observedHistory.maxPercentage !== null) {
+    fatos.push(`Os resultados observados de ${subjectName} estão entre ${observedHistory.minPercentage}% e ${observedHistory.maxPercentage}%.`);
   }
 
-  // 3. RISCO / OPORTUNIDADE
-  let riscoOportunidadeText = '';
-  if (!metrics.hasSufficientSeries) {
-    riscoOportunidadeText = `Base comparável reduzida (${metrics.pesquisasComparaveisCount} pesquisas comparáveis). Os dados disponíveis sugerem cautela na interpretação de oscilações isoladas.`;
-  } else if (metrics.gapConcorrente && metrics.gapConcorrente.gap <= 5.0) {
-    riscoOportunidadeText = `Liderança sob pressão competitiva com margem estreita de ${gapStr} frente a ${runnerName}, indicando cenário aberto e suscetível a pequenas variações.`;
+  const interpretacao: string[] = [];
+  if (trend.status === 'INCONCLUSIVA') {
+    interpretacao.push(
+      isAnalyzedNonLeader
+        ? `A posição atual de ${subjectName} reflete o levantamento mais recente disponível.`
+        : `A liderança atual é ${metrics.gapConcorrente && metrics.gapConcorrente.gap > 10 ? 'ampla' : 'apertada'} no levantamento mais recente.`
+    );
+    interpretacao.push(trend.reason);
+  } else if (trend.status === 'CRESCIMENTO') {
+    interpretacao.push(`${subjectName} apresenta crescimento nas leituras comparáveis do período.`);
+  } else if (trend.status === 'QUEDA') {
+    interpretacao.push(`${subjectName} apresenta recuo nas leituras comparáveis do período.`);
   } else {
-    riscoOportunidadeText = `Liderança com margem de ${gapStr}, apresentando consistência entre institutos e baixa volatilidade no período analisado.`;
+    interpretacao.push(`${subjectName} mantém posição estável nas leituras comparáveis do período.`);
   }
 
-  // 4. ORIENTAÇÃO ESTRATÉGICA
-  let orientacaoEstrategicaText = '';
-  if (!metrics.hasSufficientSeries) {
-    orientacaoEstrategicaText = `Evitar interpretar a oscilação isolada como tendência consolidada até a divulgação de novos levantamentos metodologicamente comparáveis no TSE.`;
-  } else if (isAnalyzedNonLeader) {
-    orientacaoEstrategicaText = `Priorizar o monitoramento da distância para a liderança, verificando se a variação de ${metrics.variacaoAnterior?.diff ?? 0} p.p. se confirma em novas pesquisas comparáveis.`;
-  } else {
-    orientacaoEstrategicaText = `Preservar a vantagem de ${gapStr} e acompanhar com atenção a trajetória de ${runnerName} nos próximos levantamentos comparáveis.`;
-  }
-
-  const factText = `${leaderName} lidera com ${leaderPct}%, seguida por ${runnerName} com ${runnerPct}.`;
-  const narrativeText = `${cenarioAtualText} ${principalMovimentoText} ${orientacaoEstrategicaText}`;
-
-  return {
-    narrative: narrativeText,
-    fact: factText,
-    trend: principalMovimentoText,
-    interpretation: `Vantagem de ${gapStr} (${metrics.gapBehavior === 'EXPANDING' ? 'gap ampliando' : metrics.gapBehavior === 'NARROWING' ? 'gap reduzindo' : 'gap estável'}).`,
-    timestamp: nowIso,
-    supportingPollsCount: metrics.pesquisasComparaveisCount,
-    cenarioAtual: cenarioAtualText,
-    principalMovimento: principalMovimentoText,
-    riscoOportunidade: riscoOportunidadeText,
-    orientacaoEstrategica: orientacaoEstrategicaText,
-  };
+  return { fatos, interpretacao, trend };
 }

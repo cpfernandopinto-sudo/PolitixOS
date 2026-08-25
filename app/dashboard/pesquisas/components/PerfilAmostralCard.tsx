@@ -12,7 +12,7 @@ interface Props {
 export function PerfilAmostralCard({ poll }: Props) {
   if (!poll) {
     return (
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-3 shadow-xl">
+      <div className="surface-primary p-5 space-y-3">
         <div className="flex items-center justify-between pb-3 border-b border-white/5">
           <div className="flex items-center gap-2">
             <Users2 size={16} className="text-blue-400" />
@@ -40,7 +40,7 @@ export function PerfilAmostralCard({ poll }: Props) {
   const incomeStr = meta.incomeDistribution?.value ? `${meta.incomeDistribution.value.length} faixas salariais` : 'Texto corrido no registro';
 
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl h-full flex flex-col justify-between">
+    <div className="surface-primary p-5 space-y-4 h-full flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-3">
           <div className="flex items-center gap-2">

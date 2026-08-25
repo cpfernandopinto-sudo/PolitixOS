@@ -11,7 +11,7 @@ interface Props {
 export function ComparacaoInstitutos({ comparisonPoints }: Props) {
   if (comparisonPoints.length === 0) {
     return (
-      <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-3 shadow-xl">
+      <div className="surface-primary p-5 space-y-3">
         <div className="flex items-center justify-between pb-3 border-b border-white/5">
           <div className="flex items-center gap-2">
             <Building2 size={16} className="text-blue-400" />
@@ -37,7 +37,7 @@ export function ComparacaoInstitutos({ comparisonPoints }: Props) {
   const candidateList = Array.from(candidateSet);
 
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+    <div className="surface-primary p-5 space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-white/5">
         <div className="flex items-center gap-2">
           <Building2 size={16} className="text-blue-400" />

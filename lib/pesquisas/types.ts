@@ -124,7 +124,9 @@ export interface PesquisasFilters {
   municipio?: string | null;
   cargo?: string | null;
   instituto?: string | null;
-  period?: '30d' | '90d' | 'year' | 'all' | null;
+  // '60d' estava disponível no dropdown (PesquisasFilterBar.tsx) mas ausente deste tipo — o filtro
+  // Período era decorativo, então o mismatch nunca quebrava nada em runtime. Corrigido no Sprint 2A.
+  period?: '30d' | '60d' | '90d' | 'year' | 'all' | null;
   turno?: number | null;
   tipoPergunta?: TipoPergunta | null;
   candidateNames?: string[] | null;
@@ -153,7 +155,15 @@ export interface InstituteComparisonPoint {
 }
 
 export interface ExecutiveCockpitMetrics {
-  intencaoMaisRecente: { candidateName: string; percentage: number; pollDate: string | null; instituto: string } | null;
+  intencaoMaisRecente: {
+    candidateName: string;
+    percentage: number;
+    pollDate: string | null;
+    instituto: string;
+    /** Sprint 2B, P1 — contexto compacto da pesquisa de referência (nunca deixar o usuário achar que o % é média/agregado). */
+    cenario: string | null;
+    tseRegistrationNumber: string;
+  } | null;
   runnerUpResult: { candidateName: string; percentage: number } | null;
   referenceCandidate: string | null;
   analyzedCandidateResult: { candidateName: string; percentage: number; rank: number; gapToLeader: number } | null;

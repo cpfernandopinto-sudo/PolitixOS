@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition, useRef, useEffect } from 'react';
+import { useState, useTransition, useRef, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Building2, Users2, Calendar, Database,
@@ -61,7 +62,45 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [candidateMenuOpen, setCandidateMenuOpen] = useState(false);
+  // Sprint 12, P1/P2 — causa raiz do dropdown que "não abre": o layout do
+  // dashboard (app/dashboard/layout.tsx) tem `overflow-hidden` no container
+  // raiz (h-screen w-screen overflow-hidden) que envolve o Header inteiro.
+  // Um painel `position: absolute` dentro dessa árvore fica sujeito ao
+  // clipping desse ancestral (e a qualquer stacking context futuro que
+  // apareça no caminho — ex.: `backdrop-blur` já cria um). A correção
+  // definitiva é sair da árvore local via portal para `document.body`,
+  // com `position: fixed` calculado a partir do botão — nunca mais preso a
+  // overflow/z-index/stacking context de nenhum ancestral, em nenhuma
+  // página que use este componente (Overview, Notícias, Pesquisas, etc.).
+  const candidateTriggerRef = useRef<HTMLButtonElement>(null);
   const candidateMenuRef = useRef<HTMLDivElement>(null);
+  const [candidateMenuPos, setCandidateMenuPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  // Guard client-only para o portal (document.body não existe no SSR). useSyncExternalStore em vez
+  // de useState+useEffect evita disparar um setState síncrono dentro de um efeito só para sinalizar
+  // "já estou no cliente" — o snapshot do servidor já resolve isso sem render extra.
+  const portalMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
+  // Recalcula a posição toda vez que o menu abre (e em resize/scroll enquanto aberto) — o painel
+  // vive em document.body agora, então precisa ser reposicionado manualmente a cada abertura.
+  useEffect(() => {
+    if (!candidateMenuOpen) return;
+    function updatePosition() {
+      const rect = candidateTriggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setCandidateMenuPos({ top: rect.bottom + 6, left: rect.left, width: Math.max(rect.width, 256) });
+    }
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [candidateMenuOpen]);
 
   const currentModule = findCurrentNavItem(pathname);
   const currentScreen = findAppScreenByRoute(pathname === '/dashboard' ? '/dashboard/overview' : pathname);
@@ -111,13 +150,17 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
     setSelectedCandidateIds(urlCandidateIds);
   }
 
-  // Fecha o dropdown de candidatos ao clicar fora ou pressionar Escape.
+  // Fecha o dropdown de candidatos ao clicar fora ou pressionar Escape. Checa TANTO o botão
+  // (candidateTriggerRef) QUANTO o painel (candidateMenuRef) — o painel não é mais descendente do
+  // botão no DOM (vive em document.body via portal), então um clique dentro dele não pode mais ser
+  // tratado como "fora".
   useEffect(() => {
     if (!candidateMenuOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (candidateMenuRef.current && !candidateMenuRef.current.contains(e.target as Node)) {
-        setCandidateMenuOpen(false);
-      }
+      const target = e.target as Node;
+      if (candidateTriggerRef.current?.contains(target)) return;
+      if (candidateMenuRef.current?.contains(target)) return;
+      setCandidateMenuOpen(false);
     }
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') setCandidateMenuOpen(false);
@@ -201,8 +244,9 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
 
         {/* Candidatos Selector — multi-select com checkbox */}
         {supportsCandidate && candidates && candidates.length > 0 && (
-          <div className="relative flex items-center shrink-0" ref={candidateMenuRef}>
+          <div className="relative flex items-center shrink-0">
             <button
+              ref={candidateTriggerRef}
               type="button"
               onClick={() => setCandidateMenuOpen((v) => !v)}
               disabled={isPending}
@@ -215,11 +259,19 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
               <ChevronDown size={12} className="absolute right-2 text-slate-400 pointer-events-none" />
             </button>
 
-            {candidateMenuOpen && (
+            {portalMounted && candidateMenuOpen && candidateMenuPos && createPortal(
               <div
+                ref={candidateMenuRef}
                 role="listbox"
                 aria-multiselectable="true"
-                className="absolute left-0 top-full mt-1.5 w-64 max-h-80 overflow-y-auto bg-[#0E1526] border border-white/10 rounded-lg shadow-2xl z-40 py-1"
+                style={{
+                  position: 'fixed',
+                  top: candidateMenuPos.top,
+                  left: candidateMenuPos.left,
+                  width: candidateMenuPos.width,
+                  zIndex: 9999,
+                }}
+                className="max-h-80 overflow-y-auto bg-[#0E1526] border border-white/10 rounded-lg shadow-2xl py-1"
               >
                 <button
                   type="button"
@@ -255,7 +307,8 @@ export default function GlobalContextBar({ candidates, generatedAt }: Props) {
                     </button>
                   );
                 })}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         )}

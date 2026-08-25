@@ -30,15 +30,26 @@ export function PesquisasFilterBar({
   const [showCandidateDropdown, setShowCandidateDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Sprint 2B / P0.2: mesmo padrão já estável usado em components/GlobalContextBar.tsx (dropdown
+  // de candidatos do cabeçalho global, em produção em toda a aplicação) — fecha ao clicar fora E
+  // ao pressionar Escape (o dropdown artesanal anterior só tratava clique fora).
   useEffect(() => {
+    if (!showCandidateDropdown) return;
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowCandidateDropdown(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setShowCandidateDropdown(false);
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showCandidateDropdown]);
 
   const selectedCandidates = filters.candidateNames ?? [];
 
@@ -65,7 +76,7 @@ export function PesquisasFilterBar({
       : `${selectedCandidates.length} candidatos`;
 
   return (
-    <div className="bg-[#12192A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+    <div className="surface-primary p-5 space-y-4">
       {/* Navegação Principal em 3 Áreas: Cockpit | Base de Pesquisas | Comparativo */}
       <div className="flex items-center justify-between pb-3 border-b border-white/5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
@@ -153,7 +164,9 @@ export function PesquisasFilterBar({
           </label>
           <button
             type="button"
-            onClick={() => setShowCandidateDropdown(!showCandidateDropdown)}
+            onClick={() => setShowCandidateDropdown((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={showCandidateDropdown}
             className="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-3 py-2 text-white font-medium flex items-center justify-between hover:border-white/20 transition-colors"
           >
             <span className="truncate">{candidateButtonLabel}</span>
@@ -161,10 +174,15 @@ export function PesquisasFilterBar({
           </button>
 
           {showCandidateDropdown && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-[#0d1322] border border-white/15 rounded-xl shadow-2xl p-3 space-y-2 max-h-60 overflow-y-auto">
+            <div
+              role="listbox"
+              aria-multiselectable="true"
+              className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-[#0d1322] border border-white/15 rounded-xl shadow-2xl p-3 space-y-2 max-h-60 overflow-y-auto"
+            >
               <div className="flex items-center justify-between pb-2 border-b border-white/10 text-[11px]">
                 <span className="text-gray-400">Filtrar candidatos</span>
                 <button
+                  type="button"
                   onClick={handleSelectAllCandidates}
                   className="text-blue-400 hover:underline text-[10px] font-bold"
                 >
@@ -179,22 +197,25 @@ export function PesquisasFilterBar({
                   {availableCandidates.map((cand) => {
                     const isChecked = selectedCandidates.length === 0 || selectedCandidates.includes(cand);
                     return (
-                      <label
+                      <button
                         key={cand}
+                        type="button"
+                        role="option"
+                        aria-selected={isChecked}
                         onClick={() => handleCandidateToggle(cand)}
-                        className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-white/5 cursor-pointer text-xs text-gray-200"
+                        className="w-full flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-white/5 cursor-pointer text-xs text-gray-200 text-left"
                       >
-                        <div
-                          className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                        <span
+                          className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
                             isChecked
                               ? 'bg-blue-600 border-blue-500 text-white'
                               : 'border-white/20 bg-black/20'
                           }`}
                         >
                           {isChecked && <Check size={12} />}
-                        </div>
+                        </span>
                         <span className="truncate">{cand}</span>
-                      </label>
+                      </button>
                     );
                   })}
                 </div>
