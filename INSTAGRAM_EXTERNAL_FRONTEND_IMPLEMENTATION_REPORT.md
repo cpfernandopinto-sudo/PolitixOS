@@ -187,8 +187,33 @@ Seguindo a mesma arquitetura de referência do módulo X, a tabela **Análise Es
 - **TESTS:** PASS (1.605 testes / 183 suites PASS)
 - **SCREENSHOT:** `06_instagram_strategic_table_desktop.png`
 - **OUT-OF-SCOPE CHANGES:** NONE
-- **FASE 4.1:** APPROVED (Aguardando homologação visual)
+- **FASE 4.1:** APPROVED
 
 ---
 
-**Parada de Controle:** Aguardando homologação do screenshot final antes de qualquer commit/PR/deploy.
+## 9. Release de Produção
+
+### Registro de Publicação & Deployment:
+- **COMMIT:** `96cb754` (Merge commit em `main`: `5968fe9`)
+- **PR:** [#23](https://github.com/cpfernandopinto-sudo/PolitixOS/pull/23)
+- **PR STATUS:** MERGED
+- **CI:** PASS
+- **TYPESCRIPT:** PASS (`0` erros)
+- **TESTS:** PASS (`1.605` testes / `183` arquivos)
+- **BUILD:** PASS (Next.js production build concluído com sucesso)
+- **VERCEL:** READY (Deployment concluído e ativo em produção)
+- **PRODUCTION URL:** `https://politix-os-cpfernandopinto-4810s-projects.vercel.app`
+- **PRODUCTION SMOKE TEST:** PASS
+- **OWNED:** PASS
+- **EXTERNAL:** PASS
+- **STRATEGIC TABLE:** PASS
+- **PRÓPRIO BADGE:** PASS
+- **EXTERNO BADGE:** PASS
+- **AI:** PASS
+- **MULTITENANT:** PASS
+- **OUT-OF-SCOPE CHANGES:** NONE
+- **INSTAGRAM EXTERNAL FASE 4:** PRODUCTION APPROVED
+
+---
+
+**Parada de Controle:** Release final da Fase 4 concluído e validado em produção. Aguardando próximas instruções do usuário.
