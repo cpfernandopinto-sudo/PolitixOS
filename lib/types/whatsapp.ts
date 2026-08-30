@@ -125,7 +125,7 @@ export interface WhatsAppAnalysisDTO {
   prompt_version?: string;
   analyzed_at?: string;
   risk_reason?: string | null;
-  recommended_action?: string | null;
+  recommended_action: string | null;
 }
 
 export interface WhatsAppMessageDTO {

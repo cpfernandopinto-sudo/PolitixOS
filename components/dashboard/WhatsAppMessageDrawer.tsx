@@ -207,6 +207,17 @@ export default function WhatsAppMessageDrawer({ item, onClose }: Props) {
                 </div>
               )}
 
+              {/* Orientação operacional interna; nunca representa envio automático. */}
+              <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                  <Lightbulb size={13} />
+                  <span>Ação Recomendada pela IA</span>
+                </div>
+                <p className={`text-xs leading-relaxed ${analysis.recommended_action ? 'text-amber-100/90' : 'text-slate-400 italic'}`}>
+                  {analysis.recommended_action || 'Não disponível para esta análise.'}
+                </p>
+              </div>
+
               {/* Tema e Subtema */}
               <div className="rounded-xl border border-[#2D3748] bg-[#0F131C] p-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -314,17 +325,6 @@ export default function WhatsAppMessageDrawer({ item, onClose }: Props) {
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Recomendação de Ação */}
-              {analysis.recommended_action && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
-                    <Lightbulb size={13} />
-                    <span>Recomendação de Ação</span>
-                  </div>
-                  <p className="text-xs text-amber-100/90 leading-relaxed">{analysis.recommended_action}</p>
                 </div>
               )}
 
