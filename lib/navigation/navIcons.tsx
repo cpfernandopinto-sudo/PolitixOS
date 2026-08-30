@@ -54,3 +54,15 @@ export function FacebookNavIcon({ size = 20, className = '' }: NavIconProps) {
     </span>
   );
 }
+
+export function WhatsAppNavIcon({ size = 20, className = '' }: NavIconProps) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-md border border-current/35 font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.72), lineHeight: 1 }}
+      aria-hidden="true"
+    >
+      W
+    </span>
+  );
+}

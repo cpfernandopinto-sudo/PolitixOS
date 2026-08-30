@@ -10,7 +10,7 @@ import {
   LineChart,
 } from 'lucide-react';
 import type { NavIcon } from './navIcons';
-import { InstagramNavIcon, XNavIcon, FacebookNavIcon } from './navIcons';
+import { InstagramNavIcon, XNavIcon, FacebookNavIcon, WhatsAppNavIcon } from './navIcons';
 
 /**
  * Catálogo canônico de telas do PolitixOS — fonte única para:
@@ -123,6 +123,18 @@ export const APP_SCREENS: AppScreen[] = [
     icon: FacebookNavIcon,
     group: 'Inteligência',
     description: 'Comunidades e engajamento político',
+    implemented: true,
+    supportsGlobalCandidate: true,
+    supportsGlobalPeriod: true,
+    showInNav: true,
+  },
+  {
+    key: 'whatsapp',
+    label: 'WhatsApp',
+    route: '/dashboard/whatsapp',
+    icon: WhatsAppNavIcon,
+    group: 'Inteligência',
+    description: 'Monitoramento de grupos e inteligência comunitária',
     implemented: true,
     supportsGlobalCandidate: true,
     supportsGlobalPeriod: true,

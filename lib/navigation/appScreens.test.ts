@@ -39,6 +39,16 @@ describe('APP_SCREENS — catálogo canônico', () => {
     expect(x?.implemented).toBe(true);
     expect(x?.route).toBe('/dashboard/x');
   });
+
+  it('WhatsApp está presente no catálogo como módulo de inteligência implementado', () => {
+    const wa = findAppScreen('whatsapp');
+    expect(wa).toBeDefined();
+    expect(wa?.implemented).toBe(true);
+    expect(wa?.route).toBe('/dashboard/whatsapp');
+    expect(wa?.group).toBe('Inteligência');
+    expect(wa?.supportsGlobalCandidate).toBe(true);
+    expect(wa?.supportsGlobalPeriod).toBe(true);
+  });
 });
 
 describe('findAppScreenByRoute', () => {
