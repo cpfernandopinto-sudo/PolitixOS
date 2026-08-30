@@ -66,7 +66,7 @@ const candidatosScreen = APP_SCREENS.find((s) => s.key === 'candidatos')!;
  * "Politix IA" e "Auditoria" não têm screen_key nem página real — nunca
  * fizeram parte do catálogo de telas (não há o que proteger/conceder), mas
  * já existiam como placeholders "em breve" no menu antes desta unificação.
- * Preservados aqui como itens avulsos, na posição original.
+ * Preservados aqui como itens avulsos, na posição definida pela arquitetura.
  */
 const POLITIX_IA_ITEM: NavItem = {
   label: 'Politix IA',
@@ -87,18 +87,37 @@ const AUDITORIA_ITEM: NavItem = {
 };
 
 export const NAV_GROUPS: NavGroup[] = [
+  // 1. INTELIGÊNCIA (Visão Geral)
   {
     label: 'Inteligência',
     items: byGroup('Inteligência').map(screenToNavItem),
   },
+
+  // 2. MONITORAMENTO DE CANAIS (Notícias, Instagram, Facebook, X, WhatsApp)
   {
-    label: 'Monitoramento',
+    label: 'Monitoramento de Canais',
+    items: byGroup('Monitoramento de Canais').map(screenToNavItem),
+  },
+
+  // 3. INTELIGÊNCIA ESTRATÉGICA (Pesquisas Eleitorais, Territórios, Investigações)
+  {
+    label: 'Inteligência Estratégica',
+    items: byGroup('Inteligência Estratégica').map(screenToNavItem),
+  },
+
+  // 4. GESTÃO (Candidatos/Entidades, Politix IA)
+  {
+    label: 'Gestão',
     items: [screenToNavItem(candidatosScreen), POLITIX_IA_ITEM],
   },
+
+  // 5. OPERAÇÃO (Automação/Operação)
   {
     label: 'Operação',
     items: byGroup('Operação').map(screenToNavItem),
   },
+
+  // 6. SISTEMA (Usuários, Auditoria, Configurações)
   {
     label: 'Sistema',
     items: [screenToNavItem(usuariosScreen), AUDITORIA_ITEM, screenToNavItem(configuracoesScreen)],

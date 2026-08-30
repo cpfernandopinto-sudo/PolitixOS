@@ -38,16 +38,27 @@ describe('APP_SCREENS — catálogo canônico', () => {
     expect(x).toBeDefined();
     expect(x?.implemented).toBe(true);
     expect(x?.route).toBe('/dashboard/x');
+    expect(x?.group).toBe('Monitoramento de Canais');
   });
 
-  it('WhatsApp está presente no catálogo como módulo de inteligência implementado', () => {
+  it('WhatsApp está presente no catálogo como canal de monitoramento implementado', () => {
     const wa = findAppScreen('whatsapp');
     expect(wa).toBeDefined();
     expect(wa?.implemented).toBe(true);
     expect(wa?.route).toBe('/dashboard/whatsapp');
-    expect(wa?.group).toBe('Inteligência');
+    expect(wa?.group).toBe('Monitoramento de Canais');
     expect(wa?.supportsGlobalCandidate).toBe(true);
     expect(wa?.supportsGlobalPeriod).toBe(true);
+  });
+
+  it('ordem dos canais de monitoramento segue o padrão: Notícias, Instagram, Facebook, X, WhatsApp', () => {
+    const channels = APP_SCREENS.filter((s) => s.group === 'Monitoramento de Canais' && s.showInNav).map((s) => s.key);
+    expect(channels).toEqual(['noticias', 'instagram', 'facebook', 'x', 'whatsapp']);
+  });
+
+  it('ordem da inteligência estratégica segue o padrão: Pesquisas Eleitorais, Territórios, Investigações', () => {
+    const strategic = APP_SCREENS.filter((s) => s.group === 'Inteligência Estratégica' && s.showInNav).map((s) => s.key);
+    expect(strategic).toEqual(['pesquisas', 'territorios', 'investigacoes']);
   });
 });
 

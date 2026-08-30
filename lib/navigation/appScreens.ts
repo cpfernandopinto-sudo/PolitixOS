@@ -53,9 +53,17 @@ export interface AppScreen {
   showInNav: boolean;
 }
 
-export const NAV_GROUP_ORDER = ['Inteligência', 'Monitoramento', 'Operação', 'Sistema'] as const;
+export const NAV_GROUP_ORDER = [
+  'Inteligência',
+  'Monitoramento de Canais',
+  'Inteligência Estratégica',
+  'Gestão',
+  'Operação',
+  'Sistema',
+] as const;
 
 export const APP_SCREENS: AppScreen[] = [
+  // 1. INTELIGÊNCIA
   {
     key: 'dashboard',
     label: 'Visão Geral',
@@ -68,24 +76,14 @@ export const APP_SCREENS: AppScreen[] = [
     supportsGlobalPeriod: true,
     showInNav: true,
   },
-  {
-    key: 'territorios',
-    label: 'Territórios',
-    route: '/dashboard/territorios',
-    icon: MapPin,
-    group: 'Inteligência',
-    description: 'Dossiês e inteligência municipal',
-    implemented: true,
-    supportsGlobalCandidate: false,
-    supportsGlobalPeriod: false,
-    showInNav: true,
-  },
+
+  // 2. MONITORAMENTO DE CANAIS (Ordem: Notícias, Instagram, Facebook, X, WhatsApp)
   {
     key: 'noticias',
     label: 'Notícias',
     route: '/dashboard/noticias',
     icon: Newspaper,
-    group: 'Inteligência',
+    group: 'Monitoramento de Canais',
     description: 'Monitoramento e análise de risco',
     implemented: true,
     supportsGlobalCandidate: true,
@@ -97,20 +95,8 @@ export const APP_SCREENS: AppScreen[] = [
     label: 'Instagram',
     route: '/dashboard/instagram',
     icon: InstagramNavIcon,
-    group: 'Inteligência',
+    group: 'Monitoramento de Canais',
     description: 'Análise de comentários e interações',
-    implemented: true,
-    supportsGlobalCandidate: true,
-    supportsGlobalPeriod: true,
-    showInNav: true,
-  },
-  {
-    key: 'x',
-    label: 'X',
-    route: '/dashboard/x',
-    icon: XNavIcon,
-    group: 'Inteligência',
-    description: 'Discurso político em tempo real',
     implemented: true,
     supportsGlobalCandidate: true,
     supportsGlobalPeriod: true,
@@ -121,8 +107,20 @@ export const APP_SCREENS: AppScreen[] = [
     label: 'Facebook',
     route: '/dashboard/facebook',
     icon: FacebookNavIcon,
-    group: 'Inteligência',
+    group: 'Monitoramento de Canais',
     description: 'Comunidades e engajamento político',
+    implemented: true,
+    supportsGlobalCandidate: true,
+    supportsGlobalPeriod: true,
+    showInNav: true,
+  },
+  {
+    key: 'x',
+    label: 'X',
+    route: '/dashboard/x',
+    icon: XNavIcon,
+    group: 'Monitoramento de Canais',
+    description: 'Discurso político em tempo real',
     implemented: true,
     supportsGlobalCandidate: true,
     supportsGlobalPeriod: true,
@@ -133,11 +131,37 @@ export const APP_SCREENS: AppScreen[] = [
     label: 'WhatsApp',
     route: '/dashboard/whatsapp',
     icon: WhatsAppNavIcon,
-    group: 'Inteligência',
+    group: 'Monitoramento de Canais',
     description: 'Monitoramento de grupos e inteligência comunitária',
     implemented: true,
     supportsGlobalCandidate: true,
     supportsGlobalPeriod: true,
+    showInNav: true,
+  },
+
+  // 3. INTELIGÊNCIA ESTRATÉGICA (Ordem: Pesquisas Eleitorais, Territórios, Investigações)
+  {
+    key: 'pesquisas',
+    label: 'Pesquisas Eleitorais',
+    route: '/dashboard/pesquisas',
+    icon: LineChart,
+    group: 'Inteligência Estratégica',
+    description: 'Monitor oficial de pesquisas registradas no TSE/PesqEle',
+    implemented: true,
+    supportsGlobalCandidate: true,
+    supportsGlobalPeriod: false,
+    showInNav: true,
+  },
+  {
+    key: 'territorios',
+    label: 'Territórios',
+    route: '/dashboard/territorios',
+    icon: MapPin,
+    group: 'Inteligência Estratégica',
+    description: 'Dossiês e inteligência municipal',
+    implemented: true,
+    supportsGlobalCandidate: false,
+    supportsGlobalPeriod: false,
     showInNav: true,
   },
   {
@@ -145,44 +169,29 @@ export const APP_SCREENS: AppScreen[] = [
     label: 'Investigações',
     route: '/dashboard/investigacoes',
     icon: FileSearch,
-    group: 'Inteligência',
+    group: 'Inteligência Estratégica',
     description: 'Dossiês e investigações profundas',
     implemented: true,
     supportsGlobalCandidate: false,
     supportsGlobalPeriod: false,
     showInNav: true,
   },
-  {
-    key: 'pesquisas',
-    label: 'Pesquisas Eleitorais',
-    route: '/dashboard/pesquisas',
-    icon: LineChart,
-    group: 'Inteligência',
-    description: 'Monitor oficial de pesquisas registradas no TSE/PesqEle',
-    implemented: true,
-    // Sprint 2B, P0.1: reavaliado como o comentário original previa —
-    // PESQUISAS-01B confirmou o vínculo real electoral_poll_results.candidate_id
-    // → targets.id (auditoria MG/Governador), então o candidato global agora
-    // tem o que filtrar. Período global segue false: os filtros locais de
-    // Pesquisas (Período/Turno/Tipo) já cobrem esse eixo com semântica
-    // própria (ver lib/pesquisas/periodFilter.ts) — não é o mesmo período
-    // (dias corridos) que Visão Geral/Notícias/Instagram/X consomem.
-    supportsGlobalCandidate: true,
-    supportsGlobalPeriod: false,
-    showInNav: true,
-  },
+
+  // 4. GESTÃO (Candidatos/Entidades, Politix IA)
   {
     key: 'candidatos',
     label: 'Candidatos/Entidades',
     route: '/dashboard/candidatos',
     icon: UserPlus,
-    group: 'Monitoramento',
+    group: 'Gestão',
     description: 'Perfil de candidatos monitorados',
     implemented: true,
     supportsGlobalCandidate: true,
     supportsGlobalPeriod: false,
     showInNav: true,
   },
+
+  // 5. OPERAÇÃO (Automação/Operação)
   {
     key: 'automacoes',
     label: 'Automação/Operação',
@@ -195,6 +204,8 @@ export const APP_SCREENS: AppScreen[] = [
     supportsGlobalPeriod: false,
     showInNav: true,
   },
+
+  // 6. SISTEMA (Usuários, Auditoria, Configurações)
   {
     key: 'usuarios',
     label: 'Usuários',
@@ -220,6 +231,8 @@ export const APP_SCREENS: AppScreen[] = [
     supportsGlobalPeriod: false,
     showInNav: true,
   },
+
+  // Telas não exibidas no menu principal
   {
     key: 'gestao_crise',
     label: 'Gestão de Crise',
@@ -236,7 +249,7 @@ export const APP_SCREENS: AppScreen[] = [
     label: 'Apoiadores',
     route: '/dashboard/apoiadores',
     icon: UserPlus,
-    group: 'Monitoramento',
+    group: 'Gestão',
     implemented: false,
     supportsGlobalCandidate: false,
     supportsGlobalPeriod: false,
