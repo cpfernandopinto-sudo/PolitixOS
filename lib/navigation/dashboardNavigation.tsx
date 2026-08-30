@@ -3,7 +3,7 @@ import { APP_SCREENS, type AppScreen } from './appScreens';
 import type { NavIcon } from './navIcons';
 
 export type { NavIcon, NavIconProps } from './navIcons';
-export { InstagramNavIcon, XNavIcon } from './navIcons';
+export { InstagramNavIcon, XNavIcon, FacebookNavIcon, WhatsAppNavIcon } from './navIcons';
 
 /**
  * Fonte única das rotas do dashboard — usada por ModuleSwitcher (desktop),
