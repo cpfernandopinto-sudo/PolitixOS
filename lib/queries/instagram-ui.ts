@@ -3,7 +3,14 @@ import 'server-only';
 import { getActiveClientId, getAllowedTargetIds } from '@/lib/auth/dal';
 import { buildInstagramUiContract, normalizeInstagramContentTypeFilter, type InstagramUiRawAnalysis, type InstagramUiRawComment } from '@/lib/instagram/ui-contract';
 import { createAdminClient } from '@/lib/supabaseClient';
-import type { InstagramUiContract, InstagramUiQuery } from '@/lib/types/instagram-ui';
+import type {
+  InstagramExternalKpis,
+  InstagramExternalPost,
+  InstagramExternalUiContract,
+  InstagramUiContract,
+  InstagramUiQuery,
+} from '@/lib/types/instagram-ui';
+import type { InstagramContentType } from '@/lib/instagram/content-type';
 
 export const ANALYTICS_POST_BATCH_SIZE = 500;
 export const MAX_ANALYTICS_POSTS = 10_000;
@@ -161,6 +168,7 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
       .from('social_posts')
       .select(POST_FIELDS, withCount ? { count: 'exact' } : undefined)
       .eq('platform', 'instagram')
+      .or('content_origin.eq.OWNED,content_origin.is.null')
       .order('taken_at', { ascending: false })
       .order('id', { ascending: false });
     if (activeClientId) scoped = scoped.eq('client_id', activeClientId);
@@ -288,4 +296,304 @@ export async function getInstagramUiContract(query: InstagramUiQuery = {}): Prom
     contract.pagination.hasNextPage = true;
   }
   return contract;
+}
+
+export function resolveExternalAuthor(rawJson: unknown): { username: string; fullName: string | null } {
+  const raw = (rawJson && typeof rawJson === 'object' ? rawJson : {}) as Record<string, any>;
+  const user = raw.user || raw.owner || raw.author || {};
+  const username = user.username || raw.username || 'desconhecido';
+  const fullName = user.full_name || user.name || null;
+  return { username, fullName };
+}
+
+export function resolveExternalDiscovery(target?: { match_type?: string | null; discovery_source?: string | null; match_term?: string | null }): {
+  source: string;
+  label: string;
+  matchType: string;
+  matchTerm: string | null;
+  explanation: string;
+} {
+  const source = target?.discovery_source || 'unknown';
+  const matchType = target?.match_type || 'unknown';
+  const matchTerm = target?.match_term || null;
+
+  if (source === 'mention' || matchType === 'mention_of_target') {
+    return {
+      source: 'mention',
+      label: 'Marcou o candidato',
+      matchType,
+      matchTerm,
+      explanation: matchTerm
+        ? `Este perfil marcou diretamente o candidato (@${matchTerm.replace(/^@/, '')}).`
+        : 'Este perfil marcou diretamente o perfil do candidato no Instagram.',
+    };
+  }
+
+  if (source === 'search' || matchType === 'search') {
+    return {
+      source: 'search',
+      label: 'Descoberta externa',
+      matchType,
+      matchTerm,
+      explanation: matchTerm
+        ? `Publicação identificada pelo monitoramento de termos externos ("${matchTerm}") e classificada pela IA como relevante para o candidato.`
+        : 'Publicação identificada pelo monitoramento externo e classificada pela IA como relacionada ao candidato.',
+    };
+  }
+
+  return {
+    source,
+    label: 'Menção externa',
+    matchType,
+    matchTerm,
+    explanation: 'Publicação externa associada ao candidato pelo monitoramento de redes.',
+  };
+}
+
+export function emptyExternalContract(query: InstagramUiQuery = {}): InstagramExternalUiContract {
+  return {
+    kpis: {
+      total: 0,
+      positive: 0,
+      positivePct: 0,
+      negative: 0,
+      negativePct: 0,
+      highOrCriticalRisk: 0,
+      highOrCriticalRiskPct: 0,
+    },
+    posts: [],
+    filterOptions: {
+      formats: ['REEL', 'IMAGE', 'CAROUSEL'],
+      risks: ['baixo', 'médio', 'alto', 'crítico'],
+      sentiments: ['positivo', 'neutro', 'negativo'],
+      origins: [
+        { value: 'mention', label: 'Marcou o candidato' },
+        { value: 'search', label: 'Descoberta externa' },
+      ],
+    },
+    pagination: {
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+      total: 0,
+      totalPages: 0,
+      hasNextPage: false,
+    },
+  };
+}
+
+export async function getInstagramExternalUiContract(query: InstagramUiQuery = {}): Promise<InstagramExternalUiContract> {
+  const [allowedTargetIds, activeClientId] = await Promise.all([
+    getAllowedTargetIds(),
+    getActiveClientId(),
+  ]);
+  const targetIds = intersectInstagramTargetScope(query.candidateIds, allowedTargetIds);
+  if (targetIds?.length === 0) return emptyExternalContract(query);
+
+  const client = createAdminClient();
+
+  // 1. Fetch external posts from social_posts
+  const contentTypes = normalizeInstagramContentTypeFilter(query.contentTypes);
+  const periodFrom = query.periodDays && Number.isFinite(query.periodDays) && query.periodDays > 0
+    ? new Date(Date.now() - Math.floor(query.periodDays) * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+
+  let postsQuery = client
+    .from('social_posts')
+    .select('id, target_id, client_id, platform, content_origin, caption, content_type, media_type, media_url, post_url, taken_at, collected_at, like_count, comment_count, raw_json')
+    .eq('platform', 'instagram')
+    .eq('content_origin', 'EXTERNAL')
+    .order('taken_at', { ascending: false });
+
+  if (activeClientId) postsQuery = postsQuery.eq('client_id', activeClientId);
+  if (periodFrom) postsQuery = postsQuery.gte('taken_at', periodFrom);
+  if (contentTypes.length) postsQuery = postsQuery.in('content_type', contentTypes);
+
+  const { data: rawExternalPosts, error: postsError } = await postsQuery;
+  if (postsError) throw new Error(`Instagram external posts query failed: ${postsError.message}`);
+  if (!rawExternalPosts || rawExternalPosts.length === 0) return emptyExternalContract(query);
+
+  const externalPostIds = rawExternalPosts.map((p) => p.id);
+
+  // 2. Fetch social_post_targets for these external posts matching the scoped target(s)
+  let targetsQuery = client
+    .from('social_post_targets')
+    .select('id, post_id, target_id, client_id, match_type, match_term, discovery_source')
+    .in('post_id', externalPostIds);
+
+  if (activeClientId) targetsQuery = targetsQuery.eq('client_id', activeClientId);
+  if (targetIds) targetsQuery = targetsQuery.in('target_id', targetIds);
+
+  const { data: postTargets, error: targetsError } = await targetsQuery;
+  if (targetsError) throw new Error(`Instagram external post targets query failed: ${targetsError.message}`);
+  if (!postTargets || postTargets.length === 0) return emptyExternalContract(query);
+
+  const matchingPostIds = new Set(postTargets.map((t) => t.post_id));
+  const postsData = rawExternalPosts.filter((p) => matchingPostIds.has(p.id));
+  if (postsData.length === 0) return emptyExternalContract(query);
+
+  const targetIdsForNames = Array.from(new Set(postTargets.map((t) => t.target_id).filter(Boolean)));
+  let candidateNamesQuery = client.from('targets').select('id, candidate_name').in('id', targetIdsForNames);
+  if (activeClientId) candidateNamesQuery = candidateNamesQuery.eq('client_id', activeClientId);
+  const { data: candidateRows } = await candidateNamesQuery;
+
+  const candidateNames = new Map((candidateRows ?? []).map((c) => [c.id, c.candidate_name ?? 'Candidato']));
+  const targetByPostId = new Map(postTargets.map((t) => [t.post_id, t]));
+
+  // 3. Fetch analyses for these posts
+  const postIds = postsData.map((p) => p.id);
+  let analysesQuery = client
+    .from('ai_analysis')
+    .select('content_id, sentiment, risk_level, ai_topics, summary, risk_reason, recommended_action, engagement_quality, polarization_level, confidence_score, client_id, target_id')
+    .eq('content_type', 'post')
+    .in('content_id', postIds);
+  if (activeClientId) analysesQuery = analysesQuery.eq('client_id', activeClientId);
+
+  const { data: analysesData, error: analysesError } = await analysesQuery;
+  if (analysesError) throw new Error(`Instagram external analyses query failed: ${analysesError.message}`);
+
+  const analysisByPostId = new Map((analysesData ?? []).map((a) => [a.content_id, a]));
+
+  // 4. Map posts and apply filters
+  const normalizedRisk = query.risk?.trim().toLocaleLowerCase('pt-BR') ?? '';
+  const normalizedSentiment = query.sentiment?.trim().toLocaleLowerCase('pt-BR') ?? '';
+  const normalizedTopic = query.topic?.trim().toLocaleLowerCase('pt-BR') ?? '';
+  const normalizedOrigin = query.origin?.trim().toLocaleLowerCase('pt-BR') ?? '';
+
+  const allExternalPosts: InstagramExternalPost[] = [];
+
+  for (const post of postsData) {
+    const target = targetByPostId.get(post.id);
+    const analysis = analysisByPostId.get(post.id);
+    const author = resolveExternalAuthor(post.raw_json);
+    const discovery = resolveExternalDiscovery(target);
+
+    // Topics parsing
+    const rawTopics = analysis?.ai_topics;
+    const themes: string[] = Array.isArray(rawTopics)
+      ? rawTopics.filter((t): t is string => typeof t === 'string')
+      : typeof rawTopics === 'string'
+        ? (() => { try { return JSON.parse(rawTopics); } catch { return []; } })()
+        : [];
+
+    // Filter checks
+    if (normalizedRisk && (analysis?.risk_level?.trim().toLocaleLowerCase('pt-BR') !== normalizedRisk)) {
+      continue;
+    }
+    if (normalizedSentiment && (analysis?.sentiment?.trim().toLocaleLowerCase('pt-BR') !== normalizedSentiment)) {
+      continue;
+    }
+    if (normalizedTopic && !themes.some((t) => t.trim().toLocaleLowerCase('pt-BR') === normalizedTopic)) {
+      continue;
+    }
+    if (normalizedOrigin && discovery.source.toLowerCase() !== normalizedOrigin && discovery.matchType.toLowerCase() !== normalizedOrigin) {
+      continue;
+    }
+
+    const likesCount = typeof post.like_count === 'number' ? post.like_count : null;
+    const commentsCount = typeof post.comment_count === 'number' ? post.comment_count : null;
+    const rawViews = (post.raw_json as any)?.view_count ?? (post.raw_json as any)?.views?.count ?? null;
+    const viewsCount = rawViews !== null ? Number(rawViews) : null;
+
+    allExternalPosts.push({
+      id: post.id,
+      targetId: target?.target_id || post.target_id || '',
+      candidateName: target?.target_id ? (candidateNames.get(target.target_id) ?? null) : null,
+      author,
+      discovery,
+      contentType: (post.content_type || 'IMAGE') as InstagramContentType,
+      caption: post.caption || '',
+      publishedAt: post.taken_at || null,
+      collectedAt: post.collected_at || new Date().toISOString(),
+      url: post.post_url || null,
+      mediaUrl: post.media_url || null,
+      metrics: {
+        likes: {
+          value: likesCount,
+          availability: likesCount !== null ? 'AVAILABLE' : 'UNAVAILABLE',
+          source: 'structured',
+        },
+        comments: {
+          value: commentsCount,
+          availability: commentsCount !== null ? 'AVAILABLE' : 'UNAVAILABLE',
+          source: 'structured',
+        },
+        views: {
+          value: Number.isFinite(viewsCount) ? viewsCount : null,
+          availability: Number.isFinite(viewsCount) ? 'AVAILABLE' : 'UNAVAILABLE',
+          source: 'raw_json',
+        },
+      },
+      analysis: {
+        sentiment: analysis?.sentiment || null,
+        risk: analysis?.risk_level || null,
+        riskReason: analysis?.risk_reason || null,
+        themes,
+        summary: analysis?.summary || null,
+        recommendedAction: analysis?.recommended_action || null,
+        confidence: analysis?.confidence_score !== null && analysis?.confidence_score !== undefined
+          ? (analysis.confidence_score <= 1 ? Math.round(analysis.confidence_score * 100) : analysis.confidence_score)
+          : null,
+        engagementQuality: {
+          value: analysis?.engagement_quality || null,
+          availability: analysis?.engagement_quality ? 'AVAILABLE' : 'UNAVAILABLE',
+        },
+        polarizationLevel: {
+          value: analysis?.polarization_level || null,
+          availability: analysis?.polarization_level ? 'AVAILABLE' : 'UNAVAILABLE',
+        },
+      },
+    });
+  }
+
+  // 5. Calculate External KPIs (exclusively on external posts)
+  const total = allExternalPosts.length;
+  const positive = allExternalPosts.filter((p) => p.analysis.sentiment?.toLowerCase() === 'positivo').length;
+  const positivePct = total > 0 ? Math.round((positive / total) * 100) : 0;
+  const negative = allExternalPosts.filter((p) => p.analysis.sentiment?.toLowerCase() === 'negativo').length;
+  const negativePct = total > 0 ? Math.round((negative / total) * 100) : 0;
+  const highOrCriticalRisk = allExternalPosts.filter((p) => /alto|crít|crit/i.test(p.analysis.risk ?? '')).length;
+  const highOrCriticalRiskPct = total > 0 ? Math.round((highOrCriticalRisk / total) * 100) : 0;
+
+  // 6. Pagination
+  const page = Math.max(1, Math.floor(query.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(query.pageSize ?? 20)));
+  const totalPages = Math.ceil(total / pageSize);
+  const pagedPosts = allExternalPosts.slice((page - 1) * pageSize, page * pageSize);
+
+  // Available filter options
+  const riskSet = new Set<string>();
+  const sentimentSet = new Set<string>();
+  for (const post of allExternalPosts) {
+    if (post.analysis.risk) riskSet.add(post.analysis.risk.toLowerCase());
+    if (post.analysis.sentiment) sentimentSet.add(post.analysis.sentiment.toLowerCase());
+  }
+
+  return {
+    kpis: {
+      total,
+      positive,
+      positivePct,
+      negative,
+      negativePct,
+      highOrCriticalRisk,
+      highOrCriticalRiskPct,
+    },
+    posts: pagedPosts,
+    filterOptions: {
+      formats: ['REEL', 'IMAGE', 'CAROUSEL'],
+      risks: Array.from(riskSet),
+      sentiments: Array.from(sentimentSet),
+      origins: [
+        { value: 'mention', label: 'Marcou o candidato' },
+        { value: 'search', label: 'Descoberta externa' },
+      ],
+    },
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+    },
+  };
 }

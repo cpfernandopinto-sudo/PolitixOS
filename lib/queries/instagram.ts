@@ -96,8 +96,12 @@ export async function fetchInstagramData(filters?: InstagramFilters) {
     }
   }
 
-  // 2. Posts Fetch — filtrar por allowedTargetIds + candidate(s)
-  let pQuery = client.from('social_posts').select('*').eq('platform', 'instagram');
+  // 2. Posts Fetch — filtrar por allowedTargetIds + candidate(s) (somente OWNED)
+  let pQuery = client
+    .from('social_posts')
+    .select('*')
+    .eq('platform', 'instagram')
+    .or('content_origin.eq.OWNED,content_origin.is.null');
 
   const contentTypes = normalizeInstagramContentTypeFilter(filters?.contentTypes ?? undefined);
   if (contentTypes.length > 0) {

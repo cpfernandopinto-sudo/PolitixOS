@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { chunkInstagramPostIds, instagramAnalyticsRanges, intersectInstagramTargetScope } from './instagram-ui';
+import {
+  chunkInstagramPostIds,
+  emptyExternalContract,
+  instagramAnalyticsRanges,
+  intersectInstagramTargetScope,
+  resolveExternalAuthor,
+  resolveExternalDiscovery,
+} from './instagram-ui';
 
 describe('Instagram UI server scope', () => {
   it('não permite candidato fora de allowedTargetIds', () => {
@@ -34,4 +41,50 @@ describe('Instagram UI server scope', () => {
     expect(loaded === total).toBe(expectedComplete);
     expect(ranges.every((range) => range.to - range.from < 500)).toBe(true);
   });
+
+  describe('External mentions helpers', () => {
+    it('extrai autor corretamente do raw_json com user.username', () => {
+      const author = resolveExternalAuthor({ user: { username: 'magrao_apresentador', full_name: 'Magrão' } });
+      expect(author.username).toBe('magrao_apresentador');
+      expect(author.fullName).toBe('Magrão');
+    });
+
+    it('extrai autor com fallback para desconhecido se ausente', () => {
+      const author = resolveExternalAuthor({});
+      expect(author.username).toBe('desconhecido');
+      expect(author.fullName).toBeNull();
+    });
+
+    it('classifica descoberta mention como Marcou o candidato', () => {
+      const discovery = resolveExternalDiscovery({
+        discovery_source: 'mention',
+        match_type: 'mention_of_target',
+        match_term: 'delegadomoreira',
+      });
+      expect(discovery.source).toBe('mention');
+      expect(discovery.label).toBe('Marcou o candidato');
+      expect(discovery.explanation).toContain('@delegadomoreira');
+    });
+
+    it('classifica descoberta search como Descoberta externa', () => {
+      const discovery = resolveExternalDiscovery({
+        discovery_source: 'search',
+        match_type: 'search',
+        match_term: 'Edson Moreira',
+      });
+      expect(discovery.source).toBe('search');
+      expect(discovery.label).toBe('Descoberta externa');
+      expect(discovery.explanation).toContain('Edson Moreira');
+    });
+
+    it('emptyExternalContract inicializa estrutura vazia sem NaN', () => {
+      const contract = emptyExternalContract();
+      expect(contract.kpis.total).toBe(0);
+      expect(contract.kpis.positivePct).toBe(0);
+      expect(contract.kpis.negativePct).toBe(0);
+      expect(contract.kpis.highOrCriticalRiskPct).toBe(0);
+      expect(contract.posts).toHaveLength(0);
+    });
+  });
 });
+

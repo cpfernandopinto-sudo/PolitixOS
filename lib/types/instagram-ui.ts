@@ -155,6 +155,74 @@ export interface InstagramUiContract {
   };
 }
 
+export interface InstagramExternalPost {
+  id: string;
+  targetId: string;
+  candidateName: string | null;
+  author: {
+    username: string;
+    fullName: string | null;
+    avatarUrl?: string | null;
+  };
+  discovery: {
+    source: string;
+    label: string;
+    matchType: string;
+    matchTerm: string | null;
+    explanation: string;
+  };
+  contentType: InstagramContentType;
+  caption: string;
+  publishedAt: string | null;
+  collectedAt: string;
+  url: string | null;
+  mediaUrl: string | null;
+  metrics: {
+    likes: InstagramMetric;
+    comments: InstagramMetric;
+    views: InstagramMetric;
+  };
+  analysis: {
+    sentiment: string | null;
+    risk: string | null;
+    riskReason: string | null;
+    themes: string[];
+    summary: string | null;
+    recommendedAction: string | null;
+    confidence: number | null;
+    engagementQuality: InstagramAnalyticSignal;
+    polarizationLevel: InstagramAnalyticSignal;
+  };
+}
+
+export interface InstagramExternalKpis {
+  total: number;
+  positive: number;
+  positivePct: number;
+  negative: number;
+  negativePct: number;
+  highOrCriticalRisk: number;
+  highOrCriticalRiskPct: number;
+}
+
+export interface InstagramExternalUiContract {
+  kpis: InstagramExternalKpis;
+  posts: InstagramExternalPost[];
+  filterOptions: {
+    formats: Array<'IMAGE' | 'REEL' | 'CAROUSEL'>;
+    risks: string[];
+    sentiments: string[];
+    origins: Array<{ value: string; label: string }>;
+  };
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
 export interface InstagramUiQuery {
   contentTypes?: InstagramContentType[];
   candidateIds?: string[];
@@ -164,4 +232,6 @@ export interface InstagramUiQuery {
   risk?: string | null;
   sentiment?: string | null;
   topic?: string | null;
+  origin?: string | null;
 }
+
