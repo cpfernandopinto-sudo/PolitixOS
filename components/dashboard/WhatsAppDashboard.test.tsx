@@ -90,6 +90,49 @@ describe('WhatsAppDashboard component — Codex Contract', () => {
     expect(screen.getAllByText(/Análise de IA/i).length).toBeGreaterThan(0);
   });
 
+  it.each([
+    {
+      schemaVersion: '1.0',
+      recommendedAction: null,
+      expected: 'Não disponível para esta análise.',
+    },
+    {
+      schemaVersion: '1.1',
+      recommendedAction: 'Preparar esclarecimento factual e monitorar a mobilização.',
+      expected: 'Preparar esclarecimento factual e monitorar a mobilização.',
+    },
+  ])('renderiza recommended_action compatível com schema $schemaVersion', async ({ schemaVersion, recommendedAction, expected }) => {
+    const summary = await fetchWhatsAppSummary();
+    const groups = await fetchWhatsAppGroups();
+    const filterOptions = await fetchWhatsAppFilters();
+    const source = MOCK_WHATSAPP_MESSAGES[0];
+    const item = {
+      ...source,
+      analysis: source.analysis ? {
+        ...source.analysis,
+        schema_version: schemaVersion,
+        recommended_action: recommendedAction,
+      } : null,
+    };
+
+    render(
+      <WhatsAppDashboard
+        summary={summary}
+        items={[item]}
+        groups={groups.items}
+        filterOptions={filterOptions}
+        criticalAlert={null}
+        nextCursor={null}
+        hasMore={false}
+        completeness="100% dos canais WhatsApp operacionais"
+      />
+    );
+
+    fireEvent.click(screen.getAllByText(/Carlos Mendonça/i)[0]);
+    expect(screen.getByText('Ação Recomendada pela IA')).toBeDefined();
+    expect(screen.getByText(expected)).toBeDefined();
+  });
+
   it('permite alternar para a aba de Grupos Monitorados', async () => {
     const summary = await fetchWhatsAppSummary();
     const groups = await fetchWhatsAppGroups();

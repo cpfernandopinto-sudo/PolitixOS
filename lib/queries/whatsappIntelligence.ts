@@ -2,6 +2,16 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabaseClient';
 import { getSession } from '@/lib/auth/session';
+import type {
+  WhatsAppAnalysisDTO,
+  WhatsAppIntent,
+  WhatsAppMentionedCandidateDTO,
+  WhatsAppMentionedEntityDTO,
+  WhatsAppMentionedLocationDTO,
+  WhatsAppRelevance,
+  WhatsAppRiskLevel,
+  WhatsAppSentiment,
+} from '@/lib/types/whatsapp';
 
 function errorResponse(code: string, message: string, status: number, requestId: string) {
   return NextResponse.json({ error: { code, message, request_id: requestId } }, { status });
@@ -54,6 +64,57 @@ const DEFAULT_PAGE_SIZE = 50;
 const AGGREGATION_ROW_CAP = 5000;
 const MAX_SEARCH_LENGTH = 200;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const WHATSAPP_ANALYSIS_FEED_FIELDS = 'message_id, theme, subtheme, sentiment, sentiment_score, relevance, ai_summary, intent, risk_level, mentioned_candidates, mentioned_entities, mentioned_locations, confidence, schema_version, prompt_version, analyzed_at, recommended_action' as const;
+
+interface WhatsappAnalysisFeedRow {
+  message_id: string;
+  theme: string | null;
+  subtheme: string | null;
+  sentiment: string | null;
+  sentiment_score: number | null;
+  relevance: string | null;
+  ai_summary: string | null;
+  intent: string | null;
+  risk_level: string | null;
+  mentioned_candidates: unknown[];
+  mentioned_entities: unknown[];
+  mentioned_locations: unknown[];
+  confidence: number | null;
+  schema_version: string;
+  prompt_version: string;
+  analyzed_at: string;
+  recommended_action: string | null;
+}
+
+export function mapWhatsappAnalysisFeedRow(a: WhatsappAnalysisFeedRow): WhatsAppAnalysisDTO {
+  return {
+    theme: a.theme,
+    subtheme: a.subtheme,
+    sentiment: a.sentiment as WhatsAppSentiment | null,
+    sentiment_score: a.sentiment_score,
+    relevance: a.relevance as WhatsAppRelevance | null,
+    summary: a.ai_summary,
+    intent: a.intent as WhatsAppIntent | null,
+    risk_level: a.risk_level as WhatsAppRiskLevel | null,
+    mentioned_candidates: a.mentioned_candidates as WhatsAppMentionedCandidateDTO[],
+    mentioned_entities: a.mentioned_entities as WhatsAppMentionedEntityDTO[],
+    mentioned_locations: a.mentioned_locations as WhatsAppMentionedLocationDTO[],
+    confidence: a.confidence,
+    schema_version: a.schema_version,
+    prompt_version: a.prompt_version,
+    analyzed_at: a.analyzed_at,
+    recommended_action: a.recommended_action,
+  };
+}
+
+export function latestWhatsappAnalysisByMessageId(rows: WhatsappAnalysisFeedRow[]) {
+  const latest = new Map<string, WhatsappAnalysisFeedRow>();
+  for (const row of rows) {
+    const current = latest.get(row.message_id);
+    if (!current || row.analyzed_at > current.analyzed_at) latest.set(row.message_id, row);
+  }
+  return latest;
+}
 
 export interface CommonFilters {
   from: string;
@@ -426,7 +487,7 @@ export async function getMessagesFeed(clientId: string | null, params: MessagesF
   if (clientId) chatsQuery = chatsQuery.eq('client_id', clientId);
   let fullAnalysisQuery = admin
     .from('whatsapp_analysis')
-    .select('message_id, theme, subtheme, sentiment, sentiment_score, relevance, ai_summary, intent, risk_level, mentioned_candidates, mentioned_entities, mentioned_locations')
+    .select(WHATSAPP_ANALYSIS_FEED_FIELDS)
     .eq('status', 'COMPLETED')
     .in('message_id', messageIds);
   if (clientId) fullAnalysisQuery = fullAnalysisQuery.eq('client_id', clientId);
@@ -438,7 +499,7 @@ export async function getMessagesFeed(clientId: string | null, params: MessagesF
   if (chatsError || analysisError) throw new Error('WHATSAPP_QUERY_FAILED');
 
   const chatById = new Map((chats ?? []).map((c) => [c.id, c]));
-  const analysisByMessageId = new Map((fullAnalysis ?? []).map((a) => [a.message_id, a]));
+  const analysisByMessageId = latestWhatsappAnalysisByMessageId((fullAnalysis ?? []) as WhatsappAnalysisFeedRow[]);
 
   const items = pageRows
     .map((m) => {
@@ -455,21 +516,7 @@ export async function getMessagesFeed(clientId: string | null, params: MessagesF
         media: m.media_url ? { url: m.media_url, mime_type: m.media_mime_type } : null,
         from_me: m.from_me,
         analysis_status: m.analysis_status,
-        analysis: a
-          ? {
-              theme: a.theme,
-              subtheme: a.subtheme,
-              sentiment: a.sentiment,
-              sentiment_score: a.sentiment_score,
-              relevance: a.relevance,
-              summary: a.ai_summary,
-              intent: a.intent,
-              risk_level: a.risk_level,
-              mentioned_candidates: a.mentioned_candidates,
-              mentioned_entities: a.mentioned_entities,
-              mentioned_locations: a.mentioned_locations,
-            }
-          : null,
+        analysis: a ? mapWhatsappAnalysisFeedRow(a as WhatsappAnalysisFeedRow) : null,
       };
     });
 
