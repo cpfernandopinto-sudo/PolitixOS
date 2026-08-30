@@ -5,9 +5,17 @@ import { useTransition } from 'react';
 import { Filter, RotateCcw } from 'lucide-react';
 import type { InstagramUiContract } from '@/lib/types/instagram-ui';
 
-type Props = { options: InstagramUiContract['filterOptions'] };
+type Props = {
+  options: {
+    formats: Array<'IMAGE' | 'REEL' | 'CAROUSEL'>;
+    risks: string[];
+    sentiments: string[];
+    origins?: Array<{ value: string; label: string }>;
+  };
+  activeTab?: 'owned' | 'external';
+};
 
-export default function InstagramUiFilters({ options }: Props) {
+export default function InstagramUiFilters({ options, activeTab }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -42,9 +50,17 @@ export default function InstagramUiFilters({ options }: Props) {
         onChange={(value) => update({ sentiment: value === 'all' ? null : value })}
         options={[['all', 'Todos'], ...options.sentiments.map((value) => [value, value.charAt(0).toUpperCase() + value.slice(1)] as [string, string])]}
       />
+      {options.origins && options.origins.length > 0 && (
+        <FilterSelect
+          label="Origem"
+          value={searchParams.get('origin') ?? 'all'}
+          onChange={(value) => update({ origin: value === 'all' ? null : value })}
+          options={[['all', 'Todas as origens'], ...options.origins.map((o) => [o.value, o.label] as [string, string])]}
+        />
+      )}
       <button
         type="button"
-        onClick={() => update({ format: null, risk: null, sentiment: null, topic: null })}
+        onClick={() => update({ format: null, risk: null, sentiment: null, topic: null, origin: null })}
         className="mt-auto inline-flex h-9 items-center justify-center gap-2 rounded-md border border-white/10 px-3 text-xs text-slate-300 hover:border-cyan-400/50 hover:text-white"
       >
         <RotateCcw size={14} /> Limpar Filtros
@@ -52,12 +68,16 @@ export default function InstagramUiFilters({ options }: Props) {
     </>
   );
 
+  const gridColsClass = options.origins && options.origins.length > 0
+    ? 'hidden grid-cols-5 items-end gap-3 md:grid max-w-5xl'
+    : 'hidden grid-cols-4 items-end gap-3 md:grid max-w-4xl';
+
   return (
     <div
       className={`sticky top-0 z-30 border-b border-white/10 bg-[#070b14]/95 py-2.5 backdrop-blur ${pending ? 'opacity-70' : ''}`}
       aria-busy={pending}
     >
-      <div className="hidden grid-cols-4 items-end gap-3 md:grid max-w-4xl">{fields}</div>
+      <div className={gridColsClass}>{fields}</div>
       <details className="md:hidden">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-200">
           <Filter size={16} /> Filtros Específicos

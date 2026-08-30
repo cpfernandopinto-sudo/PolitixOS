@@ -15,6 +15,7 @@ function makeChain(result: { data: unknown[] | null; error: { message: string } 
   const chain: Record<string, unknown> = {
     select: () => chain,
     eq: () => chain,
+    or: () => chain,
     in: () => chain,
     order: () => chain,
     gte: () => chain,

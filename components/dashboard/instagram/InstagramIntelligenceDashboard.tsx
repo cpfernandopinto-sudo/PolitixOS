@@ -5,12 +5,19 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertTriangle, ChevronLeft, ChevronRight, ExternalLink, Heart, ImageOff,
-  MessageCircle, Play, X, Zap, TrendingUp, Layers
+  MessageCircle, Play, X, Zap, TrendingUp, Layers, Share2, UserCheck, Sparkles, Radio
 } from 'lucide-react';
 import DonutChart from '@/components/charts/DonutChart';
 import LineChart from '@/components/charts/LineChart';
 import Drawer from '@/components/ui/Drawer';
-import type { InstagramMetric, InstagramUiContract, InstagramUiPost, InstagramUiComment } from '@/lib/types/instagram-ui';
+import type {
+  InstagramMetric,
+  InstagramUiContract,
+  InstagramUiPost,
+  InstagramUiComment,
+  InstagramExternalPost,
+  InstagramExternalUiContract,
+} from '@/lib/types/instagram-ui';
 
 const nf = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 const sentimentColors: Record<string, string> = { positivo: '#22c55e', neutro: '#3b82f6', misto: '#eab308', negativo: '#ef4444' };
@@ -45,6 +52,22 @@ function riskTone(value: string | null) {
   return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-medium';
 }
 
+function originBadge(origin: 'OWNED' | 'EXTERNAL') {
+  const isOwned = origin === 'OWNED';
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+        isOwned
+          ? 'bg-cyan-500/15 border border-cyan-400/30 text-cyan-300'
+          : 'bg-amber-500/15 border border-amber-400/30 text-amber-300'
+      }`}
+    >
+      <Radio size={10} />
+      {isOwned ? 'Próprio' : 'Externo'}
+    </span>
+  );
+}
+
 function recommendedActionText(action: string | null | undefined, hasAnalysis: boolean) {
   if (action && action.trim().length > 0 && action.trim() !== 'Sem análise' && action.trim() !== '—') {
     return action;
@@ -53,10 +76,66 @@ function recommendedActionText(action: string | null | undefined, hasAnalysis: b
   return 'RECOMENDAÇÃO INDISPONÍVEL';
 }
 
-export default function InstagramIntelligenceDashboard({ contract }: { contract: InstagramUiContract }) {
+export type StrategicRowItem =
+  | {
+      origin: 'OWNED';
+      id: string;
+      publishedAt: string | null;
+      candidateName: string | null;
+      caption: string;
+      themes: string[];
+      sentiment: string | null;
+      risk: string | null;
+      riskReason: string | null;
+      recommendedAction: string | null;
+      hasAnalysis: boolean;
+      raw: InstagramUiPost;
+    }
+  | {
+      origin: 'EXTERNAL';
+      id: string;
+      publishedAt: string | null;
+      candidateName: string | null;
+      author: { username: string; fullName: string | null };
+      discovery: { label: string; explanation: string };
+      caption: string;
+      themes: string[];
+      sentiment: string | null;
+      risk: string | null;
+      riskReason: string | null;
+      recommendedAction: string | null;
+      hasAnalysis: boolean;
+      raw: InstagramExternalPost;
+    };
+
+export default function InstagramIntelligenceDashboard({
+  contract,
+  externalContract,
+  initialTab = 'owned',
+}: {
+  contract: InstagramUiContract;
+  externalContract?: InstagramExternalUiContract;
+  initialTab?: 'owned' | 'external';
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'owned' | 'external'>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'external') return 'external';
+    if (tabParam === 'owned') return 'owned';
+    return initialTab;
+  });
   const [selectedPost, setSelectedPost] = useState<InstagramUiPost | null>(null);
+  const [selectedExternalPost, setSelectedExternalPost] = useState<InstagramExternalPost | null>(null);
+
+  function handleTabChange(tab: 'owned' | 'external') {
+    setActiveTab(tab);
+    const next = new URLSearchParams(searchParams.toString());
+    if (tab === 'external') next.set('tab', 'external');
+    else next.delete('tab');
+    next.delete('page');
+    router.replace(`?${next.toString()}`, { scroll: false });
+  }
 
   // --- Map of all posts by ID for quick lookup ---
   const allPostsMap = useMemo(() => {
@@ -91,6 +170,47 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
     };
   }, [contract.socialPressure]);
 
+  // --- Consolidated Strategic Table Items (OWNED + EXTERNAL) ---
+  const strategicItems: StrategicRowItem[] = useMemo(() => {
+    const ownedItems: StrategicRowItem[] = contract.recentPosts.map((p) => ({
+      origin: 'OWNED',
+      id: p.id,
+      publishedAt: p.publishedAt,
+      candidateName: p.candidateName,
+      caption: p.caption,
+      themes: p.analysis.themes,
+      sentiment: p.analysis.sentiment,
+      risk: p.analysis.risk,
+      riskReason: p.analysis.riskReason,
+      recommendedAction: p.analysis.recommendedAction,
+      hasAnalysis: Boolean(p.analysis.sentiment || p.analysis.risk),
+      raw: p,
+    }));
+
+    const externalItems: StrategicRowItem[] = (externalContract?.posts ?? []).map((p) => ({
+      origin: 'EXTERNAL',
+      id: p.id,
+      publishedAt: p.publishedAt,
+      candidateName: p.candidateName,
+      author: p.author,
+      discovery: p.discovery,
+      caption: p.caption,
+      themes: p.analysis.themes,
+      sentiment: p.analysis.sentiment,
+      risk: p.analysis.risk,
+      riskReason: p.analysis.riskReason,
+      recommendedAction: p.analysis.recommendedAction,
+      hasAnalysis: Boolean(p.analysis.sentiment || p.analysis.risk),
+      raw: p,
+    }));
+
+    return [...ownedItems, ...externalItems].sort((a, b) => {
+      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [contract.recentPosts, externalContract?.posts]);
+
   // --- Topic click handler ---
   function handleTopicClick(topicName: string) {
     const next = new URLSearchParams(searchParams.toString());
@@ -107,178 +227,317 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
     }
   }
 
-  if (contract.summary.posts === 0) return <EmptyState />;
-
   return (
     <div className="space-y-5 pb-12">
-      {/* 03 — ALERTA PRIORITÁRIO (CRÍSE / ALTO RISCO) */}
-      {criticalCount > 0 && criticalPost ? (
-        <section aria-label="Alerta prioritário" className="rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-[#161B26] p-4 shadow-md backdrop-blur">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-start gap-3 flex-1">
-              <div className="p-2.5 rounded-lg bg-rose-500 text-white shrink-0 animate-pulse mt-0.5">
-                <AlertTriangle size={22} />
-              </div>
-              <div className="space-y-1 flex-1 min-w-0">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-rose-600 text-white">
-                    Alerta Crítico de Inteligência
-                  </span>
-                  <span className="text-xs font-bold text-rose-300">
-                    {criticalCount} {criticalCount === 1 ? 'publicação com risco elevado' : 'publicações com risco elevado'} ({criticalPct}% do escopo)
-                  </span>
-                </div>
-                <h3 className="text-white font-bold text-sm md:text-base line-clamp-1">
-                  {criticalPost.caption || 'Publicação sob monitoramento de risco'}
-                </h3>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
-                  <span className="font-semibold text-cyan-300">{criticalPost.candidateName || 'Candidato'}</span>
-                  <span>•</span>
-                  <span>Formato: <strong className="text-white">{criticalPost.contentType}</strong></span>
-                  <span>•</span>
-                  <span>Interações: <strong className="text-white">{metric(criticalPost.metrics.likes)} likes, {metric(criticalPost.metrics.comments)} com.</strong></span>
-                  <span>•</span>
-                  <span className={`px-2 py-0.5 rounded border text-[9px] uppercase font-bold ${riskTone(criticalPost.analysis.risk)}`}>
-                    Risco {label(criticalPost.analysis.risk)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setSelectedPost(criticalPost)}
-                className="px-4 py-2 rounded-lg bg-cyan-400 text-black text-xs font-bold hover:bg-cyan-300 transition-colors shadow-md uppercase tracking-wider flex items-center gap-1.5"
-              >
-                <Zap size={13} /> Análise de IA
-              </button>
-              {criticalPost.url ? (
-                <a
-                  href={criticalPost.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3.5 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 text-xs font-medium hover:bg-white/10 transition-colors uppercase tracking-wider flex items-center gap-1.5"
-                >
-                  <ExternalLink size={13} /> Abrir Post
-                </a>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {/* 04 — KPIS EXECUTIVOS (5 CARDS REUTILIZANDO SURFACE-PRIMARY DA OVERVIEW) */}
-      <section aria-label="Indicadores principais" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi title="Posts monitorados" value={nf.format(contract.summary.posts)} detail={`${contract.summary.analyzedPosts} analisados por IA`} />
-        <Kpi title="Interações totais" value={`${nf.format(totalLikes)} likes`} detail={`${nf.format(totalPostComments)} comentários`} />
-        <Kpi title="Risco elevado" value={`${criticalPct}%`} detail={`${criticalCount} críticas`} tone={criticalCount ? 'rose' : 'cyan'} />
-        <Kpi title="Sentimento dominante" value={label(dominantSentiment)} detail={`${dominantSentimentItem ? Math.round((dominantSentimentItem.count / (contract.summary.analyzedPosts || 1)) * 100) : 0}% da amostra`} />
-        <Kpi title="Formato em destaque" value={topFormat ?? '—'} detail="Maior engajamento" />
-      </section>
-
-      {/* 05 — PANORAMA ANALÍTICO EXECUTIVO (4 CARDS COMPACTOS EM SURFACE-PRIMARY NA MESMA FILEIRA EM DESKTOP WIDESCREEN) */}
-      <section aria-label="Panorama analítico executivo" className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-        <Panel title="Pressão Social" subtitle="Evolução temporal de engajamento e comentários no recorte ativo" className="min-h-[240px]">
-          {pressureSeriesData.dates.length > 0 ? (
-            <LineChart
-              dates={pressureSeriesData.dates}
-              seriesData={[
-                { name: 'Comentários declarados', data: pressureSeriesData.comments, color: '#00FFFF' },
-                { name: 'Engajamento Total', data: pressureSeriesData.engagement, color: '#3B82F6' },
-              ]}
-              height={160}
-            />
-          ) : (
-            <div className="flex h-36 flex-col items-center justify-center text-slate-500 text-xs gap-1.5">
-              <TrendingUp size={24} className="opacity-30" />
-              <span className="text-[11px]">Sem séries temporais disponíveis</span>
-            </div>
-          )}
-        </Panel>
-
-        <Panel title="Termômetro de Risco" subtitle="Índice sintético de vulnerabilidade política" className="min-h-[240px]">
-          <RiskPanel contract={contract} />
-        </Panel>
-
-        <Panel title="Distribuição de Sentimento" subtitle="Percepção pública agregada entre os posts analisados" className="min-h-[240px]">
-          <SentimentDistribution contract={contract} />
-        </Panel>
-
-        <Panel title="Temas do Instagram (IA)" subtitle="Ranking das pautas dominantes identificadas por IA" className="min-h-[240px]">
-          <ThemesRanking themes={contract.themes} onSelectTopic={handleTopicClick} />
-        </Panel>
-      </section>
-
-      {/* 07 — PERFORMANCE POR FORMATO */}
-      <Panel title="Performance por Formato" subtitle="Métricas desagregadas por formato; dados ausentes não são convertidos em zero">
-        <Performance contract={contract} />
-      </Panel>
-
-      {/* 08 — MONITORAMENTO DE POSTS PRIORITÁRIOS */}
-      <Panel title="Monitoramento de Posts Prioritários" subtitle="Conteúdos que exigem atenção estratégica rápida (Top por engajamento e risco)">
-        <PriorityPostsTable posts={contract.priorityPosts.items.slice(0, 5)} onOpen={setSelectedPost} />
-      </Panel>
-
-      {/* 09 — FEED EXECUTIVO COMPACTO (4 COLUNAS DESKTOP) */}
-      <Panel title="Feed Executivo" subtitle="Clique em qualquer publicação para abrir a investigação completa (4 colunas em widescreen)">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {contract.recentPosts.map((post) => (
-            <CompactPostCard key={post.id} post={post} onOpen={() => setSelectedPost(post)} />
-          ))}
+      {/* 01 — NAVEGAÇÃO SEGMENTADA POR ORIGEM (OWNED vs EXTERNAL) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-[#090e1a] border border-white/10">
+          <button
+            type="button"
+            onClick={() => handleTabChange('owned')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'owned'
+                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+            }`}
+          >
+            <UserCheck size={14} />
+            <span>Conteúdo do Candidato</span>
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                activeTab === 'owned' ? 'bg-cyan-500/25 text-cyan-200' : 'bg-white/5 text-slate-400'
+              }`}
+            >
+              {contract.summary.posts}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange('external')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'external'
+                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+            }`}
+          >
+            <Share2 size={14} />
+            <span>Menções Externas</span>
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                activeTab === 'external' ? 'bg-cyan-500/25 text-cyan-200' : 'bg-white/5 text-slate-400'
+              }`}
+            >
+              {externalContract?.kpis.total ?? 0}
+            </span>
+          </button>
         </div>
-      </Panel>
 
-      {/* 10 — SINAIS RELEVANTES EM COMENTÁRIOS */}
-      <Panel title="Sinais Relevantes em Comentários" subtitle="Comentários de destaque ordenados por likes — clique em 'Ver Contexto' para investigar o post">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {contract.comments.relevant.length > 0 ? (
-            contract.comments.relevant.slice(0, 8).map((comment) => (
-              <article key={comment.id} className="surface-primary p-3 flex flex-col justify-between hover:border-cyan-400/40 transition-all">
-                <div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
-                    <span className="font-semibold text-slate-300">@{comment.author || 'usuário'}</span>
-                    <span className="text-cyan-400 font-bold">{metric(comment.likeCount)} likes</span>
+        <div className="text-[11px] text-slate-400 font-medium hidden sm:block">
+          {activeTab === 'owned' ? (
+            <span>Exibindo publicações oficiais do candidato monitorado</span>
+          ) : (
+            <span>Exibindo menções, tags e publicações de terceiros identificadas por IA</span>
+          )}
+        </div>
+      </div>
+
+      {/* 02 — CONTEÚDO DA ABA SELECIONADA */}
+      {activeTab === 'owned' ? (
+        contract.summary.posts === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="space-y-5">
+            {/* 03 — ALERTA PRIORITÁRIO (CRÍSE / ALTO RISCO) */}
+            {criticalCount > 0 && criticalPost ? (
+              <section aria-label="Alerta prioritário" className="rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-[#161B26] p-4 shadow-md backdrop-blur">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2.5 rounded-lg bg-rose-500 text-white shrink-0 animate-pulse mt-0.5">
+                      <AlertTriangle size={22} />
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-rose-600 text-white">
+                          Alerta Crítico de Inteligência
+                        </span>
+                        <span className="text-xs font-bold text-rose-300">
+                          {criticalCount} {criticalCount === 1 ? 'publicação com risco elevado' : 'publicações com risco elevado'} ({criticalPct}% do escopo)
+                        </span>
+                      </div>
+                      <h3 className="text-white font-bold text-sm md:text-base line-clamp-1">
+                        {criticalPost.caption || 'Publicação sob monitoramento de risco'}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
+                        <span className="font-semibold text-cyan-300">{criticalPost.candidateName || 'Candidato'}</span>
+                        <span>•</span>
+                        <span>Formato: <strong className="text-white">{criticalPost.contentType}</strong></span>
+                        <span>•</span>
+                        <span>Interações: <strong className="text-white">{metric(criticalPost.metrics.likes)} likes, {metric(criticalPost.metrics.comments)} com.</strong></span>
+                        <span>•</span>
+                        <span className={`px-2 py-0.5 rounded border text-[9px] uppercase font-bold ${riskTone(criticalPost.analysis.risk)}`}>
+                          Risco {label(criticalPost.analysis.risk)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="line-clamp-3 text-xs leading-4 text-slate-200 font-normal">
-                    &ldquo;{comment.text || 'Comentário sem texto.'}&rdquo;
-                  </p>
-                  {comment.postCaption ? (
-                    <p className="mt-2 line-clamp-2 border-l-2 border-cyan-400/50 pl-2 text-[10px] text-slate-400 italic">
-                      Post: {comment.postCaption}
-                    </p>
-                  ) : null}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPost(criticalPost)}
+                      className="px-4 py-2 rounded-lg bg-cyan-400 text-black text-xs font-bold hover:bg-cyan-300 transition-colors shadow-md uppercase tracking-wider flex items-center gap-1.5"
+                    >
+                      <Zap size={13} /> Análise de IA
+                    </button>
+                    {criticalPost.url ? (
+                      <a
+                        href={criticalPost.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3.5 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 text-xs font-medium hover:bg-white/10 transition-colors uppercase tracking-wider flex items-center gap-1.5"
+                      >
+                        <ExternalLink size={13} /> Abrir Post
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="mt-3 border-t border-white/5 pt-2 flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-slate-400">{comment.candidateName || '—'}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenCommentContext(comment)}
-                    className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 uppercase tracking-wider"
-                  >
-                    Ver Contexto →
-                  </button>
-                </div>
-              </article>
-            ))
+              </section>
+            ) : null}
+
+            {/* 04 — KPIS EXECUTIVOS (5 CARDS REUTILIZANDO SURFACE-PRIMARY DA OVERVIEW) */}
+            <section aria-label="Indicadores principais" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+              <Kpi title="Posts monitorados" value={nf.format(contract.summary.posts)} detail={`${contract.summary.analyzedPosts} analisados por IA`} />
+              <Kpi title="Interações totais" value={`${nf.format(totalLikes)} likes`} detail={`${nf.format(totalPostComments)} comentários`} />
+              <Kpi title="Risco elevado" value={`${criticalPct}%`} detail={`${criticalCount} críticas`} tone={criticalCount ? 'rose' : 'cyan'} />
+              <Kpi title="Sentimento dominante" value={label(dominantSentiment)} detail={`${dominantSentimentItem ? Math.round((dominantSentimentItem.count / (contract.summary.analyzedPosts || 1)) * 100) : 0}% da amostra`} />
+              <Kpi title="Formato em destaque" value={topFormat ?? '—'} detail="Maior engajamento" />
+            </section>
+
+            {/* 05 — PANORAMA ANALÍTICO EXECUTIVO (4 CARDS COMPACTOS EM SURFACE-PRIMARY NA MESMA FILEIRA EM DESKTOP WIDESCREEN) */}
+            <section aria-label="Panorama analítico executivo" className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+              <Panel title="Pressão Social" subtitle="Evolução temporal de engajamento e comentários no recorte ativo" className="min-h-[240px]">
+                {pressureSeriesData.dates.length > 0 ? (
+                  <LineChart
+                    dates={pressureSeriesData.dates}
+                    seriesData={[
+                      { name: 'Comentários declarados', data: pressureSeriesData.comments, color: '#00FFFF' },
+                      { name: 'Engajamento Total', data: pressureSeriesData.engagement, color: '#3B82F6' },
+                    ]}
+                    height={160}
+                  />
+                ) : (
+                  <div className="flex h-36 flex-col items-center justify-center text-slate-500 text-xs gap-1.5">
+                    <TrendingUp size={24} className="opacity-30" />
+                    <span className="text-[11px]">Sem séries temporais disponíveis</span>
+                  </div>
+                )}
+              </Panel>
+
+              <Panel title="Termômetro de Risco" subtitle="Índice sintético de vulnerabilidade política" className="min-h-[240px]">
+                <RiskPanel contract={contract} />
+              </Panel>
+
+              <Panel title="Distribuição de Sentimento" subtitle="Percepção pública agregada entre os posts analisados" className="min-h-[240px]">
+                <SentimentDistribution contract={contract} />
+              </Panel>
+
+              <Panel title="Temas do Instagram (IA)" subtitle="Ranking das pautas dominantes identificadas por IA" className="min-h-[240px]">
+                <ThemesRanking themes={contract.themes} onSelectTopic={handleTopicClick} />
+              </Panel>
+            </section>
+
+            {/* 07 — PERFORMANCE POR FORMATO */}
+            <Panel title="Performance por Formato" subtitle="Métricas desagregadas por formato; dados ausentes não são convertidos em zero">
+              <Performance contract={contract} />
+            </Panel>
+
+            {/* 08 — MONITORAMENTO DE POSTS PRIORITÁRIOS */}
+            <Panel title="Monitoramento de Posts Prioritários" subtitle="Conteúdos que exigem atenção estratégica rápida (Top por engajamento e risco)">
+              <PriorityPostsTable posts={contract.priorityPosts.items.slice(0, 5)} onOpen={setSelectedPost} />
+            </Panel>
+
+            {/* 09 — FEED EXECUTIVO COMPACTO (4 COLUNAS DESKTOP) */}
+            <Panel title="Feed Executivo" subtitle="Clique em qualquer publicação para abrir a investigação completa (4 colunas em widescreen)">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {contract.recentPosts.map((post) => (
+                  <CompactPostCard key={post.id} post={post} onOpen={() => setSelectedPost(post)} />
+                ))}
+              </div>
+            </Panel>
+
+            {/* 10 — SINAIS RELEVANTES EM COMENTÁRIOS */}
+            <Panel title="Sinais Relevantes em Comentários" subtitle="Comentários de destaque ordenados por likes — clique em 'Ver Contexto' para investigar o post">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {contract.comments.relevant.length > 0 ? (
+                  contract.comments.relevant.slice(0, 8).map((comment) => (
+                    <article key={comment.id} className="surface-primary p-3 flex flex-col justify-between hover:border-cyan-400/40 transition-all">
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
+                          <span className="font-semibold text-slate-300">@{comment.author || 'usuário'}</span>
+                          <span className="text-cyan-400 font-bold">{metric(comment.likeCount)} likes</span>
+                        </div>
+                        <p className="line-clamp-3 text-xs leading-4 text-slate-200 font-normal">
+                          &ldquo;{comment.text || 'Comentário sem texto.'}&rdquo;
+                        </p>
+                        {comment.postCaption ? (
+                          <p className="mt-2 line-clamp-2 border-l-2 border-cyan-400/50 pl-2 text-[10px] text-slate-400 italic">
+                            Post: {comment.postCaption}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="mt-3 border-t border-white/5 pt-2 flex items-center justify-between">
+                        <span className="text-[10px] font-semibold text-slate-400">{comment.candidateName || '—'}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCommentContext(comment)}
+                          className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 uppercase tracking-wider"
+                        >
+                          Ver Contexto →
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <div className="col-span-full py-8 text-center text-xs text-slate-500 italic">
+                    Nenhum comentário com sinal objetivo de relevância no recorte atual.
+                  </div>
+                )}
+              </div>
+            </Panel>
+
+            {/* 11 — ANÁLISE ESTRATÉGICA DOS POSTS */}
+            <Panel title="Análise Estratégica dos Posts" subtitle="Tabela comparativa executiva consolidando conteúdos próprios e menções externas">
+              <StrategicPostsTable
+                items={strategicItems.slice(0, 25)}
+                onOpenOwned={setSelectedPost}
+                onOpenExternal={setSelectedExternalPost}
+              />
+            </Panel>
+          </div>
+        )
+      ) : (
+        /* ABA DE MENÇÕES EXTERNAS */
+        <div className="space-y-5">
+          {/* KPIS DE MENÇÕES EXTERNAS */}
+          <section aria-label="Indicadores de menções externas" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi
+              title="Menções externas"
+              value={nf.format(externalContract?.kpis.total ?? 0)}
+              detail="Publicações de terceiros"
+              tone="cyan"
+            />
+            <Kpi
+              title="Sentimento positivo"
+              value={`${externalContract?.kpis.positive ?? 0}`}
+              detail={`${externalContract?.kpis.positivePct ?? 0}% da amostra externa`}
+              tone="emerald"
+            />
+            <Kpi
+              title="Sentimento negativo"
+              value={`${externalContract?.kpis.negative ?? 0}`}
+              detail={`${externalContract?.kpis.negativePct ?? 0}% da amostra externa`}
+              tone={(externalContract?.kpis.negative ?? 0) > 0 ? 'amber' : 'slate'}
+            />
+            <Kpi
+              title="Risco alto / crítico"
+              value={`${externalContract?.kpis.highOrCriticalRisk ?? 0}`}
+              detail={`${externalContract?.kpis.highOrCriticalRiskPct ?? 0}% com atenção prioritária`}
+              tone={(externalContract?.kpis.highOrCriticalRisk ?? 0) > 0 ? 'rose' : 'cyan'}
+            />
+          </section>
+
+          {/* FEED DE MENÇÕES EXTERNAS */}
+          {!externalContract || externalContract.posts.length === 0 ? (
+            <EmptyExternalState />
           ) : (
-            <div className="col-span-full py-8 text-center text-xs text-slate-500 italic">
-              Nenhum comentário com sinal objetivo de relevância no recorte atual.
-            </div>
+            <section aria-label="Feed de menções externas" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+                    Publicações de Terceiros ({externalContract.pagination.total})
+                  </h2>
+                  <p className="text-[11px] text-slate-400">
+                    Perfis e páginas que mencionaram ou citaram o candidato no Instagram.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {externalContract.posts.map((post) => (
+                  <ExternalPostCard
+                    key={post.id}
+                    post={post}
+                    onOpenDrawer={() => setSelectedExternalPost(post)}
+                  />
+                ))}
+              </div>
+
+              <ExternalPagination
+                pagination={externalContract.pagination}
+                onPageChange={(page) => {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('page', String(page));
+                  router.replace(`?${next.toString()}`, { scroll: false });
+                }}
+              />
+            </section>
           )}
         </div>
-      </Panel>
+      )}
 
-      {/* 11 — ANÁLISE ESTRATÉGICA DOS POSTS */}
-      <Panel title="Análise Estratégica dos Posts" subtitle="Tabela comparativa executiva com diagnósticos e recomendações de IA">
-        <StrategicPostsTable posts={contract.recentPosts.slice(0, 15)} onOpen={setSelectedPost} />
-      </Panel>
-
-      {/* 12 — POST DETAIL & AI ANALYSIS DRAWER (OVERLAY REUTILIZADO) */}
+      {/* 12 — POST DETAIL & AI ANALYSIS DRAWER (OWNED) */}
       {selectedPost ? (
         <PostDrawer
           post={selectedPost}
           comments={contract.comments.recent.filter((comment) => comment.postId === selectedPost.id)}
           onClose={() => setSelectedPost(null)}
+        />
+      ) : null}
+
+      {/* 13 — EXTERNAL POST DETAIL & AI ANALYSIS DRAWER */}
+      {selectedExternalPost ? (
+        <ExternalPostDrawer
+          post={selectedExternalPost}
+          onClose={() => setSelectedExternalPost(null)}
         />
       ) : null}
     </div>
@@ -287,12 +546,33 @@ export default function InstagramIntelligenceDashboard({ contract }: { contract:
 
 // --- SUBCOMPONENTS & HELPERS ---
 
-function Kpi({ title, value, detail, tone = 'cyan' }: { title: string; value: string; detail: string; tone?: 'cyan' | 'rose' }) {
+function Kpi({
+  title,
+  value,
+  detail,
+  tone = 'cyan',
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  tone?: 'cyan' | 'rose' | 'emerald' | 'amber' | 'slate';
+}) {
+  const toneClass =
+    tone === 'rose'
+      ? 'text-rose-400'
+      : tone === 'emerald'
+        ? 'text-emerald-400'
+        : tone === 'amber'
+          ? 'text-amber-400'
+          : tone === 'slate'
+            ? 'text-slate-300'
+            : 'text-white';
+
   return (
     <article className="surface-primary px-4 py-3.5 flex flex-col justify-between shadow-sm">
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{title}</p>
-      <p className={`mt-1 text-xl font-black tracking-tight leading-none ${tone === 'rose' ? 'text-rose-400' : 'text-white'}`}>{value}</p>
-      <p className="mt-1 text-[10px] text-slate-400 truncate">{detail}</p>
+      <p className={`mt-1 text-xl font-black tracking-tight leading-none ${toneClass}`}>{value}</p>
+      <p className="mt-1 text-[10px] text-slate-500 line-clamp-1">{detail}</p>
     </article>
   );
 }
@@ -622,17 +902,24 @@ function CompactPostCard({ post, onOpen }: { post: InstagramUiPost; onOpen: () =
 }
 
 function StrategicPostsTable({
-  posts,
-  onOpen,
+  items,
+  onOpenOwned,
+  onOpenExternal,
 }: {
-  posts: InstagramUiPost[];
-  onOpen: (post: InstagramUiPost) => void;
+  items: StrategicRowItem[];
+  onOpenOwned: (post: InstagramUiPost) => void;
+  onOpenExternal: (post: InstagramExternalPost) => void;
 }) {
+  if (!items.length) {
+    return <div className="py-6 text-center text-xs text-slate-500 italic">Nenhum conteúdo no recorte.</div>;
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-xs text-slate-300">
         <thead className="border-b border-white/10 bg-white/[0.02] text-[10px] font-bold uppercase tracking-widest text-slate-400">
           <tr>
+            <th className="p-2.5">Origem</th>
             <th className="p-2.5">Data</th>
             <th className="p-2.5">Candidato</th>
             <th className="p-2.5">Conteúdo</th>
@@ -645,30 +932,51 @@ function StrategicPostsTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
-          {posts.map((p) => {
-            const hasAnalysis = Boolean(p.analysis.sentiment || p.analysis.risk);
-            const dateStr = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('pt-BR') : '—';
-            const actionText = recommendedActionText(p.analysis.recommendedAction, hasAnalysis);
+          {items.map((item) => {
+            const dateStr = item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('pt-BR') : '—';
+            const actionText = recommendedActionText(item.recommendedAction, item.hasAnalysis);
+            const handleOpen = () => {
+              if (item.origin === 'OWNED') onOpenOwned(item.raw);
+              else onOpenExternal(item.raw);
+            };
+
             return (
-              <tr key={p.id} className="hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onOpen(p)}>
+              <tr
+                key={item.id}
+                className="hover:bg-white/5 transition-colors cursor-pointer group"
+                onClick={handleOpen}
+              >
+                <td className="p-2.5 whitespace-nowrap">{originBadge(item.origin)}</td>
                 <td className="p-2.5 whitespace-nowrap text-slate-400">{dateStr}</td>
-                <td className="p-2.5 font-semibold text-cyan-400 whitespace-nowrap">{p.candidateName || '—'}</td>
-                <td className="p-2.5 max-w-[200px] truncate font-medium text-white">{p.caption || 'Sem legenda'}</td>
-                <td className="p-2.5 max-w-[120px] truncate text-slate-300">{p.analysis.themes[0] || '—'}</td>
-                <td className="p-2.5 whitespace-nowrap">{label(p.analysis.sentiment)}</td>
+                <td className="p-2.5 font-semibold text-cyan-400 whitespace-nowrap">{item.candidateName || '—'}</td>
+                <td className="p-2.5 max-w-[240px]">
+                  {item.origin === 'EXTERNAL' ? (
+                    <div>
+                      <span className="font-semibold text-cyan-400 block text-[11px]">@{item.author.username}</span>
+                      <p className="font-medium text-white truncate group-hover:text-cyan-300">{item.caption || 'Sem legenda'}</p>
+                      <span className="text-[10px] text-amber-400 font-medium truncate block mt-0.5">
+                        Encontrado por: "{item.discovery.label}"
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="font-medium text-white truncate group-hover:text-cyan-300">{item.caption || 'Sem legenda'}</p>
+                  )}
+                </td>
+                <td className="p-2.5 max-w-[120px] truncate text-slate-300">{item.themes[0] || '—'}</td>
+                <td className="p-2.5 whitespace-nowrap font-medium text-slate-300">{label(item.sentiment)}</td>
                 <td className="p-2.5 whitespace-nowrap">
-                  <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold ${riskTone(p.analysis.risk)}`}>
-                    {label(p.analysis.risk)}
+                  <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold ${riskTone(item.risk)}`}>
+                    {label(item.risk)}
                   </span>
                 </td>
-                <td className="p-2.5 max-w-xs truncate text-slate-400">{p.analysis.riskReason || '—'}</td>
+                <td className="p-2.5 max-w-xs truncate text-slate-400">{item.riskReason || '—'}</td>
                 <td className="p-2.5 max-w-xs truncate text-slate-300 font-medium">{actionText}</td>
                 <td className="p-2.5 text-right whitespace-nowrap">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onOpen(p);
+                      handleOpen();
                     }}
                     className="text-cyan-400 font-bold uppercase text-[10px] tracking-wider hover:underline"
                   >
@@ -884,3 +1192,336 @@ function EmptyState() {
     </div>
   );
 }
+
+function EmptyExternalState() {
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0B0F19] p-12 text-center shadow-lg space-y-3">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+        <Share2 size={28} />
+      </div>
+      <h3 className="text-base font-bold text-white">Nenhuma menção externa relevante encontrada no período monitorado.</h3>
+      <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+        O Politix continua monitorando publicações de terceiros relacionadas a este candidato.
+      </p>
+    </div>
+  );
+}
+
+function ExternalPostCard({
+  post,
+  onOpenDrawer,
+}: {
+  post: InstagramExternalPost;
+  onOpenDrawer: () => void;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const formattedDate = post.publishedAt
+    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(post.publishedAt))
+    : 'Data indisp.';
+
+  const isPositive = post.analysis.sentiment?.toLowerCase() === 'positivo';
+  const isNegative = post.analysis.sentiment?.toLowerCase() === 'negativo';
+  const sentimentBadgeColor = isPositive
+    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+    : isNegative
+      ? 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+      : 'border-blue-500/30 bg-blue-500/10 text-blue-300';
+
+  return (
+    <article className="flex flex-col justify-between rounded-xl border border-white/[0.08] bg-[#0c1222] p-4 transition-all hover:border-cyan-500/40 hover:shadow-lg">
+      <div className="space-y-3">
+        {/* Header do Card */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold text-xs">
+              {post.author.username.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <h4 className="truncate text-xs font-bold text-white hover:text-cyan-300 transition-colors">
+                @{post.author.username}
+              </h4>
+              {post.author.fullName && (
+                <p className="truncate text-[10px] text-slate-400">{post.author.fullName}</p>
+              )}
+            </div>
+          </div>
+          <span className="shrink-0 rounded bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+            {post.discovery.label}
+          </span>
+        </div>
+
+        {/* Mídia / Imagem se existir */}
+        {post.mediaUrl && !imgError ? (
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black/40 border border-white/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.mediaUrl}
+              alt={post.caption || 'Publicação externa'}
+              className="h-full w-full object-cover"
+              onError={() => setImgError(true)}
+            />
+            <div className="absolute bottom-2 right-2 rounded bg-black/70 backdrop-blur px-1.5 py-0.5 text-[9px] font-bold text-white flex items-center gap-1">
+              {post.contentType === 'REEL' ? <Play size={10} /> : <Layers size={10} />}
+              {post.contentType}
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-12 w-full items-center justify-between rounded-lg bg-white/[0.02] border border-white/5 px-3">
+            <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5">
+              {post.contentType === 'REEL' ? <Play size={12} className="text-cyan-400" /> : <Layers size={12} className="text-cyan-400" />}
+              Formato {post.contentType}
+            </span>
+            <span className="text-[10px] text-slate-500">{formattedDate}</span>
+          </div>
+        )}
+
+        {/* Legenda / Caption */}
+        <p className="line-clamp-3 text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
+          {post.caption || 'Publicação externa sem legenda.'}
+        </p>
+
+        {/* Métricas de Engajamento */}
+        <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400 border-y border-white/5 py-2">
+          <span className="flex items-center gap-1 hover:text-rose-400 transition-colors">
+            <Heart size={13} className="text-rose-400/80" />
+            {metric(post.metrics.likes)}
+          </span>
+          <span className="flex items-center gap-1 hover:text-cyan-400 transition-colors">
+            <MessageCircle size={13} className="text-cyan-400/80" />
+            {metric(post.metrics.comments)}
+          </span>
+          {post.metrics.views.availability === 'AVAILABLE' && (
+            <span className="flex items-center gap-1 hover:text-indigo-400 transition-colors">
+              <Play size={13} className="text-indigo-400/80" />
+              {metric(post.metrics.views)}
+            </span>
+          )}
+          <span className="ml-auto text-[10px] text-slate-500">{formattedDate}</span>
+        </div>
+
+        {/* Tags de IA: Sentimento, Risco e Tópicos */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase border ${sentimentBadgeColor}`}>
+              {label(post.analysis.sentiment)}
+            </span>
+            <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase border ${riskTone(post.analysis.risk)}`}>
+              Risco {label(post.analysis.risk)}
+            </span>
+            {post.analysis.themes.slice(0, 2).map((theme) => (
+              <span key={theme} className="rounded bg-white/5 border border-white/10 px-2 py-0.5 text-[9px] text-slate-300 font-medium">
+                {theme}
+              </span>
+            ))}
+          </div>
+
+          {/* Resumo da Análise */}
+          {post.analysis.summary && (
+            <div className="rounded-lg bg-white/[0.02] border border-white/5 p-2.5 text-[11px] leading-relaxed text-slate-300">
+              <p className="line-clamp-2 italic text-slate-300">
+                &ldquo;{post.analysis.summary}&rdquo;
+              </p>
+            </div>
+          )}
+
+          {/* Ação Recomendada */}
+          {post.analysis.recommendedAction && (
+            <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-2.5 text-[11px] font-medium text-cyan-200">
+              <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">
+                <Zap size={11} /> Ação Recomendada
+              </div>
+              <p className="line-clamp-2 leading-relaxed">
+                {post.analysis.recommendedAction}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer do Card */}
+      <div className="mt-4 flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+        <button
+          type="button"
+          onClick={onOpenDrawer}
+          className="flex items-center gap-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/15 hover:text-cyan-300 border border-white/10 px-3 py-1.5 text-xs font-bold text-slate-200 transition-all"
+        >
+          <Zap size={12} className="text-cyan-400" /> Detalhes & IA
+        </button>
+        {post.url && (
+          <a
+            href={post.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-cyan-400 transition-colors"
+          >
+            <span>Ver no Instagram</span>
+            <ExternalLink size={12} />
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function ExternalPostDrawer({
+  post,
+  onClose,
+}: {
+  post: InstagramExternalPost;
+  onClose: () => void;
+}) {
+  const isPositive = post.analysis.sentiment?.toLowerCase() === 'positivo';
+  const isNegative = post.analysis.sentiment?.toLowerCase() === 'negativo';
+  const sentimentBadgeColor = isPositive
+    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+    : isNegative
+      ? 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+      : 'border-blue-500/30 bg-blue-500/10 text-blue-300';
+
+  return (
+    <Drawer
+      open={true}
+      onClose={onClose}
+      badge={<span className="text-[10px] uppercase font-bold tracking-[.16em] text-cyan-400">Menção Externa de Terceiros</span>}
+      title={`@${post.author.username}`}
+    >
+      <div className="space-y-6">
+        {/* Contexto da Descoberta / Explicabilidade */}
+        <section className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/30 via-[#0e1628] to-[#090e1a] p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+              {post.discovery.label}
+            </span>
+            <span className="text-xs font-bold text-slate-200">Origem da Associação</span>
+          </div>
+          <p className="text-xs leading-relaxed text-cyan-100 font-medium">
+            {post.discovery.explanation}
+          </p>
+        </section>
+
+        {/* Link para publicação original */}
+        {post.url && (
+          <div>
+            <a
+              href={post.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs py-2.5 px-4 transition-all shadow-md uppercase tracking-wider"
+            >
+              <ExternalLink size={14} /> Ver Publicação Original no Instagram
+            </a>
+          </div>
+        )}
+
+        {/* Mídia & Legenda */}
+        <section className="space-y-3">
+          {post.mediaUrl && (
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black/60 border border-white/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.mediaUrl}
+                alt={post.caption || 'Publicação externa'}
+                className="h-full w-full object-contain"
+              />
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-bold text-cyan-300">
+              Formato {post.contentType}
+            </span>
+            <span className={`rounded border px-2.5 py-1 text-[10px] ${riskTone(post.analysis.risk)}`}>
+              Risco {label(post.analysis.risk)}
+            </span>
+            <span className={`rounded border px-2.5 py-1 text-[10px] ${sentimentBadgeColor}`}>
+              Sentimento {label(post.analysis.sentiment)}
+            </span>
+            <span className="rounded border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
+              Publicado {post.publishedAt ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(post.publishedAt)) : '—'}
+            </span>
+          </div>
+
+          <div className="bg-white/[0.02] p-4 rounded-lg border border-white/5 space-y-2">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Conteúdo do Post</h4>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-200 font-normal">
+              {post.caption || 'Publicação externa sem legenda textual.'}
+            </p>
+          </div>
+        </section>
+
+        {/* Métricas de Engajamento */}
+        <section className="grid grid-cols-3 gap-3">
+          <Kpi title="Likes" value={metric(post.metrics.likes)} detail="Na publicação" />
+          <Kpi title="Comentários" value={metric(post.metrics.comments)} detail="No post" />
+          <Kpi title="Visualizações" value={metric(post.metrics.views)} detail="Quando disponível" />
+        </section>
+
+        {/* Análise de IA */}
+        <AnalysisBlock title="Resumo Executivo da IA" text={post.analysis.summary} />
+        <AnalysisBlock title="Motivo da Classificação de Risco" text={post.analysis.riskReason} />
+
+        {/* Ação Recomendada */}
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-2">
+            <Zap size={14} /> Recomendação Estratégica
+          </h3>
+          <div className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200 leading-relaxed">
+            {post.analysis.recommendedAction || 'NENHUMA AÇÃO REQUERIDA NO MOMENTO'}
+          </div>
+        </section>
+
+        {/* Temas Detectados */}
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Temas Identificados</h3>
+          {post.analysis.themes.length ? (
+            <div className="flex flex-wrap gap-2">
+              {post.analysis.themes.map((theme) => (
+                <span key={theme} className="rounded bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-slate-300 font-medium">
+                  {theme}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500 italic">Nenhum tema específico indexado.</p>
+          )}
+        </section>
+      </div>
+    </Drawer>
+  );
+}
+
+function ExternalPagination({
+  pagination,
+  onPageChange,
+}: {
+  pagination: InstagramExternalUiContract['pagination'];
+  onPageChange: (page: number) => void;
+}) {
+  if (pagination.totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between border-t border-white/10 pt-4 text-xs text-slate-400">
+      <span>
+        Página {pagination.page} de {pagination.totalPages} ({pagination.total} menções)
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={pagination.page <= 1}
+          onClick={() => onPageChange(pagination.page - 1)}
+          className="rounded border border-white/10 px-3 py-1.5 hover:border-cyan-400/50 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          disabled={!pagination.hasNextPage}
+          onClick={() => onPageChange(pagination.page + 1)}
+          className="rounded border border-white/10 px-3 py-1.5 hover:border-cyan-400/50 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+  );
+}
+
